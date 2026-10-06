@@ -69,4 +69,27 @@ describe('ReadinessCard Component', () => {
     fireEvent.click(fixBtn);
     expect(onFixProfile).toHaveBeenCalledTimes(1);
   });
+
+  it('renders exact pilgrim limit error when selection does not match service requirement', () => {
+    const exactLimitState: UseReadinessResult = {
+      isReady: false,
+      score: 50,
+      checks: [
+        { id: 'ttd-page', label: 'TTD Page', passed: true, message: 'TTD page detected', severity: 'info' },
+        { id: 'profile', label: 'Profile', passed: true, message: 'Family selected', severity: 'info' },
+        { id: 'exact-pilgrim-count', label: 'Pilgrim Limit', passed: false, message: 'Exactly 2 devotees required per booking (selected: 1)', severity: 'error' },
+      ],
+      missingDetails: ['Exactly 2 devotees required for Sri Srinivasa Divyanugraha Homam'],
+      totalPilgrims: 1,
+      readyPilgrims: 1,
+      hasInvalidAadhaar: false,
+      hasInvalidMobile: false,
+      allPilgrimsReady: true,
+      hasValidGeneralContact: true,
+      recommendations: ['Select exactly 2 devotees for this service'],
+    };
+
+    render(<ReadinessCard readiness={exactLimitState} onFixProfile={vi.fn()} />);
+    expect(screen.getByText('Exactly 2 devotees required per booking (selected: 1)')).toBeTruthy();
+  });
 });

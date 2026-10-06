@@ -176,9 +176,9 @@ export function useReadiness(
         label: 'Pilgrim Limit',
         passed: false,
         severity: 'error',
-        message: `Maximum 2 persons per booking (selected: ${pilgrimCount})`,
+        message: `Exactly ${exactPilgrims} devotees required per booking (selected: ${pilgrimCount})`,
       });
-      missingDetails.push(`Maximum 2 persons per booking required for ${workflow.serviceName}`);
+      missingDetails.push(`Exactly ${exactPilgrims} devotees required for ${workflow.serviceName}`);
     }
 
     checks.push({
