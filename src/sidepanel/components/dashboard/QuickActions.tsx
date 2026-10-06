@@ -1,0 +1,76 @@
+import React from 'react';
+import { t } from '@i18n/index';
+
+interface QuickActionsProps {
+  onNavigate: (page: string) => void;
+  onOpenPrivacy: () => void;
+}
+
+export const QuickActions: React.FC<QuickActionsProps> = ({
+  onNavigate,
+  onOpenPrivacy,
+}) => {
+  const actions = [
+    {
+      id: 'pilgrims',
+      label: t('nav.pilgrims'),
+      subtext: t('dashboard.manageDevotees'),
+      icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z',
+      action: () => onNavigate('profiles'),
+    },
+    {
+      id: 'profiles',
+      label: t('nav.profiles'),
+      subtext: t('dashboard.familyAndGroups'),
+      icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z',
+      action: () => onNavigate('profiles'),
+    },
+    {
+      id: 'privacy',
+      label: t('dashboard.privacy'),
+      subtext: t('dashboard.localDataSecurity'),
+      icon: 'M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z',
+      action: onOpenPrivacy,
+    },
+    {
+      id: 'settings',
+      label: t('nav.settings'),
+      subtext: t('dashboard.preferencesAndTools'),
+      icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z',
+      action: () => onNavigate('settings'),
+    },
+  ];
+
+  return (
+    <div className="space-y-2">
+      <p className="text-xs font-bold uppercase tracking-wider text-[#6F6477] dark:text-[#A692B4] px-0.5">
+        {t('dashboard.quickActions')}
+      </p>
+      <div className="grid grid-cols-4 gap-2">
+        {actions.map((act) => (
+          <button
+            key={act.id}
+            onClick={act.action}
+            className="flex flex-col items-center p-3 bg-white dark:bg-[#2A1733] rounded-2xl border border-[rgba(84,37,138,0.1)] hover:border-[#54258A]/30 hover:bg-[#FAF5FF] dark:hover:bg-[#3E1B68]/20 cursor-pointer transition-all group shadow-2xs min-h-[58px] justify-center"
+            aria-label={act.label}
+          >
+            <svg
+              className="w-5 h-5 text-[#54258A] dark:text-[#D4A72C] mb-1 group-hover:scale-110 transition-transform shrink-0"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d={act.icon} />
+            </svg>
+            <span className="text-xs font-bold text-[#30213A] dark:text-[#F8EFD8] leading-tight text-center truncate w-full">
+              {act.label}
+            </span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+};

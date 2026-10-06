@@ -1,0 +1,419 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* TTD Heritage Color Tokens */
+  --ttd-purple: #5B2A86;
+  --ttd-purple-dark: #421B68;
+  --ttd-purple-light: #7650A3;
+  --temple-gold: #D4A72C;
+  --temple-gold-light: #F0CC63;
+  --temple-gold-dark: #A97916;
+  --temple-red: #B3261E;
+  --kumkum-red: #C62828;
+  --temple-green: #2E7D5B;
+  --ivory: #FFFDF7;
+  --cream: #FFF8E8;
+  --warm-white: #FFFCF5;
+  --sand: #F4E8D0;
+  --text-primary: #321B3F;
+  --text-secondary: #6B5A70;
+  --text-muted: #8B7D8F;
+  --border-gold: rgba(180, 140, 50, 0.25);
+  --border-purple: rgba(91, 42, 134, 0.16);
+
+  /* Centralized Typography Tokens (Phase 2.2 & Phase 3 Design System) */
+  --text-xs: 13px;
+  --text-sm: 14px;
+  --text-md: 15px;
+  --text-lg: 16px;
+  --text-xl: 18px;
+  --text-2xl: 22px;
+  --text-3xl: 24px;
+
+  --font-xs: 13px;
+  --font-sm: 14px;
+  --font-md: 15px;
+  --font-lg: 16px;
+  --font-xl: 18px;
+
+  --lh-body: 1.5;
+  --lh-heading: 1.25;
+}
+
+.dark {
+  --ivory: #211526;
+  --cream: #2C1A35;
+  --warm-white: #321B3F;
+  --text-primary: #F8EFD8;
+  --text-secondary: #D4C3E0;
+  --text-muted: #A692B4;
+  --border-gold: rgba(212, 167, 44, 0.25);
+  --border-purple: rgba(158, 107, 201, 0.2);
+
+  /* Typography tokens mirrored in dark mode */
+  --text-xs: 13px;
+  --text-sm: 14px;
+  --text-md: 15px;
+  --text-lg: 16px;
+  --text-xl: 18px;
+  --text-2xl: 22px;
+  --text-3xl: 24px;
+}
+
+@layer base {
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  html {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-size: 15px;
+    line-height: var(--lh-body);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background-color: var(--ivory);
+    color: var(--text-primary);
+  }
+
+  body {
+    background-color: var(--ivory);
+    color: var(--text-primary);
+    min-width: 360px;
+    max-width: 480px;
+    overflow-x: hidden;
+  }
+
+  /* Custom Temple Scrollbar */
+  ::-webkit-scrollbar {
+    width: 5px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: rgba(180, 140, 50, 0.35);
+    border-radius: 9999px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(180, 140, 50, 0.6);
+  }
+
+  /* Focus ring in Temple Gold */
+  *:focus-visible {
+    outline: 2px solid var(--temple-gold);
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  /* Subtle Temple Watermark Pattern for container */
+  .temple-watermark {
+    background-image: radial-gradient(circle at 50% 50%, rgba(212, 167, 44, 0.04) 0%, transparent 70%),
+      url("data:image/svg+xml,%3Csvg width='48' height='48' viewBox='0 0 48 48' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M24 6c1.2 5.5 5.5 9.8 11 11-5.5 1.2-9.8 5.5-11 11-1.2-5.5-5.5-9.8-11-11 5.5-1.2 9.8-5.5 11-11zm0 18c2 4 4 6 8 8-4 2-6 4-8 8-2-4-4-6-8-8 2-4 4-6 8-8z' fill='%23B48C32' fill-opacity='0.025' fill-rule='evenodd'/%3E%3C/svg%3E");
+    background-repeat: repeat;
+  }
+
+  /* TTD Heritage Card Component */
+  .sp-card {
+    background-color: #FFFFFF;
+    border: 1px solid rgba(91, 42, 134, 0.12);
+    border-radius: 0.875rem;
+    padding: 0.875rem 1rem;
+    box-shadow: 0 1px 3px rgba(91, 42, 134, 0.04), 0 1px 2px rgba(212, 167, 44, 0.06);
+    transition: all 0.2s ease;
+    position: relative;
+  }
+
+  .dark .sp-card {
+    background-color: #2D1A38;
+    border-color: rgba(212, 167, 44, 0.2);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  }
+
+  .sp-card:hover {
+    border-color: rgba(212, 167, 44, 0.35);
+    box-shadow: 0 3px 8px rgba(91, 42, 134, 0.08), 0 1px 3px rgba(212, 167, 44, 0.1);
+  }
+
+  /* Traditional Status Badges */
+  .sp-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 9999px;
+    font-size: var(--text-xs);
+    font-weight: 600;
+    letter-spacing: 0.01em;
+  }
+
+  .sp-pill-success {
+    background-color: #EBF5F0;
+    color: #2E7D5B;
+    border: 1px solid rgba(46, 125, 91, 0.25);
+  }
+
+  .dark .sp-pill-success {
+    background-color: rgba(46, 125, 91, 0.2);
+    color: #6EE7B7;
+    border-color: rgba(46, 125, 91, 0.4);
+  }
+
+  .sp-pill-warning {
+    background-color: #FFF8E8;
+    color: #A97916;
+    border: 1px solid rgba(212, 167, 44, 0.35);
+  }
+
+  .dark .sp-pill-warning {
+    background-color: rgba(212, 167, 44, 0.2);
+    color: #FDE047;
+    border-color: rgba(212, 167, 44, 0.4);
+  }
+
+  .sp-pill-error {
+    background-color: #FDF2F2;
+    color: #B3261E;
+    border: 1px solid rgba(179, 38, 30, 0.25);
+  }
+
+  .dark .sp-pill-error {
+    background-color: rgba(179, 38, 30, 0.2);
+    color: #FCA5A5;
+    border-color: rgba(179, 38, 30, 0.4);
+  }
+
+  .sp-pill-info {
+    background-color: #FAF5FF;
+    color: #5B2A86;
+    border: 1px solid rgba(91, 42, 134, 0.25);
+  }
+
+  .dark .sp-pill-info {
+    background-color: rgba(91, 42, 134, 0.25);
+    color: #D8B4FE;
+    border-color: rgba(158, 107, 201, 0.35);
+  }
+
+  /* Button Base System */
+  .sp-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 44px;
+    padding: 0.625rem 1.125rem;
+    border-radius: 0.625rem;
+    font-size: var(--text-md);
+    font-weight: 600;
+    line-height: var(--lh-body);
+    transition: all 0.2s ease;
+    cursor: pointer;
+  }
+
+  .sp-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  /* Primary Button: Deep TTD Purple with Gold Accent */
+  .sp-btn-primary {
+    background-color: #5B2A86;
+    color: #FFFFFF;
+    border: 1px solid rgba(212, 167, 44, 0.4);
+    box-shadow: 0 1px 3px rgba(91, 42, 134, 0.25);
+  }
+
+  .sp-btn-primary:hover:not(:disabled) {
+    background-color: #4A216E;
+    border-color: #D4A72C;
+    box-shadow: 0 2px 6px rgba(91, 42, 134, 0.35);
+  }
+
+  .sp-btn-primary:active:not(:disabled) {
+    transform: scale(0.98);
+  }
+
+  /* Secondary Button: Cream/Ivory with subtle Purple border */
+  .sp-btn-secondary {
+    background-color: #FFFDF7;
+    color: #5B2A86;
+    border: 1px solid rgba(91, 42, 134, 0.22);
+  }
+
+  .dark .sp-btn-secondary {
+    background-color: #321B3F;
+    color: #F8EFD8;
+    border-color: rgba(212, 167, 44, 0.3);
+  }
+
+  .sp-btn-secondary:hover:not(:disabled) {
+    background-color: #FFF8E8;
+    border-color: rgba(91, 42, 134, 0.4);
+  }
+
+  .dark .sp-btn-secondary:hover:not(:disabled) {
+    background-color: #3D224C;
+    border-color: #D4A72C;
+  }
+
+  .sp-btn-ghost {
+    background-color: transparent;
+    color: #6B5A70;
+  }
+
+  .dark .sp-btn-ghost {
+    color: #D4C3E0;
+  }
+
+  .sp-btn-ghost:hover:not(:disabled) {
+    background-color: rgba(91, 42, 134, 0.08);
+    color: #5B2A86;
+  }
+
+  .dark .sp-btn-ghost:hover:not(:disabled) {
+    background-color: rgba(212, 167, 44, 0.1);
+    color: #F8EFD8;
+  }
+
+  .sp-btn-danger {
+    background-color: #B3261E;
+    color: #FFFFFF;
+    border: 1px solid rgba(179, 38, 30, 0.4);
+  }
+
+  .sp-btn-danger:hover:not(:disabled) {
+    background-color: #991F18;
+  }
+
+  /* Form Input Fields — Minimum 44px Height, 15px font */
+  .sp-input {
+    width: 100%;
+    min-height: 44px;
+    padding: 0.625rem 0.875rem;
+    border-radius: 0.625rem;
+    border: 1px solid rgba(91, 42, 134, 0.2);
+    background-color: #FFFFFF;
+    color: #321B3F;
+    font-size: var(--text-md);
+    line-height: var(--lh-body);
+    transition: all 0.2s ease;
+  }
+
+  .dark .sp-input {
+    background-color: #211526;
+    border-color: rgba(212, 167, 44, 0.3);
+    color: #F8EFD8;
+  }
+
+  .sp-input:focus {
+    border-color: #5B2A86;
+    box-shadow: 0 0 0 2px rgba(91, 42, 134, 0.15);
+    outline: none;
+  }
+
+  .dark .sp-input:focus {
+    border-color: #D4A72C;
+    box-shadow: 0 0 0 2px rgba(212, 167, 44, 0.2);
+  }
+
+  /* Form Labels — Minimum 14px */
+  .sp-label {
+    display: block;
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: #5B2A86;
+    margin-bottom: 0.35rem;
+    letter-spacing: 0.01em;
+  }
+
+  .dark .sp-label {
+    color: #E9D5FF;
+  }
+
+  /* Section Title with Traditional Serif Touch — 18px */
+  .sp-section-title {
+    font-size: var(--text-xl);
+    font-weight: 700;
+    line-height: var(--lh-heading);
+    color: #5B2A86;
+    margin-bottom: 0.5rem;
+  }
+
+  .dark .sp-section-title {
+    color: #D4A72C;
+  }
+
+  /* Navigation Bar */
+  .sp-nav-tab {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 0.35rem 0.5rem;
+    border-radius: 0.5rem;
+    font-size: 0.625rem;
+    font-weight: 500;
+    color: #6B5A70;
+    transition: all 0.15s ease;
+  }
+
+  .dark .sp-nav-tab {
+    color: #A692B4;
+  }
+
+  .sp-nav-tab:hover {
+    color: #5B2A86;
+    background-color: rgba(91, 42, 134, 0.06);
+  }
+
+  .dark .sp-nav-tab:hover {
+    color: #F8EFD8;
+    background-color: rgba(212, 167, 44, 0.1);
+  }
+
+  .sp-nav-tab-active {
+    color: #5B2A86;
+    font-weight: 700;
+    background-color: rgba(91, 42, 134, 0.08);
+    position: relative;
+  }
+
+  .dark .sp-nav-tab-active {
+    color: #F8EFD8;
+    background-color: rgba(212, 167, 44, 0.15);
+  }
+
+  .sp-nav-tab-active::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    width: 16px;
+    height: 2px;
+    background-color: #D4A72C;
+    border-radius: 9999px;
+  }
+}
+
+@layer utilities {
+  /* Heritage Gold Text Gradient */
+  .text-gold-gradient {
+    background-image: linear-gradient(135deg, #BA8E1F 0%, #D4A72C 50%, #A97916 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  /* TTD Purple Text Gradient */
+  .text-purple-gradient {
+    background-image: linear-gradient(135deg, #7650A3 0%, #5B2A86 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+}

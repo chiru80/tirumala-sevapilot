@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Sri Srinivasa Divyanugraha Homam - Pilgrim Details</title>
+</head>
+<body>
+  <div class="homam-pilgrim-details">
+    <h1>Sri Srinivasa Divyanugraha Homam</h1>
+    <h2>Pilgrim Details (Exactly 2 Devotees)</h2>
+    <form id="homamPilgrimForm">
+      <!-- Devotee 1 -->
+      <div class="pilgrim-card" data-index="0">
+        <h3>Devotee 1 (Primary)</h3>
+        <label>Name</label>
+        <input type="text" name="name_0" placeholder="Devotee 1 Name">
+        <label>Age</label>
+        <input type="number" name="age_0" placeholder="Age">
+        <label>Gender</label>
+        <select name="gender_0">
+          <option value="Male">Male</option>
+          <option value="Female">Female</option>
+        </select>
+        <label>Photo ID Proof</label>
+        <select name="idProof_0">
+          <option value="Aadhaar">Aadhaar</option>
+        </select>
+        <label>Photo ID Number</label>
+        <input type="text" name="idNumber_0" placeholder="Aadhaar / ID Number">
+      </div>
+
+      <!-- Devotee 2 -->
+      <div class="pilgrim-card" data-index="1">
+        <h3>Devotee 2 (Secondary)</h3>
+        <label>Name</label>
+        <input type="text" name="name_1" placeholder="Devotee 2 Name">
+        <label>Age</label>
+        <input type="number" name="age_1" placeholder="Age">
+        <label>Gender</label>
+        <select name="gender_1">
+          <option value="Female">Female</option>
+          <option value="Male">Male</option>
+        </select>
+        <label>Photo ID Proof</label>
+        <select name="idProof_1">
+          <option value="Aadhaar">Aadhaar</option>
+        </select>
+        <label>Photo ID Number</label>
+        <input type="text" name="idNumber_1" placeholder="Aadhaar / ID Number">
+      </div>
+
+      <button type="button" id="btnContinueReview">Continue to Review</button>
+    </form>
+  </div>
+</body>
+</html>
