@@ -86,10 +86,11 @@ export function normalizeText(text: string): string {
     .trim();
 }
 
-/** Check if a URL belongs to a supported TTD domain */
+/** Check if a URL belongs to a supported TTD booking domain */
 export function isSupportedDomain(url: string): boolean {
   try {
-    const { hostname } = new URL(url);
+    const { hostname, protocol } = new URL(url);
+    if (protocol !== 'https:') return false;
     return hostname === 'ttdevasthanams.ap.gov.in' || hostname === 'tirupatibalaji.ap.gov.in';
   } catch {
     return false;

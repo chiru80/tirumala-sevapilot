@@ -35,6 +35,10 @@ const REDACT_PATTERNS: Array<{ pattern: RegExp; replacement: string }> = [
   { pattern: /\b[\w.-]+@[\w.-]+\.\w+\b/g, replacement: '***@***' },
   // PIN code: 6 digits (only when preceded by common keywords)
   { pattern: /(?:pin|pincode|zip)\s*:?\s*\d{6}\b/gi, replacement: 'PIN:******' },
+  // Credentials / Sensitive tokens
+  { pattern: /(?:otp|cvv|pwd|password|token)\s*[:=]\s*[^\s,]+/gi, replacement: '[REDACTED]' },
+  // Payment card numbers (15-16 digits)
+  { pattern: /\b(?:\d[ -]?){15,16}\b/g, replacement: 'CARD:****' },
 ];
 
 /** Sanitize a string by redacting sensitive values */

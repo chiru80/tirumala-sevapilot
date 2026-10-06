@@ -35,11 +35,27 @@ chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch(() => 
   // May fail if called before ready
 });
 
+import { isValidExtensionMessage } from '@shared/message-security';
+
 // ─── Message Routing ───
 
 chrome.runtime.onMessage.addListener(
-  (message: ExtensionMessage, sender, sendResponse) => {
-    handleMessage(message, sender, sendResponse);
+  (rawMessage: unknown, sender, sendResponse) => {
+    // 1. Validate structure and message type
+    if (!isValidExtensionMessage(rawMessage)) {
+      logger.warn('Rejected malformed message in background service worker');
+      sendResponse({ success: false, error: 'Malformed message rejected' });
+      return false;
+    }
+
+    // 2. Validate tab sender origin
+    if (sender.tab?.url && !isSupportedDomain(sender.tab.url)) {
+      logger.warn('Rejected message from unsupported origin:', sender.tab.url);
+      sendResponse({ success: false, error: 'Unauthorized tab origin' });
+      return false;
+    }
+
+    handleMessage(rawMessage, sender, sendResponse);
     return true; // Keep channel open for async
   },
 );
