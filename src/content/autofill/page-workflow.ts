@@ -35,11 +35,11 @@ export function detectActiveBookingStep(doc: Document = document, url: string = 
   const targetUrl = url || (doc as any)?.location?.href || (typeof window !== 'undefined' ? window.location?.href : '') || '';
 
   // Srivari Seva specific route and form detection
-  if (detectSrivariSevaInstructions(doc, targetUrl).isCurrentStep) {
-    return 'INSTRUCTIONS_REVIEW';
-  }
   if (detectSrivariSevaEnrollment(doc, targetUrl).isCurrentStep) {
     return 'SRIVARI_SEVA_ENROLLMENT';
+  }
+  if (detectSrivariSevaInstructions(doc, targetUrl).isCurrentStep) {
+    return 'INSTRUCTIONS_REVIEW';
   }
 
   // Strategy 1: Check visible step indicators

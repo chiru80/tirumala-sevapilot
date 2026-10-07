@@ -935,7 +935,25 @@ async function fillPilgrimRow(
   progress.currentField = `Pilgrim ${pilgrimIndex + 1}: Gender`;
   emit();
   const genderRes = getRes('gender');
-  const genderStr = pilgrim.gender || 'Male';
+  const genderStr = pilgrim.gender ?? '';
+
+  if (!genderStr) {
+    pp.results.push({
+      field: 'gender',
+      pilgrimIndex,
+      status: 'failed',
+      attempts: 0,
+      durationMs: 0,
+      error: `Pilgrim ${pilgrimIndex + 1}: Gender is required but empty in profile`,
+      detected: Boolean(genderRes),
+      confidence: genderRes?.confidence || 0,
+      strategy: genderRes?.strategy || 'none',
+      filled: false,
+      verified: false,
+    });
+    bookingSessionManager.emitDiagnostic('FIELD_FAILED', { field: 'gender', pilgrimIndex });
+    return;
+  }
 
   if (bookingSessionManager.isUserModified('gender', pilgrimIndex)) {
     logger.info(`Pilgrim ${pilgrimIndex + 1}: Gender was manually entered by user. Preserving user value.`);
@@ -1646,6 +1664,28 @@ async function executeSrivariInstructionsStep(
   return res;
 }
 
+function maskSrivariValue(key: SrivariFieldType, val: string): string {
+  if (!val) return '';
+  switch (key) {
+    case 'mobile':
+      return val.length >= 2 ? `••••••${val.slice(-2)}` : '••••';
+    case 'idProofNumber':
+      return val.length >= 4 ? `••••••••${val.slice(-4)}` : '••••';
+    case 'email':
+      return val.includes('@') ? `${val[0]}•••@•••` : '•••@•••';
+    case 'photo':
+    case 'document':
+      return '[ATTACHED]';
+    case 'dateOfBirth':
+      return val.length >= 4 ? `••••-••-${val.slice(-2)}` : '••••';
+    case 'doorNumber':
+    case 'street':
+      return '••••';
+    default:
+      return val;
+  }
+}
+
 /**
  * Execute Srivari Seva Enrollment Step (Unified Profile).
  * Only fields with '*' in live DOM are required.
@@ -1707,9 +1747,25 @@ async function executeSrivariEnrollmentStep(
     }
   }
 
-  // Field values mapped from devotee & profile
+  // 2. Declaration check if present on enrollment form (never auto-check)
+  const declRes = detectDeclarationCheckbox(doc);
+  if (declRes.detected && !declRes.checked) {
+    actionRequired = true;
+    actionMessage = actionMessage || 'Please review and confirm the declaration checkbox.';
+  }
+
+  // 3. Devotee Age and DOB consistency check
+  if (pilgrim.dateOfBirth && pilgrim.age) {
+    const calcAge = getEffectiveAge({ dateOfBirth: pilgrim.dateOfBirth });
+    if (calcAge !== undefined && Math.abs(Number(pilgrim.age) - calcAge) > 1) {
+      actionRequired = true;
+      actionMessage = actionMessage || 'Devotee Age and Date of Birth in profile are inconsistent. Please review them.';
+    }
+  }
+
+  // Field values mapped from devotee & profile - NO INVENTED DEFAULTS
   const fieldValues: Record<SrivariFieldType, string> = {
-    idProofType: pilgrim.idType || 'Aadhaar',
+    idProofType: pilgrim.idType ?? '',
     idProofNumber: pilgrim.idNumber || '',
     mobile: pilgrim.mobile || profile.general?.mobile || '',
     photo: pilgrim.photo || '',
@@ -1717,7 +1773,7 @@ async function executeSrivariEnrollmentStep(
     fatherSpouseName: pilgrim.srivariSeva?.fatherSpouseName || '',
     dateOfBirth: pilgrim.dateOfBirth || '',
     age: pilgrim.age ? String(pilgrim.age) : (getEffectiveAge(pilgrim) ? String(getEffectiveAge(pilgrim)) : ''),
-    gender: pilgrim.gender || 'Male',
+    gender: pilgrim.gender ?? '',
     email: pilgrim.email || profile.general?.email || '',
     bloodGroup: pilgrim.srivariSeva?.bloodGroup || '',
     mentallyFit: '',
@@ -1730,7 +1786,7 @@ async function executeSrivariEnrollmentStep(
     specialisation: pilgrim.srivariSeva?.specialisation || '',
     placeOfWork: pilgrim.srivariSeva?.placeOfWork || '',
     document: pilgrim.srivariSeva?.document || '',
-    country: pilgrim.country || profile.general?.country || 'India',
+    country: pilgrim.country || profile.general?.country || '',
     pincode: pilgrim.pinCode || profile.general?.pinCode || '',
     state: pilgrim.state || profile.general?.state || '',
     district: pilgrim.district || '',
@@ -1788,7 +1844,7 @@ async function executeSrivariEnrollmentStep(
         status: 'verified',
         attempts: 0,
         durationMs: 0,
-        maskedValue: value,
+        maskedValue: maskSrivariValue(fieldKey, value),
         detected: true,
         confidence: 100,
         strategy: 'userPreserved',
@@ -1801,6 +1857,8 @@ async function executeSrivariEnrollmentStep(
 
     if (!res || !doc.contains(res.element)) {
       if (isRequired) {
+        actionRequired = true;
+        actionMessage = actionMessage || `${label} is required (*) but could not be detected on page.`;
         results.push({
           field: fieldKey,
           pilgrimIndex: 0,
@@ -1835,6 +1893,9 @@ async function executeSrivariEnrollmentStep(
 
     if (!value) {
       if (isRequired) {
+        actionRequired = true;
+        actionMessage = actionMessage || `${label} is required (*) but empty in profile.`;
+        try { res.element.style.outline = '2px solid #ff9800'; } catch {}
         results.push({
           field: fieldKey,
           pilgrimIndex: 0,
@@ -1867,6 +1928,33 @@ async function executeSrivariEnrollmentStep(
       continue;
     }
 
+    // Special handling for Age: if already auto-calculated by site from DOB, verify and preserve
+    if (fieldKey === 'age' && res.element instanceof HTMLInputElement) {
+      const currentAgeVal = res.element.value.trim();
+      if (currentAgeVal && (currentAgeVal === value.trim() || res.element.readOnly || res.element.disabled)) {
+        const isMatch = !value || currentAgeVal === value.trim();
+        results.push({
+          field: fieldKey,
+          pilgrimIndex: 0,
+          status: isMatch ? 'verified' : 'failed',
+          attempts: 1,
+          durationMs: 10,
+          maskedValue: maskSrivariValue(fieldKey, currentAgeVal),
+          detected: true,
+          confidence: res.confidence,
+          strategy: 'siteAutoCalculated',
+          filled: false,
+          verified: isMatch,
+          error: isMatch ? undefined : `Site auto-calculated age (${currentAgeVal}) does not match profile (${value})`,
+        });
+        if (!isMatch) {
+          actionRequired = true;
+          actionMessage = actionMessage || 'Age does not match Date of Birth calculated by site. Please verify.';
+        }
+        continue;
+      }
+    }
+
     // Handle photo & document file upload elements
     if (fieldKey === 'photo' || fieldKey === 'document') {
       const el = res.element as HTMLInputElement;
@@ -1895,7 +1983,7 @@ async function executeSrivariEnrollmentStep(
           status: 'verified',
           attempts: 1,
           durationMs: 30,
-          maskedValue: 'Attached',
+          maskedValue: '[ATTACHED]',
           detected: true,
           confidence: res.confidence,
           strategy: 'fileAttachment',
@@ -1974,6 +2062,10 @@ async function executeSrivariEnrollmentStep(
       if (!isRequired) optionalFieldsFilled.push(fieldKey);
     } else {
       if (!isRequired) optionalFieldsSkipped.push(fieldKey);
+      if (isRequired) {
+        actionRequired = true;
+        actionMessage = actionMessage || `${label} verification failed.`;
+      }
     }
 
     results.push({
@@ -1982,7 +2074,7 @@ async function executeSrivariEnrollmentStep(
       status: isVerified ? 'verified' : (isRequired ? 'failed' : 'skipped'),
       attempts: retryRes.attempts,
       durationMs: Math.round(performance.now() - start),
-      maskedValue: fieldKey === 'mobile' ? `••••••${value.slice(-2)}` : (fieldKey === 'idProofNumber' ? `••••••••${value.slice(-4)}` : value),
+      maskedValue: maskSrivariValue(fieldKey, value),
       error: isVerified ? undefined : (isRequired ? (retryRes.error || `${label} verification failed`) : undefined),
       detected: true,
       confidence: res.confidence,
@@ -2004,7 +2096,8 @@ async function executeSrivariEnrollmentStep(
 
   progress.pilgrimResults = [pilgrimProgress];
   progress.generalResults = results;
-  if (actionRequired) {
+  const hasFailedRequired = results.some(r => r.status === 'failed');
+  if (actionRequired || hasFailedRequired) {
     progress.state = 'USER_ACTION_REQUIRED';
     progress.percent = 95;
   } else {
@@ -2016,9 +2109,9 @@ async function executeSrivariEnrollmentStep(
   const finalRes = buildResult(progress, 'srivari_enrollment', startedAt, workflow);
   finalRes.optionalFieldsSkipped = optionalFieldsSkipped;
   finalRes.optionalFieldsFilled = optionalFieldsFilled;
-  if (actionRequired) {
+  if (actionRequired || hasFailedRequired) {
     finalRes.actionRequired = true;
-    finalRes.actionMessage = actionMessage;
+    finalRes.actionMessage = actionMessage || 'Some required fields require your attention.';
     finalRes.success = false;
     finalRes.state = 'USER_ACTION_REQUIRED';
     finalRes.needsAttention = true;
@@ -2105,7 +2198,8 @@ async function repairSinglePilgrimField(
       };
     }
     case 'gender': {
-      const genderStr = pilgrim.gender || 'Male';
+      const genderStr = pilgrim.gender || '';
+      if (!genderStr) return null;
       const res = await retryWithVerification({
         fieldType: 'gender',
         element: el,
