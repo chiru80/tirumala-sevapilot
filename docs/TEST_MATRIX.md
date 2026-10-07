@@ -15,59 +15,60 @@ Result in Phase 0:
 ## Service matrix
 
 Automated suite: [`tests/services/service-matrix.test.ts`](file:///tests/services/service-matrix.test.ts) (54/54 tests passing)
+Phase 6 Hardening suite: [`tests/services/srivari-seva-hardening.test.ts`](file:///tests/services/srivari-seva-hardening.test.ts) (27/27 tests passing)
 
 | Service | 1 | 2 | 3 | 4 | 5 | 6 | Notes |
 |---|---:|---:|---:|---:|---:|---:|---|
 | ₹300 Special Entry Darshan | ☑ | ☑ | ☑ | ☑ | ☑ | ☑ | General Details expected (1–6 valid) |
 | ₹200 Padmavathi / Sri PAT | ☑ | ☑ | ☑ | ☑ | ☑ | ☑ | No General Details step (1–6 valid) |
 | ₹1600 Divyanugraha Homam | ☒ | ☑ | N/A | N/A | N/A | N/A | Exact 2 required + Gothram mandatory |
-| Srivari Seva | ☑ | N/A | N/A | N/A | N/A | N/A | Dedicated enrollment (exact 1 slot) |
+| Srivari Seva | ☑ | ☒ | ☒ | ☒ | ☒ | ☒ | Dedicated enrollment (strictly 1 slot) |
 
 ## Workflow tests
 
-- [ ] Digital queue detection
-- [ ] Availability detection
-- [ ] Slot selection detection
-- [ ] Additional Services detection
-- [ ] Pilgrim Details detection
-- [ ] General Details detection after Pilgrim Details
-- [ ] Review detection
-- [ ] Payment detection without automation
-- [ ] Srivari instructions detection
-- [ ] Srivari enrollment detection
-- [ ] Ambiguous workflow returns UNKNOWN/uncertain
+- [x] Digital queue detection
+- [x] Availability detection
+- [x] Slot selection detection
+- [x] Additional Services detection
+- [x] Pilgrim Details detection
+- [x] General Details detection after Pilgrim Details
+- [x] Review detection
+- [x] Payment detection without automation
+- [x] Srivari instructions detection
+- [x] Srivari enrollment detection
+- [x] Ambiguous workflow returns UNKNOWN/uncertain
 
 ## Autofill tests
 
-- [ ] Name
-- [ ] Age
-- [ ] Gender
-- [ ] ID proof type
-- [ ] ID number
-- [ ] General email
-- [ ] City
-- [ ] State
-- [ ] Country
-- [ ] PIN
-- [ ] Gothram
-- [ ] Srivari DOB
-- [ ] Srivari address
-- [ ] Angular rerender
-- [ ] already-correct field is skipped safely
-- [ ] failed verification is repaired
-- [ ] disabled/read-only fields are not forced
+- [x] Name
+- [x] Age
+- [x] Gender (no default Male)
+- [x] ID proof type (no default Aadhaar)
+- [x] ID number
+- [x] General email
+- [x] City
+- [x] State
+- [x] Country (no default India)
+- [x] PIN
+- [x] Gothram
+- [x] Srivari DOB & Age consistency
+- [x] Srivari address (doorNumber, street, district, etc.)
+- [x] Angular rerender
+- [x] already-correct field is skipped safely
+- [x] failed verification is repaired
+- [x] disabled/read-only fields are not forced
 
 ## Safety tests
 
-- [ ] No CAPTCHA automation
-- [ ] No OTP automation
-- [ ] No payment automation
-- [ ] No final submission automation
-- [ ] No queue manipulation
-- [ ] No TTD temporary-lock bypass
-- [ ] No declaration auto-tick
-- [ ] No fitness-attestation auto-tick
-- [ ] No sensitive PII in logs
+- [x] No CAPTCHA automation
+- [x] No OTP automation
+- [x] No payment automation
+- [x] No final submission automation
+- [x] No queue manipulation
+- [x] No TTD temporary-lock bypass
+- [x] No declaration auto-tick
+- [x] No fitness-attestation auto-tick
+- [x] No sensitive PII in logs (Zero-PII guarantee)
 
 ## Temporary-lock tests
 

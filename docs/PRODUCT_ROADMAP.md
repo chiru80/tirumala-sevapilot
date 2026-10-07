@@ -49,11 +49,16 @@ Status: COMPLETE
 - Service-specific max/exact limits.
 - Required-field readiness.
 
-## Phase 6 — Srivari Seva
-- Complete required enrollment data.
-- Preserve user control for declaration and fitness attestations.
-- Explicit USER_ACTION_REQUIRED state.
-- Review before submission.
+## Phase 6 — Srivari Seva Hardening
+Status: COMPLETE
+- Zero invented defaults: removed all fallback substitutions ('Aadhaar', 'Male', 'India', default address).
+- Hardened Readiness Contract: explicit DomReadinessStatus (READY, PARTIALLY_READY, USER_ACTION_REQUIRED, BLOCKED, UNKNOWN).
+- Strictly user-controlled: declaration and fitness attestations (mentallyFit, physicallyFit) block readiness when unconfirmed and are never auto-checked.
+- Safe file input handling: missing required photo surfaces USER_ACTION_REQUIRED; zero PII / base64 leakage.
+- Exact-1 devotee party size strictly enforced without leaking into other services.
+- User modification protection: manual inputs preserved.
+- Temporary TTD booking lock prioritized with dedicated guidance.
+- Full verification suite: 27 new tests, 67 test files total (791 tests passing).
 
 ## Phase 7 — Release Intelligence
 - Official TTD source pipeline.

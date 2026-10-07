@@ -44,6 +44,18 @@ The declared project version is Tailwind 3.4.x. Utility classes used by the proj
 ### K12 — Product state contract (RESOLVED in Phase 1)
 **Status: Resolved.** `BookingReadiness` established as the authoritative contract across `ReadinessEngine`, `useReadiness`, and UI surfaces.
 
+### K13 — Invented Srivari personal defaults (RESOLVED in Phase 6)
+**Status: Resolved.** Eliminated all fallback identity substitutions (`|| 'Aadhaar'`, `|| 'Male'`, `|| 'India'`, default addresses) across autofill manager, message router, profile prewarm, and service intelligence. Missing values remain strictly empty, missing required fields are surfaced to the user, and trigger `USER_ACTION_REQUIRED`.
+
+### K14 — Readiness state vs user-controlled actions (RESOLVED in Phase 6)
+**Status: Resolved.** Enforced that machine field completion never implies booking readiness (`isReady === true`) when user-controlled actions (`declaration`, `mentallyFit`, `physicallyFit`, or required photo) remain unconfirmed. Standardized `DomReadinessStatus` (`READY`, `PARTIALLY_READY`, `USER_ACTION_REQUIRED`, `BLOCKED`, `UNKNOWN`).
+
+### K15 — Step collision between enrollment declaration and instructions review (RESOLVED in Phase 6)
+**Status: Resolved.** Re-ordered step detection so that the unified profile enrollment form (with its bottom declaration checkbox) is not prematurely captured as an instructions review step.
+
+### K16 — Zero PII logging in Srivari workflow & autofill diagnostics (RESOLVED in Phase 6)
+**Status: Resolved.** Masked logging implemented across Srivari enrollment flow. Sensitive values (Aadhaar, ID numbers, mobile, DOB, addresses, base64 photo data) are never output in raw form to console logs, diagnostics, or test outputs.
+
 ## Safety constraints
 
 No issue above justifies:
