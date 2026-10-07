@@ -74,7 +74,16 @@ export function detectActiveBookingStep(doc: Document = document, url: string = 
     }
   }
 
-  // Strategy 3: URL pattern match if page is on pilgrim/darshan path
+  // Strategy 3: URL pattern match if page is on pilgrim/darshan path.
+  // IMPORTANT: TTD can keep /pilgrim-details in the URL after moving to the
+  // General Details section. Never let that stale route token override a
+  // strong live General Details signal.
+  const liveGeneralDetails = detectGeneralDetails(doc, targetUrl);
+  if (liveGeneralDetails.isCurrentStep && liveGeneralDetails.confidence >= 65) {
+    return 'GENERAL_DETAILS';
+  }
+
+  // Legacy URL fallback is used only when the live DOM does not identify General Details.
   if (targetUrl && (/pilgrim_details|flow=spat|spat.*pilgrim|\/spat\/|\/sed\/.*pilgrim/i.test(targetUrl) || (/pilgrim|devotee/i.test(targetUrl) && !/payment/i.test(targetUrl)))) {
     return 'PILGRIM_DETAILS';
   }
@@ -283,7 +292,6 @@ import {
   detectSlotSelection,
   detectAdditionalServices,
   detectPilgrimDetails,
-  detectGeneralDetails,
   detectReviewDetails,
   detectPayment,
 } from '../../services/workflows/step-detectors';
