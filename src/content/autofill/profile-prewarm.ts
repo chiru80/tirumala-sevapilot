@@ -73,8 +73,8 @@ export function prewarmBookingProfile(
     const rawName = (p.fullName || `${p.firstName || ''} ${p.lastName || ''}`).trim();
     const effectiveAge = getEffectiveAge(p);
     const ageStr = effectiveAge !== undefined ? String(effectiveAge) : '';
-    const rawGender = p.gender || 'Male';
-    const rawIdType = p.idType || 'Aadhaar Card';
+    const rawGender = p.gender || '';
+    const rawIdType = p.idType || '';
     const rawIdNumber = (p.idNumber || '').trim();
 
     return {
@@ -101,7 +101,7 @@ export function prewarmBookingProfile(
     mobile: genDetails.mobile,
     city: genDetails.city,
     state: genDetails.state,
-    country: genDetails.country || 'India',
+    country: genDetails.country || '',
     pinCode: genDetails.pinCode,
   };
 

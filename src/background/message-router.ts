@@ -151,8 +151,8 @@ export async function handleMessage(
             ...p,
             fullName: String(p.fullName || `${p.firstName || ''} ${p.lastName || ''}`).trim(),
             age: typeof p.age === 'number' ? p.age : parseInt(String(p.age || '0'), 10) || 0,
-            gender: String(p.gender || 'Male').trim(),
-            idType: String(p.idType || 'Aadhaar Card').trim(),
+            gender: String(p.gender || '').trim(),
+            idType: String(p.idType || '').trim(),
             idNumber: String(p.idNumber || '').trim(),
           }));
         }

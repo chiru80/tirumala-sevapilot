@@ -336,7 +336,7 @@ export class ServiceIntelligence {
       checklist['dateOfBirth'] = Boolean(pilgrim.dateOfBirth);
       checklist['photo'] = Boolean(pilgrim.photo);
       checklist['mobile'] = Boolean(pilgrim.mobile && pilgrim.mobile.replace(/\D/g, '').length === 10);
-      checklist['country'] = Boolean(pilgrim.country || 'India');
+      checklist['country'] = Boolean(pilgrim.country);
       checklist['state'] = Boolean(pilgrim.state);
       checklist['district'] = Boolean(pilgrim.district);
       checklist['city'] = Boolean(pilgrim.city);
