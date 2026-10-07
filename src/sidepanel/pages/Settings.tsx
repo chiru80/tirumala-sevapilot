@@ -270,6 +270,26 @@ export function Settings({ onSettingsChange }: { onSettingsChange: () => void })
         </div>
       </div>
 
+      {/* System Diagnostics */}
+      <div className="sp-card bg-white dark:bg-[#2D1A38] border-gold-500/25 space-y-2.5">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-sm font-bold text-[#5B2A86] dark:text-gold-300">System Diagnostics</h3>
+            <p className="text-xs text-[#6B5A70] dark:text-[#A692B4] mt-0.5">
+              Inspect service recognition, telemetry, and system verification safely.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowDiagnostics(true)}
+            className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-[#F5F0FA] hover:bg-[#EBE2F5] dark:bg-[#3E1B68]/40 dark:hover:bg-[#3E1B68]/70 text-[#54258A] dark:text-[#D4A72C] border border-[#54258A]/20 transition-all cursor-pointer"
+            aria-label="Open System Diagnostics"
+          >
+            Inspect 🔍
+          </button>
+        </div>
+      </div>
+
       {/* Reset & Version */}
       <div className="sp-card bg-white dark:bg-[#2D1A38] border-gold-500/25 space-y-2.5">
         <div className="flex items-center justify-between text-xs text-[#6B5A70] dark:text-[#A692B4]">

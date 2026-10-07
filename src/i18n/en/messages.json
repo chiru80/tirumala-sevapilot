@@ -594,6 +594,8 @@
     "step2Desc": "Choose who is travelling.",
     "step3Title": "FILL & VERIFY",
     "step3Desc": "Fill supported TTD forms and verify the details.",
+    "step4Title": "YOU STAY IN CONTROL",
+    "step4Desc": "CAPTCHA, OTP, and payments remain 100% yours.",
     "actionRequired": "ACTION REQUIRED",
     "readyForReview": "✓ READY FOR REVIEW",
     "readyForReviewDesc": "Your details have been filled and verified. Review before you submit.",
