@@ -91,14 +91,9 @@ export default function App() {
             </div>
 
             <div>
-              <div className="flex items-center gap-1.5">
-                <h1 className="text-base font-bold tracking-tight font-serif text-[#54258A] dark:text-[#F8EFD8] leading-none">
-                  SevaPilot
-                </h1>
-                <span className="text-xs px-1.5 py-0.5 rounded bg-[#54258A]/10 text-[#54258A] dark:bg-[#D4A72C]/15 dark:text-[#D4A72C] font-semibold">
-                  v{EXTENSION_VERSION}
-                </span>
-              </div>
+              <h1 className="text-base font-bold tracking-tight font-serif text-[#54258A] dark:text-[#F8EFD8] leading-none">
+                Tirumala SevaPilot
+              </h1>
               <p className="text-xs text-[#6F6477] dark:text-[#A692B4] font-medium leading-tight mt-0.5">
                 TTD Booking Assistant
               </p>

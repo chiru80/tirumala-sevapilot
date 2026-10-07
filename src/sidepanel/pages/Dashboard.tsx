@@ -29,6 +29,8 @@ import {
   HowItWorksCard,
   UpcomingReleasesCard,
   TemporaryLockCard,
+  BookingCockpit,
+  WhatShouldIDoNow,
 } from '../components/dashboard';
 
 import { PreFlightModal } from '../components/PreFlightModal';
@@ -318,6 +320,24 @@ export function Dashboard({ onNavigate }: DashboardProps = {}) {
                 : `⚠ ${t('home.actionRequired') || 'Action required'}`}
             </span>
           </div>
+        {/* FIRST-TIME DEVOTEE WELCOME HERO */}
+        {cockpit.isFirstTime && (
+          <div className="rounded-2xl border border-[rgba(84,37,138,0.15)] bg-gradient-to-b from-white to-[#FAF7F2] dark:from-[#2A1733] dark:to-[#211526] p-4 text-center space-y-2 shadow-2xs">
+            <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-gold-500/15 border border-gold-500/30 text-gold-600 dark:text-gold-400 text-lg mx-auto">
+              ✦
+            </div>
+            <div>
+              <h2 className="text-sm font-bold font-serif uppercase tracking-wider text-[#54258A] dark:text-[#F8EFD8]">
+                WELCOME TO SEVAPILOT
+              </h2>
+              <p className="text-xs font-semibold text-[#D4A72C] mt-0.5">
+                Your TTD booking assistant
+              </p>
+            </div>
+            <p className="text-xs text-[#6F6477] dark:text-[#C5B4D4] leading-relaxed max-w-xs mx-auto font-medium">
+              Create your pilgrim profile once. SevaPilot will help prepare your booking faster and safer.
+            </p>
+          </div>
         )}
 
         {/* 3. DOMINANT PRIMARY CTA (STICKY) */}
@@ -342,6 +362,46 @@ export function Dashboard({ onNavigate }: DashboardProps = {}) {
         <div id="sp-how-it-works-section">
           <HowItWorksCard />
         </div>
+
+        {/* 4b. WHAT SHOULD I DO NOW? CONTEXTUAL GUIDANCE */}
+        <WhatShouldIDoNow
+          stage={
+            !activeProfile || (activeProfile.pilgrims || []).length === 0
+              ? 'NO_PROFILE'
+              : effectiveLock
+              ? 'TEMPORARY_LOCK'
+              : cockpit.isComplete && cockpit.allVerified
+              ? 'REVIEW_AND_PAYMENT'
+              : pageDetected
+              ? 'TTD_PAGE_OPEN'
+              : 'PROFILE_READY'
+          }
+          onActionClick={
+            !activeProfile || (activeProfile.pilgrims || []).length === 0
+              ? () => onNavigate?.('profiles')
+              : pageDetected
+              ? cockpit.primaryAction.onClick
+              : openTtdWebsite
+          }
+        />
+
+        {/* 4c. HERO BOOKING COCKPIT (WHEN TTD PAGE DETECTED) */}
+        {pageDetected && !effectiveLock && (
+          <BookingCockpit
+            serviceName={serviceName || 'Supported TTD Booking'}
+            serviceType={serviceType}
+            selectedPilgrims={selectedPilgrims}
+            maxPilgrims={cockpit.serviceInfo.maxPilgrims || 6}
+            isReady={readiness.isReady}
+            isFilling={isFilling}
+            isComplete={cockpit.isComplete}
+            allVerified={cockpit.allVerified}
+            onFillClick={cockpit.primaryAction.onClick}
+            onStopClick={handleEmergencyStop}
+            onNavigateProfiles={() => onNavigate?.('profiles')}
+            pilgrimReports={pilgrimReports}
+          />
+        )}
 
         {/* 5. UPCOMING TTD RELEASES CARD */}
         <UpcomingReleasesCard />
