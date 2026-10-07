@@ -40,10 +40,11 @@ export class PerformanceProfiler {
   private durations: Map<string, number> = new Map();
   private sessionStart: number;
 
-  constructor(serviceId?: string, workflowId?: string) {
+  constructor(serviceId?: string, workflowId?: string, pilgrimCount = 0) {
     this.sessionId = `perf-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
     this.serviceId = serviceId;
     this.workflowId = workflowId;
+    this.pilgrimCount = pilgrimCount;
     this.sessionStart = performance.now();
     this.startTimes.set('total', this.sessionStart);
   }
@@ -122,5 +123,9 @@ export class PerformanceProfiler {
     });
 
     return metrics;
+  }
+
+  public getMetrics(success = true): PerformanceMetrics {
+    return this.finish(success);
   }
 }

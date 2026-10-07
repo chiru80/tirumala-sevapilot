@@ -18,6 +18,7 @@ export interface PrewarmedPilgrimData {
   gender: string;
   idType: string;
   idNumber: string;
+  sanitizedIdNumber: string;
   mobile?: string;
   email?: string;
   dateOfBirth?: string;
@@ -54,12 +55,12 @@ function computeCacheKey(profile: Profile, targetPilgrims: Pilgrim[], serviceId?
 
 export function prewarmBookingProfile(
   profile: Profile,
-  pilgrims: Pilgrim[],
+  pilgrims?: Pilgrim[],
   serviceId?: string,
 ): PrewarmedBookingPlan {
   const canonical = serviceId ? getCanonicalService(serviceId) : undefined;
   const maxAllowed = canonical?.maxPilgrims ?? 6;
-  const targetPilgrims = pilgrims.slice(0, maxAllowed);
+  const targetPilgrims = (pilgrims ?? profile.pilgrims ?? []).slice(0, maxAllowed);
 
   const cacheKey = computeCacheKey(profile, targetPilgrims, serviceId);
   const existing = prewarmCache.get(cacheKey);
@@ -85,6 +86,7 @@ export function prewarmBookingProfile(
       gender: rawGender,
       idType: rawIdType,
       idNumber: rawIdNumber,
+      sanitizedIdNumber: rawIdNumber,
       mobile: p.mobile?.trim(),
       email: p.email?.trim(),
       dateOfBirth: p.dateOfBirth?.trim(),
@@ -126,3 +128,4 @@ export function prewarmBookingProfile(
 export function invalidatePrewarmCache(): void {
   prewarmCache.clear();
 }
+export const clearPrewarmCache = invalidatePrewarmCache;

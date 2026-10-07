@@ -170,6 +170,7 @@ export interface AutofillManagerResult {
   }>;
   temporaryLock?: TtdTemporaryLockState;
   performanceMetrics?: PerformanceMetrics;
+  metrics?: PerformanceMetrics;
 }
 
 /** Options provided to executeAutofill */
@@ -178,6 +179,7 @@ export interface AutofillOptions {
   profile?: Profile | null;
   doc?: Document;
   url?: string;
+  step?: 'pilgrim' | 'general' | 'srivari_instructions' | 'srivari_enrollment' | 'unknown' | string;
   abortSignal?: AbortSignal;
   onlyRepairFailed?: boolean;
   targetFailedItems?: Array<{ pilgrimIndex?: number; field: string }>;
