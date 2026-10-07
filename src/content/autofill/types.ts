@@ -3,6 +3,7 @@
 // ─────────────────────────────────────────────────
 
 import type { Pilgrim, Profile, TtdTemporaryLockState } from '@shared/types';
+import type { PerformanceMetrics } from './performance-profiler';
 
 /** Supported pilgrim fields in TTD V1 (strictly 1 to 6 pilgrims) */
 export type PilgrimFieldType = 'name' | 'age' | 'gender' | 'photoIdProof' | 'photoIdNumber';
@@ -168,6 +169,7 @@ export interface AutofillManagerResult {
     error: string;
   }>;
   temporaryLock?: TtdTemporaryLockState;
+  performanceMetrics?: PerformanceMetrics;
 }
 
 /** Options provided to executeAutofill */

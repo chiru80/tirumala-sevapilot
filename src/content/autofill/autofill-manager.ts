@@ -53,6 +53,12 @@ import type {
   AutofillOptions,
   BookingStep,
 } from './types';
+import { PerformanceProfiler, type PerformanceMetrics } from './performance-profiler';
+import { prewarmBookingProfile, type PrewarmedBookingPlan } from './profile-prewarm';
+import { DomSnapshot } from './dom-snapshot';
+import { FieldCache } from './field-cache';
+import { isFieldSatisfied, buildExecutionPlan } from './execution-plan';
+import { AutofillScheduler } from './autofill-scheduler';
 
 export type {
   AutofillProgress,
@@ -2176,6 +2182,7 @@ function buildResult(
   step: 'pilgrim' | 'general' | 'unknown' | 'srivari_instructions' | 'srivari_enrollment',
   startedAt: number,
   workflow?: ServiceWorkflow,
+  profiler?: PerformanceProfiler,
 ): AutofillManagerResult {
   const allPilgrimResults = progress.pilgrimResults.flatMap(p => p.results);
   const allResults = [...allPilgrimResults, ...progress.generalResults];
@@ -2294,5 +2301,6 @@ function buildResult(
     needsAttention: !isSuccess && (totalFailed > 0 || progress.state === 'TTD_TEMPORARY_BOOKING_LOCK'),
     failedItems,
     temporaryLock: progress.temporaryLock,
+    performanceMetrics: profiler ? profiler.finish(isSuccess) : undefined,
   };
 }
