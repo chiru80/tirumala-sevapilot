@@ -231,6 +231,62 @@ describe('Phase 6: Form Validation Awareness & Verification', () => {
     expect(state.errors[0].message).toContain('Invalid email format');
   });
 
+  it('does not fail verification on native patternMismatch in Angular/novalidate forms when no visible error exists', () => {
+    const container = doc.createElement('mat-form-field');
+    const input = doc.createElement('input');
+    input.value = 'Anusuri Chirudeep';
+    input.setAttribute('name', 'name');
+
+    // Simulate native patternMismatch without visible error
+    Object.defineProperty(input, 'validity', {
+      value: {
+        valid: false,
+        patternMismatch: true,
+        valueMissing: false,
+      },
+      configurable: true,
+    });
+    Object.defineProperty(input, 'validationMessage', {
+      value: 'Please match the requested format.',
+      configurable: true,
+    });
+
+    container.appendChild(input);
+    doc.body.appendChild(container);
+
+    const check = inspectElementValidation(input, 'name');
+    expect(check.hasError).toBe(false);
+
+    const vRes = verifyField(input, 'Anusuri chirudeep', 'name', doc);
+    expect(vRes.status).toBe('verified');
+  });
+
+  it('fails verification on valueMissing when required field is empty', () => {
+    const container = doc.createElement('mat-form-field');
+    const input = doc.createElement('input');
+    input.value = '';
+    input.setAttribute('name', 'name');
+
+    Object.defineProperty(input, 'validity', {
+      value: {
+        valid: false,
+        valueMissing: true,
+      },
+      configurable: true,
+    });
+    Object.defineProperty(input, 'validationMessage', {
+      value: 'Please fill out this field.',
+      configurable: true,
+    });
+
+    container.appendChild(input);
+    doc.body.appendChild(container);
+
+    const check = inspectElementValidation(input, 'name');
+    expect(check.hasError).toBe(true);
+    expect(check.errorMessage).toBe('Please fill out this field.');
+  });
+
   it('verifies exact normalized ID number and strictly rejects partial matching', () => {
     const input = doc.createElement('input');
     input.value = '1234 5678 9012';

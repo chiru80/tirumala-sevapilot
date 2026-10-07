@@ -44,21 +44,61 @@ export async function performTextTransaction(
     throw new Error('Field is readOnly — cannot fill without overriding website control state');
   }
 
-  dispatchAngularCompatibleEvents(element, value);
+  const trimmed = value.trim();
 
-  // If there is a pattern mismatch (e.g. government form requiring Title Case or Uppercase), adapt value
+  // Check if element has an explicit pattern attribute and test conformity
+  const patternAttr = element.getAttribute('pattern');
+  let chosenValue = trimmed;
+
+  if (patternAttr) {
+    try {
+      const rx = new RegExp(`^(?:${patternAttr})$`);
+      if (rx.test(trimmed)) {
+        chosenValue = trimmed;
+      } else {
+        const titleCased = trimmed.replace(/\b[a-z]/g, c => c.toUpperCase());
+        if (rx.test(titleCased)) {
+          chosenValue = titleCased;
+        } else {
+          const upperCased = trimmed.toUpperCase();
+          if (rx.test(upperCased)) {
+            chosenValue = upperCased;
+          }
+        }
+      }
+    } catch {
+      // If pattern attribute is not a valid regex, continue with trimmed
+    }
+  }
+
+  dispatchAngularCompatibleEvents(element, chosenValue);
+
+  // If there is still a native pattern mismatch and we haven't tested casing adaptations:
   if (element instanceof HTMLInputElement && element.validity?.patternMismatch) {
     // 1. Try Title Case (e.g. "Anusuri chirudeep" -> "Anusuri Chirudeep")
-    const titleCased = value.replace(/\b[a-z]/g, c => c.toUpperCase());
-    if (titleCased !== value) {
+    const titleCased = trimmed.replace(/\b[a-z]/g, c => c.toUpperCase());
+    if (titleCased !== chosenValue) {
       dispatchAngularCompatibleEvents(element, titleCased);
+      if (!element.validity?.patternMismatch) {
+        chosenValue = titleCased;
+      }
     }
     // 2. If still mismatch, try UPPERCASE (e.g. "ANUSURI CHIRUDEEP")
     if (element.validity?.patternMismatch) {
-      const upperCased = value.toUpperCase();
-      if (upperCased !== value && upperCased !== titleCased) {
+      const upperCased = trimmed.toUpperCase();
+      if (upperCased !== chosenValue && upperCased !== titleCased) {
         dispatchAngularCompatibleEvents(element, upperCased);
+        if (!element.validity?.patternMismatch) {
+          chosenValue = upperCased;
+        }
       }
+    }
+    // 3. If neither title case nor upper case cleared native patternMismatch,
+    // the pattern is likely rejecting spaces or something intrinsic that casing cannot fix.
+    // In that case, keep Title Case as standard respectful format for devotee names.
+    if (element.validity?.patternMismatch && chosenValue !== trimmed) {
+      const titleCased = trimmed.replace(/\b[a-z]/g, c => c.toUpperCase());
+      dispatchAngularCompatibleEvents(element, titleCased);
     }
   }
 

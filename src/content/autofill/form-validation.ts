@@ -27,26 +27,16 @@ export function inspectElementValidation(
     return { hasError: true, errorMessage: 'Element does not exist' };
   }
 
-  // 1. Check native HTML validity
-  if ('validity' in element) {
-    const input = element as HTMLInputElement;
-    if (input.validity && !input.validity.valid) {
-      return {
-        hasError: true,
-        errorMessage: input.validationMessage || 'Invalid input format',
-      };
-    }
-  }
+  // 1. Check Angular Material validation indicators & visible errors first
+  const parentFormField = element.closest(
+    'mat-form-field, .mat-form-field, .mat-mdc-form-field, .form-group, .field-wrap, .field, tr, .pilgrim-row, .card'
+  );
+  const searchContainer = parentFormField || element.parentElement;
 
-  // 2. Angular Material validation indicators
-  // .ng-invalid, .mat-form-field-invalid, .mat-mdc-form-field-error
-  const parentFormField = element.closest('mat-form-field, .mat-form-field, .mat-mdc-form-field, .form-group, .field-wrap');
-  if (parentFormField) {
-    const isNgInvalid = element.classList.contains('ng-invalid') || parentFormField.classList.contains('ng-invalid');
-
+  if (searchContainer) {
     // Look for visible error text
-    const errorEl = parentFormField.querySelector(
-      'mat-error, .mat-mdc-form-field-error, .invalid-feedback, .error-message, [role="alert"]'
+    const errorEl = searchContainer.querySelector(
+      'mat-error, .mat-mdc-form-field-error, .invalid-feedback, .error-message, [role="alert"], .text-danger, .has-error'
     );
 
     if (errorEl && isElementVisible(errorEl as HTMLElement)) {
@@ -55,11 +45,55 @@ export function inspectElementValidation(
         return { hasError: true, errorMessage: msg };
       }
     }
+  }
 
-    // If marked ng-invalid and touched/dirty
+  // 2. Check native HTML validity
+  if ('validity' in element) {
+    const input = element as HTMLInputElement;
+    if (input.validity && !input.validity.valid) {
+      // If required field is completely empty, that is always a real failure
+      if (input.validity.valueMissing) {
+        return {
+          hasError: true,
+          errorMessage: input.validationMessage || 'Field is required',
+        };
+      }
+
+      // Check whether native browser validation is suppressed (novalidate) or overridden by SPA frameworks (Angular / React)
+      const form = input.form || element.closest('form');
+      const isSpaOrNovalidate =
+        form?.noValidate ||
+        form?.hasAttribute('novalidate') ||
+        !!element.closest('[ng-version], mat-form-field, .mat-mdc-form-field, [formcontrolname], [data-angular], .pilgrim-row, .pilgrim-details') ||
+        (element.ownerDocument?.defaultView?.location?.hostname.includes('ttdevasthanams') ?? false);
+
+      // On SPA / Angular / novalidate forms (like TTD portal), native patternMismatch is ignored by the app
+      // unless an actual visible error element exists on the page.
+      if (!isSpaOrNovalidate) {
+        return {
+          hasError: true,
+          errorMessage: input.validationMessage || 'Invalid input format',
+        };
+      }
+    }
+  }
+
+  // 3. Angular validation classes with visible error confirmation
+  if (parentFormField) {
+    const isNgInvalid = element.classList.contains('ng-invalid') || parentFormField.classList.contains('ng-invalid');
     const isTouched = element.classList.contains('ng-touched') || element.classList.contains('ng-dirty');
     if (isNgInvalid && isTouched) {
-      return { hasError: true, errorMessage: 'Field marked invalid by Angular validator' };
+      const visibleErr = searchContainer?.querySelector(
+        'mat-error, .mat-mdc-form-field-error, .invalid-feedback, [role="alert"]'
+      );
+      if (visibleErr && isElementVisible(visibleErr as HTMLElement)) {
+        const msg = (visibleErr.textContent || '').trim();
+        if (msg) return { hasError: true, errorMessage: msg };
+      }
+      // If no visible text but element is empty, flag it
+      if (element instanceof HTMLInputElement && !element.value.trim()) {
+        return { hasError: true, errorMessage: 'Field marked invalid by Angular validator' };
+      }
     }
   }
 
