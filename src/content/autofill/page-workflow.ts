@@ -9,9 +9,18 @@ import { findLabelText } from '../form-scanner';
 import logger from '@shared/logger';
 
 import {
+  detectDigitalQueue,
+  detectAvailability,
+  detectSlotSelection,
+  detectAdditionalServices,
+  detectPilgrimDetails,
+  detectGeneralDetails,
+  detectReviewDetails,
+  detectPayment,
   detectSrivariSevaInstructions,
   detectSrivariSevaEnrollment,
 } from '../../services/workflows/step-detectors';
+import type { WorkflowStepType, ServiceWorkflow } from '../../services/workflows/types';
 import type { BookingStep } from './types';
 
 export type { BookingStep };
@@ -286,16 +295,7 @@ function findVisibleSectionsWithFields(doc: Document, selectors: string[]): numb
   return count;
 }
 
-import {
-  detectDigitalQueue,
-  detectAvailability,
-  detectSlotSelection,
-  detectAdditionalServices,
-  detectPilgrimDetails,
-  detectReviewDetails,
-  detectPayment,
-} from '../../services/workflows/step-detectors';
-import type { WorkflowStepType, ServiceWorkflow } from '../../services/workflows/types';
+
 
 export {
   detectDigitalQueue,

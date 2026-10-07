@@ -2,6 +2,11 @@ import React, { useState, useEffect } from 'react';
 import type { Profile } from '@shared/types';
 import { updateGeneralDetails } from '@storage/repository';
 import { t } from '@i18n/index';
+import {
+  getCanonicalService,
+  hasGeneralDetails,
+  isFieldRequiredForService,
+} from '@services/canonical-service-registry';
 
 const INDIAN_STATES = [
   'Andhra Pradesh', 'Telangana', 'Tamil Nadu', 'Karnataka', 'Maharashtra',
@@ -78,14 +83,21 @@ export function GeneralDetailsSection({
 
   const cleanMobile = mobile.replace(/\D/g, '');
   const hasValidMobile = cleanMobile.length === 10;
-  const isPadmavathi = activeServiceId === 'padmavathi-supadham-entry-200' || (activeServiceId && activeServiceId.includes('padmavathi'));
-  const isHomam = activeServiceId === 'sri-srinivasa-divyanugraha-homam' || (activeServiceId && activeServiceId.includes('homam'));
-  const isSrivari = activeServiceId === 'srivari-seva' || (activeServiceId && activeServiceId.includes('srivari'));
+
+  // Domain-driven configuration from Canonical Service Registry
+  const canonicalService = activeServiceId ? getCanonicalService(activeServiceId) : undefined;
+  const serviceHasGeneralDetails = activeServiceId ? hasGeneralDetails(activeServiceId) : true;
+  const isPadmavathi = canonicalService?.serviceId === 'padmavathi-supadham-entry-200';
+  const isHomam = canonicalService?.serviceId === 'sri-srinivasa-divyanugraha-homam';
+  const isSrivari = canonicalService?.serviceId === 'srivari-seva';
+
+  const isGothramRequired = activeServiceId ? isFieldRequiredForService(activeServiceId, 'general', 'gothram') : false;
+  const isEmailRequired = activeServiceId ? isFieldRequiredForService(activeServiceId, 'general', 'email') : true;
 
   let badgeText = 'Optional';
   let badgeClass = 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300';
 
-  if (isPadmavathi) {
+  if (!serviceHasGeneralDetails || isPadmavathi) {
     badgeText = 'Not needed for ₹200';
     badgeClass = 'bg-[#FAF5FF] text-[#54258A] dark:bg-[#3E1B68]/30 dark:text-[#E1BEE7]';
   } else if (isHomam) {
@@ -153,7 +165,11 @@ export function GeneralDetailsSection({
           {/* Gothram — required for Homam and certain Arjitha Sevas */}
           <div>
             <label className="sp-label text-sm mb-1">
-              {t('pilgrim.gothram')} <span className="text-xs text-[#6B5A70] dark:text-[#A692B4]">(Required for Homam)</span>
+              {t('pilgrim.gothram')} {isGothramRequired ? (
+                <span className="text-xs text-amber-600 dark:text-amber-400 font-semibold">* (Required for {canonicalService?.displayName || 'Homam'})</span>
+              ) : (
+                <span className="text-xs text-[#6B5A70] dark:text-[#A692B4]">(Optional)</span>
+              )}
             </label>
             <input
               type="text"
@@ -166,7 +182,7 @@ export function GeneralDetailsSection({
 
           <div>
             <label className="sp-label text-sm mb-1">
-              Booking Mobile (10 digits) <span className="text-xs text-[#6B5A70] dark:text-[#A692B4]">(Optional for Darshan/Homam)</span>
+              Booking Mobile (10 digits) <span className="text-xs text-[#6B5A70] dark:text-[#A692B4]">(Optional)</span>
             </label>
             <input
               type="tel"
@@ -181,7 +197,11 @@ export function GeneralDetailsSection({
 
           <div>
             <label className="sp-label text-sm mb-1">
-              Booking Email <span className="text-xs text-[#6B5A70] dark:text-[#A692B4]">(Required for Homam)</span>
+              Booking Email {isEmailRequired ? (
+                <span className="text-xs text-amber-600 dark:text-amber-400 font-semibold">*</span>
+              ) : (
+                <span className="text-xs text-[#6B5A70] dark:text-[#A692B4]">(Optional)</span>
+              )}
             </label>
             <input
               type="email"

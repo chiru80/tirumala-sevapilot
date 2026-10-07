@@ -254,7 +254,7 @@ export const VERIFIED_RELEASE_EVENTS: TtdReleaseEvent[] = [
     bookingType: 'Special Entry Darshan',
     targetBookingDates: 'Oct 12, 13, 14, 18, 19, 20',
     targetMonth: 'October 2026 (Oct 12, 13, 14, 18, 19, 20 Quota)',
-    releaseDate: '2026-10-07',
+    releaseDate: '2026-10-24',
     releaseTime: '10:00',
     timezone: IST_TIMEZONE,
     releasePattern: 'SPECIAL_ENTRY_DARSHAN_QUOTA',
@@ -267,7 +267,7 @@ export const VERIFIED_RELEASE_EVENTS: TtdReleaseEvent[] = [
     isConfirmed: true,
     publishedTimestamp: '2026-10-06T12:00:00.000Z',
     fetchedAt: '2026-10-07T00:00:00.000Z',
-    expiresAt: '2026-10-21T00:00:00.000Z',
+    expiresAt: '2026-10-25T00:00:00.000Z',
   },
   {
     id: 'release-padmavathi-200-current',

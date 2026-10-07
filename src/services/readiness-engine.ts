@@ -62,7 +62,200 @@ export interface ReadinessEvaluation {
   whyNotReady?: WhyNotReadyExplanation;
 }
 
+import { getCanonicalService } from './canonical-service-registry';
+
+export type BookingReadinessStatus =
+  | 'READY'
+  | 'ACTION_REQUIRED'
+  | 'NOT_READY'
+  | 'UNKNOWN';
+
+export interface InternalDiagnostics {
+  score: number;
+  checks: ReadinessCheckItem[];
+  missingFields: string[];
+  recommendations: string[];
+  whyNotReady?: WhyNotReadyExplanation;
+  evaluation?: ReadinessEvaluation;
+  profileComplete?: boolean;
+  pilgrimFieldsComplete?: boolean;
+  idVerified?: boolean;
+  generalDetailsComplete?: boolean;
+  specialDetailsComplete?: boolean;
+  serviceCountValid?: boolean;
+  formDetected?: boolean;
+  officialSourceVerified?: boolean;
+}
+
+export interface BookingReadiness {
+  status: BookingReadinessStatus;
+  headline: string;
+  userAction?: string;
+  serviceId?: string;
+  pilgrimCount: number;
+  maxPilgrims?: number;
+  exactPilgrims?: number;
+  canFill: boolean;
+  diagnostics?: InternalDiagnostics;
+}
+
 export class ReadinessEngine {
+  /**
+   * Authoritative canonical readiness evaluation for product consumers.
+   * Produces clean consumer statuses without percentage clutter.
+   */
+  public static evaluateBookingReadiness(
+    profile: Profile | null | undefined,
+    serviceType: ServiceType | string = ServiceType.DARSHAN,
+    serviceId?: string,
+    selectedPilgrims?: (string | Pilgrim)[],
+    pageDetected: boolean = false,
+  ): BookingReadiness {
+    const effectiveServiceId =
+      serviceId ||
+      (typeof serviceType === 'string' &&
+      serviceType !== ServiceType.DARSHAN &&
+      serviceType !== ServiceType.GENERIC
+        ? serviceType
+        : undefined);
+    const canonical = effectiveServiceId
+      ? getCanonicalService(effectiveServiceId)
+      : getCanonicalService(String(serviceType));
+
+    const evaluation = ReadinessEngine.evaluate(
+      profile,
+      serviceType,
+      effectiveServiceId,
+      selectedPilgrims,
+    );
+
+    const diagnostics: InternalDiagnostics = {
+      score: evaluation.score,
+      checks: evaluation.checks,
+      missingFields: evaluation.missingFields,
+      recommendations: evaluation.recommendations,
+      whyNotReady: evaluation.whyNotReady,
+      evaluation,
+    };
+
+    if (!profile) {
+      return {
+        status: 'NOT_READY',
+        headline: 'No pilgrim profile selected',
+        userAction: 'Create or select a devotee profile',
+        serviceId: effectiveServiceId,
+        pilgrimCount: 0,
+        maxPilgrims: canonical?.maxPilgrims,
+        exactPilgrims: canonical?.exactPilgrims,
+        canFill: false,
+        diagnostics,
+      };
+    }
+
+    if (evaluation.pilgrimCount === 0) {
+      return {
+        status: 'ACTION_REQUIRED',
+        headline: 'Select pilgrims',
+        userAction: 'Select at least one devotee',
+        serviceId: effectiveServiceId,
+        pilgrimCount: 0,
+        maxPilgrims: canonical?.maxPilgrims,
+        exactPilgrims: canonical?.exactPilgrims,
+        canFill: false,
+        diagnostics,
+      };
+    }
+
+    // Exact count violation (e.g. Homam requires exact 2, Srivari requires exact 1)
+    const candidateCount = selectedPilgrims ? selectedPilgrims.length : (profile?.pilgrims?.length ?? 0);
+    if (canonical?.exactPilgrims && candidateCount !== canonical.exactPilgrims) {
+      return {
+        status: 'ACTION_REQUIRED',
+        headline: `Exact ${canonical.exactPilgrims} devotee${canonical.exactPilgrims > 1 ? 's' : ''} required`,
+        userAction: `${canonical.displayName} requires exactly ${canonical.exactPilgrims} devotee${canonical.exactPilgrims > 1 ? 's' : ''}`,
+        serviceId: effectiveServiceId,
+        pilgrimCount: candidateCount,
+        maxPilgrims: canonical.maxPilgrims,
+        exactPilgrims: canonical.exactPilgrims,
+        canFill: false,
+        diagnostics,
+      };
+    }
+
+    if (canonical?.maxPilgrims && candidateCount > canonical.maxPilgrims) {
+      return {
+        status: 'ACTION_REQUIRED',
+        headline: `Max ${canonical.maxPilgrims} devotee${canonical.maxPilgrims > 1 ? 's' : ''} allowed`,
+        userAction: `Select at most ${canonical.maxPilgrims} devotee for ${canonical.displayName}`,
+        serviceId: effectiveServiceId,
+        pilgrimCount: candidateCount,
+        maxPilgrims: canonical.maxPilgrims,
+        exactPilgrims: canonical.exactPilgrims,
+        canFill: false,
+        diagnostics,
+      };
+    }
+
+    // Pilgrim details missing/invalid
+    if (!evaluation.isProfileReady) {
+      return {
+        status: 'ACTION_REQUIRED',
+        headline: 'Devotee details need attention',
+        userAction: "Complete your pilgrim's ID details",
+        serviceId: effectiveServiceId,
+        pilgrimCount: evaluation.pilgrimCount,
+        maxPilgrims: canonical?.maxPilgrims,
+        exactPilgrims: canonical?.exactPilgrims,
+        canFill: false,
+        diagnostics,
+      };
+    }
+
+    // General details needed for services with general details step
+    const generalOrAddrCheck = evaluation.checks.find(
+      c => c.id === 'general_details' || c.id === 'srivari_address',
+    );
+    if (canonical?.hasGeneralDetailsStep && generalOrAddrCheck && generalOrAddrCheck.status !== 'ready') {
+      const isGothramMissing = evaluation.missingFields.some(f => f.toLowerCase().includes('gothram'));
+      return {
+        status: 'ACTION_REQUIRED',
+        headline: isGothramMissing ? 'Gothram required for sankalpam' : 'General details needed',
+        userAction: isGothramMissing ? 'Enter family Gothram for Homam' : 'Complete general contact and address details',
+        serviceId: effectiveServiceId,
+        pilgrimCount: evaluation.pilgrimCount,
+        maxPilgrims: canonical?.maxPilgrims,
+        exactPilgrims: canonical?.exactPilgrims,
+        canFill: false,
+        diagnostics,
+      };
+    }
+
+    if (!evaluation.isBookingReady) {
+      return {
+        status: 'ACTION_REQUIRED',
+        headline: 'Booking details need attention',
+        userAction: evaluation.recommendations[0] || 'Review details before proceeding',
+        serviceId: effectiveServiceId,
+        pilgrimCount: evaluation.pilgrimCount,
+        maxPilgrims: canonical?.maxPilgrims,
+        exactPilgrims: canonical?.exactPilgrims,
+        canFill: false,
+        diagnostics,
+      };
+    }
+
+    return {
+      status: 'READY',
+      headline: pageDetected ? 'Ready to fill & verify' : 'Booking details ready',
+      userAction: pageDetected ? undefined : 'Open official TTD booking page',
+      serviceId: effectiveServiceId,
+      pilgrimCount: evaluation.pilgrimCount,
+      maxPilgrims: canonical?.maxPilgrims,
+      exactPilgrims: canonical?.exactPilgrims,
+      canFill: pageDetected,
+      diagnostics,
+    };
+  }
   /**
    * Evaluate booking readiness for an active profile and target service.
    * Strictly enforces that 100% is only awarded when all required fields and validations pass.
@@ -574,8 +767,8 @@ export class ReadinessEngine {
         const effectiveCountry = pilgrim?.country?.trim() || effectiveGeneral.country?.trim() || 'India';
         const effectivePin = (pilgrim?.pinCode || effectiveGeneral.pinCode || '').replace(/\D/g, '');
         const effectiveDistrict = pilgrim?.district?.trim();
-        const effectiveStreet = pilgrim?.srivariSeva?.street?.trim() || pilgrim?.address?.trim();
-        const effectiveDoor = pilgrim?.srivariSeva?.doorNumber?.trim();
+        const effectiveStreet = pilgrim?.srivariSeva?.street?.trim() || (pilgrim as any)?.street?.trim() || pilgrim?.address?.trim();
+        const effectiveDoor = pilgrim?.srivariSeva?.doorNumber?.trim() || (pilgrim as any)?.doorNumber?.trim();
 
         const missingSrivariAddr: string[] = [];
         if (!effectiveCountry) missingSrivariAddr.push('Country');
@@ -875,20 +1068,7 @@ export interface ServiceReadinessParams {
   };
 }
 
-export interface InternalDiagnostics {
-  profileComplete: boolean;
-  pilgrimFieldsComplete: boolean;
-  idVerified: boolean;
-  generalDetailsComplete: boolean;
-  specialDetailsComplete: boolean;
-  serviceCountValid: boolean;
-  formDetected: boolean;
-  officialSourceVerified: boolean;
-  score: number;
-  checks: ReadinessCheckItem[];
-  missingFields: string[];
-  recommendations: string[];
-}
+
 
 export interface NormalizedReadinessResult {
   status: NormalizedReadinessStatus;

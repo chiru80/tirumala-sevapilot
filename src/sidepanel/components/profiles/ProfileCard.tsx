@@ -2,6 +2,7 @@ import React from 'react';
 import { t } from '@i18n/index';
 import type { Profile, Pilgrim } from '@shared/types';
 import { calculateProfileHealth, checkPilgrimHealth } from '../../../services/profile-health';
+import { getCanonicalService } from '@services/canonical-service-registry';
 import { maskIdDisplay } from './PilgrimEditor';
 import { QuickPilgrimForm } from './QuickPilgrimForm';
 import { GeneralDetailsSection } from './GeneralDetailsSection';
@@ -17,11 +18,8 @@ export function maskPhoneDisplay(val?: string): string {
 
 function getServiceDisplayName(serviceId?: string): string {
   if (!serviceId) return 'Booking';
-  const id = serviceId.toLowerCase();
-  if (id.includes('special-entry') || id.includes('sed')) return 'Special Entry Darshan';
-  if (id.includes('padmavathi') || id.includes('spat')) return 'Padmavathi / SPAT';
-  if (id.includes('homam')) return 'Divyanugraha Homam';
-  if (id.includes('srivari')) return 'Srivari Seva';
+  const canonical = getCanonicalService(serviceId);
+  if (canonical) return canonical.displayName;
   return 'Booking';
 }
 
