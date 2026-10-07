@@ -16,7 +16,7 @@ import type { FieldResolution } from './field-resolver';
 import { performTextTransaction, performDropdownTransaction, executeTextTransaction, executeDropdownTransaction } from './field-transaction';
 import { retryWithVerification, waitForElementInContainer } from './retry-engine';
 import { verifyField } from './verification';
-import { detectActiveBookingStep, detectWorkflowStep } from './page-workflow';
+import { detectWorkflowStep } from './page-workflow';
 import { getWorkflowById, detectActiveWorkflow, resolveWorkflowWithConfidence } from '../../services/workflows/registry';
 import {
   detectPageTicketLimit,
@@ -313,7 +313,12 @@ export async function executeAutofill(opts: AutofillOptions = {}): Promise<Autof
       return buildResult(progress, 'unknown', startedAt);
     }
 
-    const bookingStep = detectActiveBookingStep(doc, url);
+    // IMPORTANT: Use the canonical workflow detector first.
+    // TTD keeps the pilgrim-details route while advancing to General Details,
+    // so URL-based detection alone can incorrectly restart the pilgrim step.
+    // detectWorkflowStep() checks the live DOM/step structure and gives
+    // GENERAL_DETAILS precedence when that section is actually active.
+    const bookingStep = detectWorkflowStep(doc, url, workflow);
     let step: 'pilgrim' | 'general' | 'unknown' | 'srivari_instructions' | 'srivari_enrollment' =
       bookingStep === 'PILGRIM_DETAILS' ? 'pilgrim'
         : bookingStep === 'GENERAL_DETAILS' ? 'general'
