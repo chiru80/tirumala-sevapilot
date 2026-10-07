@@ -124,6 +124,14 @@ export function ProfilesPage() {
     await loadProfiles();
   }
 
+  async function handleAutoSelectPilgrims(profileId: string, ids: string[]) {
+    await updateSelectedPilgrims(profileId, selectedService, ids);
+    if (selectedService === 'special-entry-darshan-300') {
+      await updateSelectedPilgrims(profileId, 'darshan', ids);
+    }
+    await loadProfiles();
+  }
+
   function handlePrintSlip(profile: Profile) {
     setSlipProfile(profile);
   }
@@ -213,6 +221,7 @@ export function ProfilesPage() {
             onDeleteProfile={handleDeleteProfile}
             onToggleSelectAll={handleToggleSelectAll}
             onTogglePilgrim={handleTogglePilgrim}
+            onAutoSelectPilgrims={handleAutoSelectPilgrims}
             onEditPilgrim={(profileId, pilgrim) => setEditPilgrim({ profileId, pilgrim })}
             onDuplicatePilgrim={handleDuplicateDevotee}
             onDeletePilgrim={handleDeleteDevotee}

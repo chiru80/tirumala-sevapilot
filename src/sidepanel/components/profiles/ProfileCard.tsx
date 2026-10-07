@@ -3,6 +3,7 @@ import { t } from '@i18n/index';
 import type { Profile, Pilgrim } from '@shared/types';
 import { calculateProfileHealth, checkPilgrimHealth } from '../../../services/profile-health';
 import { getCanonicalService } from '@services/canonical-service-registry';
+import { ServiceIntelligence } from '../../../services/service-intelligence';
 import { maskIdDisplay } from './PilgrimEditor';
 import { QuickPilgrimForm } from './QuickPilgrimForm';
 import { GeneralDetailsSection } from './GeneralDetailsSection';
@@ -36,6 +37,7 @@ export interface ProfileCardProps {
   onDeleteProfile: (profileId: string) => void;
   onToggleSelectAll: (profile: Profile) => void;
   onTogglePilgrim?: (profileId: string, pilgrimId: string) => void;
+  onAutoSelectPilgrims?: (profileId: string, pilgrimIds: string[]) => void;
   onEditPilgrim: (profileId: string, pilgrim: Pilgrim) => void;
   onDuplicatePilgrim: (profileId: string, pilgrimId: string) => void;
   onDeletePilgrim: (profileId: string, pilgrimId: string) => void;
@@ -58,6 +60,7 @@ export function ProfileCard({
   onDeleteProfile,
   onToggleSelectAll,
   onTogglePilgrim,
+  onAutoSelectPilgrims,
   onEditPilgrim,
   onDuplicatePilgrim,
   onDeletePilgrim,
@@ -69,6 +72,9 @@ export function ProfileCard({
   const serviceKey = activeServiceId || 'special-entry-darshan-300';
   const selectedList = profile.selectedPilgrims?.[serviceKey] ?? profile.selectedPilgrims?.['darshan'] ?? profile.pilgrims.map(p => p.id);
   const health = calculateProfileHealth(profile, false, serviceKey);
+  const selectedPilgrimsList = profile.pilgrims.filter(p => selectedList.includes(p.id));
+  const compatibility = ServiceIntelligence.checkCompatibility(profile, serviceKey, selectedPilgrimsList);
+  const serviceRules = ServiceIntelligence.getRules(serviceKey);
 
   const isReady = health.total > 0 && health.incomplete === 0;
   const isActionRequired = health.total > 0 && health.incomplete > 0;
@@ -212,6 +218,49 @@ export function ProfileCard({
       {/* Expanded: Pilgrim List & Management */}
       {isExpanded && (
         <div className="mt-3 pt-3 border-t border-gold-500/10 dark:border-gold-500/5 space-y-2.5">
+          {/* Service Compatibility & Exact Limit Bar */}
+          <div className="p-2.5 rounded-xl border border-gold-500/20 bg-cream/40 dark:bg-[#2A1733]/60 space-y-1.5 text-xs">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="font-bold text-[#5B2A86] dark:text-[#D4A72C]">
+                  {serviceRules?.displayName || serviceName}
+                </span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded font-semibold bg-gold-500/10 text-gold-700 dark:text-gold-300">
+                  {serviceRules?.exactPilgrims
+                    ? `Strictly ${serviceRules.exactPilgrims} pilgrims`
+                    : `${serviceRules?.minPilgrims || 1}–${serviceRules?.maxPilgrims || 6} pilgrims`}
+                </span>
+              </div>
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                compatibility.isCompatible
+                  ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
+                  : 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
+              }`}>
+                {compatibility.isCompatible ? '✓ Compatible' : 'Limit / Requirements Alert'}
+              </span>
+            </div>
+
+            {!compatibility.isCompatible && (
+              <div className="flex items-center justify-between gap-2 pt-1 border-t border-gold-500/10 text-[11px]">
+                <span className="text-amber-800 dark:text-amber-300 font-medium truncate">
+                  {compatibility.countValidation.reason || compatibility.recommendations[0] || 'Requirements not met'}
+                </span>
+                {onAutoSelectPilgrims && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const targetIds = ServiceIntelligence.reconcilePilgrimSelection(profile, serviceKey);
+                      onAutoSelectPilgrims(profile.id, targetIds);
+                    }}
+                    className="text-[10px] font-bold text-[#5B2A86] dark:text-[#D4A72C] underline hover:no-underline shrink-0 cursor-pointer"
+                  >
+                    Auto-select for {serviceRules?.exactPilgrims ? `${serviceRules.exactPilgrims} devotees` : 'service'}
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+
           <div className="flex items-center justify-between py-1.5 px-2 bg-gold-50/60 dark:bg-[#321B3F]/50 rounded-xl text-xs">
             <div className="flex items-center gap-2">
               <button
@@ -237,7 +286,7 @@ export function ProfileCard({
             )}
           </div>
 
-          {profile.pilgrims.map(pilgrim => {
+          {profile.pilgrims.map((pilgrim, idx) => {
             const pilgrimHealth = checkPilgrimHealth(pilgrim, serviceKey);
             const isComplete = pilgrimHealth.isReady;
             const isPilgrimSelected = selectedList.includes(pilgrim.id);
@@ -275,6 +324,9 @@ export function ProfileCard({
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-gray-300 shrink-0">
+                      Slot {idx + 1}
+                    </span>
                     <p className="text-sm font-semibold text-[#321B3F] dark:text-[#F8EFD8] truncate">
                       {pilgrim.fullName || `${pilgrim.firstName} ${pilgrim.lastName}`}
                     </p>

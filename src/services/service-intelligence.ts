@@ -280,4 +280,82 @@ export class ServiceIntelligence {
       recommendations,
     };
   }
+
+  /**
+   * Automatically reconciles and selects eligible devotees matching a service's exact or max limit.
+   * Prioritizes ready devotees first.
+   */
+  public static reconcilePilgrimSelection(profile: Profile, serviceId: string): string[] {
+    const canonical = getCanonicalService(serviceId);
+    const pilgrims = profile.pilgrims || [];
+    if (pilgrims.length === 0) return [];
+
+    const exact = canonical?.exactPilgrims;
+    const max = canonical?.maxPilgrims ?? 6;
+    const targetLimit = exact ?? max;
+
+    // Check completeness of each devotee for this service
+    const evaluated = pilgrims.map(p => {
+      const pName = p.fullName || `${p.firstName || ''} ${p.lastName || ''}`.trim();
+      const hasName = Boolean(pName);
+      const hasAge = Boolean((typeof p.age === 'number' && p.age > 0) || p.dateOfBirth);
+      const hasGender = Boolean(p.gender);
+      const hasIdType = Boolean(p.idType);
+      const hasIdNum = Boolean(p.idNumber && p.idNumber.trim().length > 0);
+      const isReady = hasName && hasAge && hasGender && hasIdType && hasIdNum;
+      return { id: p.id, isReady };
+    });
+
+    // Pick ready devotees first, then fill up to targetLimit
+    const readyIds = evaluated.filter(e => e.isReady).map(e => e.id);
+    const otherIds = evaluated.filter(e => !e.isReady).map(e => e.id);
+
+    return [...readyIds, ...otherIds].slice(0, targetLimit);
+  }
+
+  /**
+   * Detailed per-devotee field readiness breakdown for a service.
+   */
+  public static getDevoteeReadiness(
+    pilgrim: Pilgrim,
+    serviceId: string,
+  ): { isReady: boolean; missingFields: string[]; checklist: Record<string, boolean> } {
+    const canonical = getCanonicalService(serviceId);
+    const reqFields = canonical?.requiredPilgrimFields ?? ['name', 'age', 'gender', 'idProofType', 'idProofNumber'];
+    const checklist: Record<string, boolean> = {};
+    const missingFields: string[] = [];
+
+    const pName = pilgrim.fullName || `${pilgrim.firstName || ''} ${pilgrim.lastName || ''}`.trim();
+    checklist['name'] = Boolean(pName);
+    checklist['gender'] = Boolean(pilgrim.gender);
+    checklist['age'] = Boolean((typeof pilgrim.age === 'number' && pilgrim.age > 0) || pilgrim.dateOfBirth);
+    checklist['idProofType'] = Boolean(pilgrim.idType);
+    checklist['idProofNumber'] = Boolean(pilgrim.idNumber && pilgrim.idNumber.trim().length > 0);
+
+    if (serviceId.includes('srivari')) {
+      checklist['dateOfBirth'] = Boolean(pilgrim.dateOfBirth);
+      checklist['photo'] = Boolean(pilgrim.photo);
+      checklist['mobile'] = Boolean(pilgrim.mobile && pilgrim.mobile.replace(/\D/g, '').length === 10);
+      checklist['country'] = Boolean(pilgrim.country || 'India');
+      checklist['state'] = Boolean(pilgrim.state);
+      checklist['district'] = Boolean(pilgrim.district);
+      checklist['city'] = Boolean(pilgrim.city);
+      checklist['street'] = Boolean(pilgrim.srivariSeva?.street || pilgrim.address);
+      checklist['doorNumber'] = Boolean(pilgrim.srivariSeva?.doorNumber);
+      checklist['pincode'] = Boolean(pilgrim.pinCode);
+    }
+
+    for (const field of reqFields) {
+      if (!checklist[field]) {
+        missingFields.push(field);
+      }
+    }
+
+    return {
+      isReady: missingFields.length === 0,
+      missingFields,
+      checklist,
+    };
+  }
 }
+
