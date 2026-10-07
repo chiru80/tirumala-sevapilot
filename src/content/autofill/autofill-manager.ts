@@ -18,6 +18,7 @@ import { retryWithVerification, waitForElementInContainer } from './retry-engine
 import { verifyField } from './verification';
 import { detectWorkflowStep } from './page-workflow';
 import { getWorkflowById, detectActiveWorkflow, resolveWorkflowWithConfidence } from '../../services/workflows/registry';
+import { getCanonicalService } from '../../services/canonical-service-registry';
 import {
   detectPageTicketLimit,
   detectDigitalQueue,
@@ -360,9 +361,10 @@ export async function executeAutofill(opts: AutofillOptions = {}): Promise<Autof
       return buildResult(progress, step, startedAt, workflow);
     }
 
-    // Phase 3 Section 3 & 4: If service has NO General Details step (e.g. Padmavathi ₹200),
+    // Phase 1 / Phase 3: If service has NO General Details step (e.g. Padmavathi ₹200),
     // NEVER attempt or force general details autofill!
-    if (step === 'general' && workflow && !workflow.hasGeneralDetailsStep) {
+    const canonical = workflow?.serviceId ? getCanonicalService(workflow.serviceId) : undefined;
+    if (step === 'general' && ((workflow && !workflow.hasGeneralDetailsStep) || (canonical && !canonical.hasGeneralDetailsStep))) {
       progress.state = 'COMPLETE';
       progress.percent = 100;
       emit();
@@ -449,19 +451,23 @@ async function executePilgrimStep(
   adapter?: ServiceAdapter,
   workflow?: ServiceWorkflow,
 ): Promise<AutofillManagerResult> {
-  const maxAllowed = workflow?.maxPilgrims ?? adapter?.maxPilgrims ?? 6;
+  const canonical = workflow?.serviceId ? getCanonicalService(workflow.serviceId) : undefined;
+  const maxAllowed = canonical?.maxPilgrims ?? workflow?.maxPilgrims ?? adapter?.maxPilgrims ?? 6;
+  const exactRequired = canonical?.exactPilgrims ?? workflow?.exactPilgrims;
 
   // Max pilgrim safety (Section 21): block before fill if user selects too many or wrong count
-  if (workflow?.exactPilgrims && pilgrims.length !== workflow.exactPilgrims) {
+  if (exactRequired && pilgrims.length !== exactRequired) {
     progress.state = 'ERROR';
-    progress.errors.push(`${workflow.serviceName} permits exactly ${workflow.exactPilgrims} pilgrims per booking.`);
+    const sName = canonical?.serviceName ?? workflow?.serviceName ?? 'Service';
+    progress.errors.push(`${sName} permits exactly ${exactRequired} pilgrims per booking.`);
     emit();
     return buildResult(progress, 'pilgrim', startedAt);
   }
 
-  if (workflow?.maxPilgrims && pilgrims.length > workflow.maxPilgrims) {
+  if (maxAllowed && pilgrims.length > maxAllowed) {
     progress.state = 'ERROR';
-    progress.errors.push(`${workflow.serviceName} allows a maximum of ${workflow.maxPilgrims} participants.`);
+    const sName = canonical?.serviceName ?? workflow?.serviceName ?? 'Service';
+    progress.errors.push(`${sName} allows a maximum of ${maxAllowed} participants.`);
     emit();
     return buildResult(progress, 'pilgrim', startedAt);
   }
