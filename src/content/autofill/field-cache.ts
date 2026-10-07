@@ -91,4 +91,16 @@ export class FieldCache {
   public static clear(): void {
     this.resolutionMap.clear();
   }
+
+  public getOrCompute(element: HTMLElement, sectionId?: string): FieldFingerprint {
+    return FieldCache.getFingerprint(element, sectionId);
+  }
+
+  public get(element: HTMLElement): FieldFingerprint | undefined {
+    return FieldCache.fingerprintMap.get(element);
+  }
+
+  public invalidate(element: HTMLElement): void {
+    FieldCache.fingerprintMap.delete(element);
+  }
 }

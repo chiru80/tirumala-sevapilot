@@ -28,6 +28,7 @@ export interface SectionSnapshot {
   textareas: SnapshotControl[];
   radios: SnapshotControl[];
   timestamp: number;
+  getVisibleInputs: () => SnapshotControl[];
 }
 
 const CONTROL_SELECTOR = [
@@ -48,7 +49,8 @@ export class DomSnapshot {
    * Capture a scoped snapshot of candidate controls inside a container.
    * If an unexpired snapshot exists for the exact container and elements remain connected, returns it.
    */
-  public static takeSnapshot(container: HTMLElement, maxAgeMs: number = 500): SectionSnapshot {
+  public static takeSnapshot(target: HTMLElement | Document, maxAgeMs: number = 500): SectionSnapshot {
+    const container: HTMLElement = (target as any).body || (target as any).documentElement || target;
     const existing = this.snapshotWeakMap.get(container);
     if (existing && Date.now() - existing.timestamp < maxAgeMs) {
       // Validate that at least one control is still connected
@@ -128,13 +130,15 @@ export class DomSnapshot {
       textareas,
       radios,
       timestamp: Date.now(),
+      getVisibleInputs: () => inputs,
     };
 
     this.snapshotWeakMap.set(container, snapshot);
     return snapshot;
   }
 
-  public static invalidate(container: HTMLElement): void {
+  public static invalidate(target: HTMLElement | Document): void {
+    const container: HTMLElement = (target as any).body || (target as any).documentElement || target;
     this.snapshotWeakMap.delete(container);
   }
 }
