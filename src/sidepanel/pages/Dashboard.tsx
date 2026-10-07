@@ -320,6 +320,8 @@ export function Dashboard({ onNavigate }: DashboardProps = {}) {
                 : `⚠ ${t('home.actionRequired') || 'Action required'}`}
             </span>
           </div>
+        )}
+
         {/* FIRST-TIME DEVOTEE WELCOME HERO */}
         {cockpit.isFirstTime && (
           <div className="rounded-2xl border border-[rgba(84,37,138,0.15)] bg-gradient-to-b from-white to-[#FAF7F2] dark:from-[#2A1733] dark:to-[#211526] p-4 text-center space-y-2 shadow-2xs">

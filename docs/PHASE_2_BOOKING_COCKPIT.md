@@ -97,14 +97,15 @@ The Cockpit resolves exactly one primary CTA at any given instant following this
 
 ---
 
-## 5. Devotee Trust: 4-Step "How It Works" & Privacy Guarantee
+## 5. Devotee Trust: 5-Step "How It Works" & Safety Boundaries
 
-[HowItWorksCard.tsx](file:///c:/Users/HP/Desktop/TIRUMALA%20SEVAPILOT/src/sidepanel/components/dashboard/HowItWorksCard.tsx) has been upgraded to a 4-step responsive grid:
+[HowItWorksCard.tsx](file:///c:/Users/HP/Desktop/TIRUMALA%20SEVAPILOT/src/sidepanel/components/dashboard/HowItWorksCard.tsx) provides a clear 5-step trust progression:
 
-1. **① CREATE PROFILE**: Save your pilgrim details once.
-2. **② OPEN TTD & SELECT PILGRIMS**: Open official TTD portal and choose who is travelling.
-3. **③ FILL & VERIFY**: 1-click autofill with instant verification.
-4. **④ YOU STAY IN CONTROL**: CAPTCHA, OTP, and payments remain 100% yours.
+1. **01 CREATE PROFILE**: Save your pilgrim details once.
+2. **02 OPEN TTD & SELECT PILGRIMS**: Open official TTD portal and choose who is travelling.
+3. **03 SEVAPILOT CHECKS FORM**: SevaPilot checks the live form safely.
+4. **04 FILL & VERIFY**: Fill supported TTD forms and verify the details.
+5. **05 YOU STAY IN CONTROL**: Review, OTP, payment, and submission remain 100% yours.
 
 ### Dedicated Trust Highlight
 ```
@@ -115,17 +116,34 @@ Internationalized across all 5 supported languages (`en`, `te`, `hi`, `ta`, `kn`
 
 ---
 
-## 6. Verification & Quality Assurance
+## 6. Premium Devotional Header & Release Ticker
+
+### Brand Identity
+- Header presents:
+  - **Tirumala SevaPilot**
+  - **TTD Booking Assistant**
+  - **Om Namo Venkatesaya**
+- Extension version (`v1.1.0`) is kept out of the primary visual hierarchy and available inside Settings.
+
+### Verified Release Ticker & Upcoming Releases
+- [ReleaseTicker.tsx](file:///c:/Users/HP/Desktop/TIRUMALA%20SEVAPILOT/src/sidepanel/components/dashboard/ReleaseTicker.tsx) consumes verified official announcements.
+- **Zero Fabrication**: Never generates fake dates, times, or countdowns.
+- Neutral verified fallback displayed when no upcoming releases are confirmed:
+  `TTD RELEASE UPDATE: Release date not announced yet · Official release information will appear here when verified.`
+- Expired releases never appear as upcoming.
+
+---
+
+## 7. Verification & Quality Assurance
 
 ### Test Suite Execution
-- **Unit Test Suite:** [tests/sidepanel/BookingCockpit.test.tsx](file:///c:/Users/HP/Desktop/TIRUMALA%20SEVAPILOT/tests/sidepanel/BookingCockpit.test.tsx) covers all 8 cockpit states, CTA transitions, and settings diagnostic triggers.
-- **Regression Suite:** [tests/sidepanel/Dashboard.test.tsx](file:///c:/Users/HP/Desktop/TIRUMALA%20SEVAPILOT/tests/sidepanel/Dashboard.test.tsx) validated for 100% backward compatibility.
-- **Full Repository Suite:** All 63 test files passing (677 of 677 tests).
+- **Unit Test Suite:** [tests/sidepanel/BookingCockpit.test.tsx](file:///c:/Users/HP/Desktop/TIRUMALA%20SEVAPILOT/tests/sidepanel/BookingCockpit.test.tsx) covers all cockpit states, CTA transitions, and settings diagnostic triggers.
+- **Regression Suite:** [tests/sidepanel/Dashboard.test.tsx](file:///c:/Users/HP/Desktop/TIRUMALA%20SEVAPILOT/tests/sidepanel/Dashboard.test.tsx) validated for backward compatibility.
+- **Full Repository Suite:** 63 test files passing.
 - **TypeScript & Bundle:** 0 type errors, clean Vite production build.
 
 ```
-Test Files  63 passed (63)
-Tests       677 passed (677)
 TypeScript  0 errors (tsc --noEmit)
-Vite Build  dist/ built successfully in 7.03s
+Vite Build  dist/ built successfully in 7.48s
 ```
+
