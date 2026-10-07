@@ -43,6 +43,7 @@ Status: COMPLETE
 - Preserve all safety checks.
 
 ## Phase 5 — Profiles / pilgrim manager
+Status: COMPLETE
 - Clear 1–6 pilgrim UX.
 - Service compatibility.
 - Service-specific max/exact limits.

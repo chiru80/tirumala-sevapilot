@@ -3,15 +3,17 @@ import type { Pilgrim } from '@shared/types';
 import { checkPilgrimHealth } from '../../../services/profile-health';
 import { t } from '@i18n/index';
 
-interface PilgrimSelectionProps {
+export interface PilgrimSelectionProps {
   pilgrims: Pilgrim[];
   selectedIds: string[];
   onToggle: (pilgrimId: string) => void;
   onSelectAll: () => void;
   onDeselectAll: () => void;
   onEditPilgrim?: (pilgrim: Pilgrim) => void;
+  onAddPilgrim?: () => void;
   maxAllowed?: number;
   exactCount?: number;
+  serviceId?: string;
 }
 
 export const PilgrimSelection: React.FC<PilgrimSelectionProps> = ({
@@ -21,8 +23,10 @@ export const PilgrimSelection: React.FC<PilgrimSelectionProps> = ({
   onSelectAll,
   onDeselectAll,
   onEditPilgrim,
+  onAddPilgrim,
   maxAllowed,
   exactCount,
+  serviceId,
 }) => {
   const [warningMessage, setWarningMessage] = useState<string | null>(null);
 
@@ -53,7 +57,7 @@ export const PilgrimSelection: React.FC<PilgrimSelectionProps> = ({
     }
 
     // If attempting to select an incomplete devotee, warn user
-    const health = checkPilgrimHealth(pilgrim);
+    const health = checkPilgrimHealth(pilgrim, serviceId);
     if (!isCurrentlySelected && !health.isReady) {
       const missingList = health.missingFields.map(f => {
         if (f === 'idNumber') return 'ID Number';
@@ -74,6 +78,7 @@ export const PilgrimSelection: React.FC<PilgrimSelectionProps> = ({
 
   return (
     <div className="rounded-2xl border border-[rgba(84,37,138,0.15)] bg-white dark:bg-[#2A1733] p-4 shadow-xs space-y-3">
+      {/* ─── Header & Quota Title ─── */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-xs font-bold uppercase tracking-wider text-[#6F6477] dark:text-[#A692B4]">
@@ -82,6 +87,11 @@ export const PilgrimSelection: React.FC<PilgrimSelectionProps> = ({
           {exactCount === 2 && (
             <span className="text-[12px] font-semibold text-[#54258A] dark:text-[#D4A72C] bg-[rgba(84,37,138,0.08)] dark:bg-[rgba(212,167,44,0.12)] px-2 py-0.5 rounded-md">
               Maximum 2 pilgrims per booking
+            </span>
+          )}
+          {exactCount === 1 && (
+            <span className="text-[12px] font-semibold text-[#54258A] dark:text-[#D4A72C] bg-[rgba(84,37,138,0.08)] dark:bg-[rgba(212,167,44,0.12)] px-2 py-0.5 rounded-md">
+              Maximum 1 participant per booking
             </span>
           )}
         </div>
@@ -102,6 +112,27 @@ export const PilgrimSelection: React.FC<PilgrimSelectionProps> = ({
         </div>
       </div>
 
+      {/* ─── Visual Quota Slot Indicator Bar ─── */}
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-[11px] select-none">
+        {Array.from({ length: effectiveMax }).map((_, slotIdx) => {
+          const isFilled = slotIdx < selectedCount;
+          return (
+            <div
+              key={slotIdx}
+              className={`px-2 py-1 rounded-lg border font-bold flex items-center gap-1 shrink-0 transition-colors ${
+                isFilled
+                  ? 'bg-[#54258A]/10 dark:bg-[#D4A72C]/15 border-[#54258A]/40 dark:border-[#D4A72C]/40 text-[#54258A] dark:text-[#D4A72C]'
+                  : 'bg-gray-50 dark:bg-gray-800/40 border-gray-200 dark:border-gray-700/60 text-gray-400 dark:text-gray-500'
+              }`}
+            >
+              <span>Slot {slotIdx + 1}</span>
+              {isFilled && <span className="text-emerald-600 dark:text-emerald-400">✓</span>}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* ─── Warning / Action Banner ─── */}
       {warningMessage && (
         <div className="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700/60 text-xs font-semibold text-amber-900 dark:text-amber-200 flex items-center justify-between" role="alert">
           <span>⚠ {warningMessage}</span>
@@ -115,10 +146,11 @@ export const PilgrimSelection: React.FC<PilgrimSelectionProps> = ({
         </div>
       )}
 
-      <div className="space-y-2 max-h-60 overflow-y-auto pr-0.5">
-        {pilgrims.map((pilgrim) => {
+      {/* ─── Visual Pilgrim Cards List ─── */}
+      <div className="space-y-2 max-h-64 overflow-y-auto pr-0.5">
+        {pilgrims.map((pilgrim, idx) => {
           const isSelected = selectedIds.includes(pilgrim.id);
-          const health = checkPilgrimHealth(pilgrim);
+          const health = checkPilgrimHealth(pilgrim, serviceId);
           const name = health.pilgrimName;
 
           return (
@@ -144,10 +176,15 @@ export const PilgrimSelection: React.FC<PilgrimSelectionProps> = ({
                   aria-label={isSelected ? `${name} (Selected)` : `Select ${name}`}
                 />
                 <div className="min-w-0">
-                  <p className="font-bold text-sm truncate text-[#30213A] dark:text-[#F8EFD8]">
-                    {name}
-                  </p>
-                  <p className="text-xs text-[#6F6477] dark:text-[#A692B4] truncate">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-gray-300 shrink-0">
+                      Slot {idx + 1}
+                    </span>
+                    <p className="font-bold text-sm truncate text-[#30213A] dark:text-[#F8EFD8]">
+                      {name}
+                    </p>
+                  </div>
+                  <p className="text-xs text-[#6F6477] dark:text-[#A692B4] truncate mt-0.5">
                     Age {pilgrim.age || '—'} · {pilgrim.gender || '—'} · {pilgrim.idType ? 'ID verified' : 'ID verified'}
                   </p>
                 </div>
@@ -174,6 +211,17 @@ export const PilgrimSelection: React.FC<PilgrimSelectionProps> = ({
             </div>
           );
         })}
+
+        {/* ─── Add Devotee Slot Card (when quota allows) ─── */}
+        {onAddPilgrim && pilgrims.length < effectiveMax && (
+          <button
+            type="button"
+            onClick={onAddPilgrim}
+            className="w-full p-2.5 rounded-xl border border-dashed border-[#54258A]/30 dark:border-[#D4A72C]/30 text-[#54258A] dark:text-[#D4A72C] text-xs font-bold hover:bg-[#54258A]/5 flex items-center justify-center gap-2 cursor-pointer transition-colors"
+          >
+            <span>+ Add Devotee (Slot {pilgrims.length + 1})</span>
+          </button>
+        )}
       </div>
     </div>
   );

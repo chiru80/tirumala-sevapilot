@@ -124,4 +124,32 @@ describe('Profiles Page', () => {
       expect(screen.getAllByText(/Photo/i)[0]).toBeTruthy();
     });
   });
+
+  it('renders service compatibility bar and slot indicators when expanded', async () => {
+    storageMap.set('sp_profiles', [mockProfile]);
+    render(<Profiles />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Family Darshan')).toBeTruthy();
+    });
+
+    // Expand devotee list
+    const editBtn = screen.getByRole('button', { name: /Edit/i });
+    fireEvent.click(editBtn);
+
+    // Verify service compatibility bar and slot badge
+    await waitFor(() => {
+      expect(screen.getByText(/1–6 pilgrims/i)).toBeTruthy();
+      expect(screen.getByText(/Slot 1/i)).toBeTruthy();
+    });
+
+    // Switch service to Homam
+    const homamBtn = screen.getByRole('button', { name: /Homam ₹1600/i });
+    fireEvent.click(homamBtn);
+
+    // Verify service limits update to Homam rules (Strictly 2 pilgrims)
+    await waitFor(() => {
+      expect(screen.getByText(/Strictly 2 pilgrims/i)).toBeTruthy();
+    });
+  });
 });

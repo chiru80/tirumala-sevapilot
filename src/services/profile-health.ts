@@ -218,6 +218,26 @@ export function calculateProfileHealth(
     ? profileOrPilgrims.general
     : undefined;
 
+  let generalHealthResult: GeneralHealthItem;
+  if (serviceId) {
+    const sId = serviceId.toLowerCase();
+    if (sId.includes('padmavathi') || sId.includes('200') || sId.includes('spat')) {
+      // Padmavathi ₹200 has NO General Details step
+      generalHealthResult = { isReady: true, missingFields: [] };
+    } else if (sId.includes('srivari')) {
+      // Srivari Seva has address embedded in devotee profile
+      generalHealthResult = { isReady: true, missingFields: [] };
+    } else if (sId.includes('homam')) {
+      // Homam requires gothram, mobile is optional
+      generalHealthResult = checkGeneralHealth(generalDetails, false, true, false);
+    } else {
+      // SED ₹300: email is required, mobile is optional
+      generalHealthResult = checkGeneralHealth(generalDetails, true, false, false);
+    }
+  } else {
+    generalHealthResult = checkGeneralHealth(generalDetails, requireEmail);
+  }
+
   const total = pilgrims.length;
   if (total === 0) {
     return {
@@ -227,7 +247,7 @@ export function calculateProfileHealth(
       percentage: 0,
       missingByField: {},
       pilgrimHealth: [],
-      generalHealth: checkGeneralHealth(generalDetails, requireEmail),
+      generalHealth: generalHealthResult,
     };
   }
 
@@ -258,6 +278,6 @@ export function calculateProfileHealth(
     percentage,
     missingByField,
     pilgrimHealth,
-    generalHealth: checkGeneralHealth(generalDetails, requireEmail),
+    generalHealth: generalHealthResult,
   };
 }

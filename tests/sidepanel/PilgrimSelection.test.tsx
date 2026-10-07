@@ -156,4 +156,123 @@ describe('PilgrimSelection Component', () => {
     // Maximum warning should show
     expect(screen.getByText(/Maximum 6 (devotees|pilgrims) allowed per booking/i)).toBeTruthy();
   });
+
+  // ─── PHASE 5: PROFILES & PILGRIM MANAGER EXTENSIONS ───
+
+  it('strictly enforces Homam exact 2 pilgrims limit and displays service badge', () => {
+    const onToggle = vi.fn();
+    const threePilgrims: Pilgrim[] = [
+      { ...completePilgrim, id: 'p1', fullName: 'Devotee 1' },
+      { ...completePilgrim, id: 'p2', fullName: 'Devotee 2' },
+      { ...completePilgrim, id: 'p3', fullName: 'Devotee 3' },
+    ];
+
+    render(
+      <PilgrimSelection
+        pilgrims={threePilgrims}
+        selectedIds={['p1', 'p2']}
+        exactCount={2}
+        onToggle={onToggle}
+        onSelectAll={vi.fn()}
+        onDeselectAll={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText(/Maximum 2 pilgrims per booking/i)).toBeTruthy();
+
+    // Try to select a 3rd devotee when exact limit 2 is already selected
+    const thirdCheckbox = screen.getByLabelText('Select Devotee 3');
+    fireEvent.click(thirdCheckbox);
+
+    expect(onToggle).not.toHaveBeenCalled();
+    expect(screen.getByText(/Maximum 2 persons per booking/i)).toBeTruthy();
+  });
+
+  it('strictly enforces Srivari Seva exact 1 participant limit', () => {
+    const onToggle = vi.fn();
+    const twoPilgrims: Pilgrim[] = [
+      { ...completePilgrim, id: 'p1', fullName: 'Sevak 1' },
+      { ...completePilgrim, id: 'p2', fullName: 'Sevak 2' },
+    ];
+
+    render(
+      <PilgrimSelection
+        pilgrims={twoPilgrims}
+        selectedIds={['p1']}
+        exactCount={1}
+        onToggle={onToggle}
+        onSelectAll={vi.fn()}
+        onDeselectAll={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText(/Maximum 1 participant per booking/i)).toBeTruthy();
+
+    const secondCheckbox = screen.getByLabelText('Select Sevak 2');
+    fireEvent.click(secondCheckbox);
+
+    expect(onToggle).not.toHaveBeenCalled();
+    expect(screen.getByText(/Maximum 1 persons per booking/i)).toBeTruthy();
+  });
+
+  it('renders visual slot indicators and tracks slot allocation', () => {
+    render(
+      <PilgrimSelection
+        pilgrims={[completePilgrim]}
+        selectedIds={['p1']}
+        maxAllowed={6}
+        onToggle={vi.fn()}
+        onSelectAll={vi.fn()}
+        onDeselectAll={vi.fn()}
+      />
+    );
+
+    // Devotee row slot indicator
+    expect(screen.getAllByText(/Slot 1/i)[0]).toBeTruthy();
+    // Visual quota slots (Slot 1 to Slot 6)
+    expect(screen.getByText('Slot 6')).toBeTruthy();
+  });
+
+  it('calls onEditPilgrim when clicking attention badge on incomplete devotee', () => {
+    const onEditPilgrim = vi.fn();
+
+    render(
+      <PilgrimSelection
+        pilgrims={[incompletePilgrim]}
+        selectedIds={[]}
+        onToggle={vi.fn()}
+        onSelectAll={vi.fn()}
+        onDeselectAll={vi.fn()}
+        onEditPilgrim={onEditPilgrim}
+      />
+    );
+
+    const attentionBadge = screen.getByText(/⚠ Needs attention/i);
+    fireEvent.click(attentionBadge);
+
+    expect(onEditPilgrim).toHaveBeenCalledWith(incompletePilgrim);
+  });
+
+  it('renders add devotee slot button when quota allows and calls onAddPilgrim', () => {
+    const onAddPilgrim = vi.fn();
+
+    render(
+      <PilgrimSelection
+        pilgrims={[completePilgrim]}
+        selectedIds={['p1']}
+        maxAllowed={6}
+        onToggle={vi.fn()}
+        onSelectAll={vi.fn()}
+        onDeselectAll={vi.fn()}
+        onAddPilgrim={onAddPilgrim}
+      />
+    );
+
+    const addBtn = screen.getByText(/\+ Add Devotee \(Slot 2\)/i);
+    expect(addBtn).toBeTruthy();
+
+    fireEvent.click(addBtn);
+    expect(onAddPilgrim).toHaveBeenCalledTimes(1);
+  });
 });
+
