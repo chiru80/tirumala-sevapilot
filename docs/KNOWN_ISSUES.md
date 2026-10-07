@@ -1,58 +1,97 @@
-# Tirumala SevaPilot — Phase 0 Known Issues
+# Tirumala SevaPilot — Known Issues & Severity Log (Phase 0 Audit)
 
-## P0 — Correctness / architecture
+**Date**: 2026-10-07  
+**Baseline Commit**: `0c926cb8eb558be77f9051b60ca37cd910c7587a` (`origin/master`)  
+**Auditor**: Principal Engineer, Security Auditor & QA Lead  
 
-### K01 — Release data freshness
-The release calendar contains static verified-event data. Even with stale/expiry checks, static entries can age into misleading product content. The source → parser → normalized event → cache pipeline needs a strict freshness policy and future-event filtering.
+---
 
-### K02 — Srivari rule duplication
-The canonical Srivari workflow says `maxPilgrims: 1` while the legacy Srivari adapter says `maxPilgrims: 10`. These are contradictory limits and must have one authoritative owner.
+## Severity Classification Model
 
-### K03 — Srivari field-rule duplication
-The workflow defines detailed required/optional/user-controlled fields while the legacy adapter has a different, smaller field model. Autofill/readiness must not depend on competing definitions.
+* **P0 (Critical / Blocker)**: Security vulnerabilities, data corruption, broken build/runtime, unsafe autofill, payment/OTP/CAPTCHA bypass, incorrect identity mapping, automatic declaration/attestation, booking lock bypass.
+* **P1 (High)**: Contradictory service rules, broken workflows, incorrect pilgrim limits, diverging field definitions, stale static data.
+* **P2 (Medium)**: Redundant architectures, unused settings, UX presentation leakage, missing CI automation.
+* **P3 (Low)**: Code hygiene, styling compatibility notes, minor maintainability items.
 
-### K04 — Readiness presentation leakage
-`useReadiness` exposes score and detailed checks directly to Dashboard consumers. Home should eventually consume a simplified booking state and keep detailed diagnostics out of the primary user flow.
+---
 
-## P1 — Product UX
+## P0 — Critical Issues
 
-### K05 — ProfileCard legacy terminology/fallbacks
-ProfileCard is service-aware but still contains fallback behavior and Special-Entry-centric defaults. It should use canonical active service information.
+### ISSUE-01 (P0): Broken Import Regression in `src/content/autofill/page-workflow.ts`
+* **File**: [`src/content/autofill/page-workflow.ts`](file:///c:/Users/HP/Desktop/TIRUMALA%20SEVAPILOT/src/content/autofill/page-workflow.ts)
+* **Root Cause**: Commit `0c926cb` introduced `detectGeneralDetails` on line 81, line 211 (export), and line 326 without importing it from `../../services/workflows/step-detectors`.
+* **Observable Impact**:
+  1. **Build Failure**: `npm run build` exits with code 1 (`[PARSE_ERROR] Export 'detectGeneralDetails' is not defined`).
+  2. **Typecheck Failure**: `npm run typecheck` exits with code 1 (`error TS2552: Cannot find name 'detectGeneralDetails'`).
+  3. **Runtime Error**: Injected content scripts crash with `ReferenceError: detectGeneralDetails is not defined` whenever booking step detection executes.
+  4. **Test Failures**: 11 test suites and 42 tests fail in Vitest due to unhandled exceptions in step detection.
+* **Remediation Plan for Phase 1**: Add `detectGeneralDetails` to the import declaration from `../../services/workflows/step-detectors`.
 
-### K06 — General Details service logic in UI
-GeneralDetailsSection contains service-specific branches. Those rules should eventually come from canonical service configuration.
+### ISSUE-02 (P0): Contradictory Pilgrim Limits in Srivari Seva
+* **Files**: 
+  - Canonical: [`src/services/workflows/srivari-seva-workflow.ts`](file:///c:/Users/HP/Desktop/TIRUMALA%20SEVAPILOT/src/services/workflows/srivari-seva-workflow.ts#L27-L28) (`maxPilgrims: 1, exactPilgrims: 1`)
+  - Legacy: [`src/services/srivari-seva/index.ts`](file:///c:/Users/HP/Desktop/TIRUMALA%20SEVAPILOT/src/services/srivari-seva/index.ts#L9) (`maxPilgrims: 10`)
+* **Root Cause**: Coexisting legacy adapter system was never synchronized with the canonical voluntary service rules. TTD Srivari Seva voluntary registration permits exactly 1 individual per enrollment slot.
+* **Risk**: If the legacy adapter is evaluated by fallback consumers, the UI could allow up to 10 pilgrims, causing form submission rejection on the TTD portal.
+* **Remediation Plan for Phase 1**: Deprecate legacy adapter and establish `srivari-seva-workflow.ts` as the single authoritative source of truth.
 
-### K07 — Home complexity
-Dashboard contains many advanced surfaces. The final Home should prioritize release update, contextual booking state, one dominant CTA, simple how-it-works and quick actions.
+---
 
-## P1 — Reliability
+## P1 — High Severity Issues
 
-### K08 — Settings runtime verification
-Settings contain multiple behavior toggles. Each toggle must be traced from UI → storage → runtime consumer → observable behavior.
+### ISSUE-03 (P1): Aging Static Seed Dates in `VERIFIED_RELEASE_EVENTS`
+* **File**: [`src/services/ttd-information/ttd-release-calendar.ts`](file:///c:/Users/HP/Desktop/TIRUMALA%20SEVAPILOT/src/services/ttd-information/ttd-release-calendar.ts#L248-L317)
+* **Description**: `VERIFIED_RELEASE_EVENTS` embeds static release dates (e.g. `2026-10-07 10:00 IST`). Once that exact timestamp passes, `isEventUpcoming()` correctly filters it out as past. However, unit tests asserting upcoming status for `special-entry-300` fail because the static timestamp has expired relative to current execution time.
+* **Remediation Plan for Phase 1**: Separate dynamic online quota feeds from frozen unit test mock fixtures. Do not present hardcoded static dates as current live announcements without fresh network verification.
 
-### K09 — Tailwind compatibility
-The declared project version is Tailwind 3.4.x. Utility classes used by the project must be checked against that version; unsupported utilities should not be silently assumed to work.
+### ISSUE-04 (P1): Triple Service Registration Architecture
+* **Files**:
+  - `src/services/workflows/registry.ts` (Phase 3 workflows)
+  - `src/services/registry.ts` (Legacy `ServiceAdapter` array)
+  - `src/services/ttd-information/ttd-service-rules.ts` (Static config records)
+  - `src/services/service-recognition-engine.ts` (Custom signatures array)
+* **Description**: Four separate modules maintain independent lists of supported services and rule sets. SED ₹300 and SPAT ₹200 are lumped together in `darshanAdapter` but split in `workflows/registry.ts`.
+* **Remediation Plan for Phase 1**: Consolidate into a unified canonical service registry where adapters derive from workflow definitions.
 
-### K10 — Full test/build evidence
-Repository inspection cannot establish that the current master builds/tests successfully in the present environment. A reproducible local/CI verification is required.
+### ISSUE-05 (P1): Srivari Seva Field Model Divergence
+* **Files**:
+  - `srivari-seva-workflow.ts`: 15 required fields (including `doorNumber`, `street`, `district`, `state`, `photo`, `mobile`)
+  - `srivari-seva/index.ts`: 7 required fields (`fullName`, `gender`, `dateOfBirth`, `idType`, `idNumber`, `mobile`, `country`)
+* **Description**: Consumers querying field requirements get conflicting answers depending on which module they import.
 
-## P2 — Maintainability
+### ISSUE-06 (P1): Monolithic Legacy Autofill Engine Duplication
+* **Files**:
+  - Active: `src/content/autofill/autofill-manager.ts` (81 KB)
+  - Legacy: `src/content/ttd-pilgrim-autofill.ts` (58 KB)
+* **Description**: The repository retains the entire legacy monolithic autofill implementation alongside the modularized `autofill-manager.ts`. Legacy unit tests still execute against `ttd-pilgrim-autofill.ts`, risking false confidence if the production content script uses `autofill-manager.ts`.
 
-### K11 — Legacy adapters
-Legacy service adapters remain useful for backward compatibility but should not become a second source of service truth.
+---
 
-### K12 — Product state contract
-A dedicated BookingCockpit/BookingState adapter is recommended between domain engines and UI.
+## P2 — Medium Severity Issues
 
-## Safety constraints
+### ISSUE-07 (P2): Settings Defined in UI but Not Consumed at Runtime
+* **Files**:
+  - `autoFillOnDetect`: Present in `types.ts`, `constants.ts`, `Settings.tsx`, and i18n, but never read in `content.ts` or `autofill-manager.ts`.
+  - `autoScanEnabled`: Present in `types.ts` and `constants.ts`, but has zero callers in the codebase.
+  - `diagnosticsMode`: Toggles a card in `Settings.tsx`, but does not alter logger verbosity or content script diagnostics.
+* **Remediation Plan**: Either wire these settings to active runtime behaviors or remove them to avoid misleading users.
 
-No issue above justifies:
-- CAPTCHA bypass
-- OTP automation
-- payment automation
-- final booking submission automation
-- queue manipulation
-- TTD lock bypass
-- forcing disabled/read-only fields
-- automatic declarations/attestations
-- sensitive logging
+### ISSUE-08 (P2): Absence of Automated CI / GitHub Workflows
+* **Location**: `.github/workflows/` (directory does not exist)
+* **Description**: The repository contains no continuous integration configuration. Build and test validation occurs solely on developer workstations, allowing broken commits (such as `0c926cb`) to reach the master branch undetected.
+
+### ISSUE-09 (P2): Granular Readiness Score Leakage in Hooks
+* **File**: [`src/sidepanel/hooks/useReadiness.ts`](file:///c:/Users/HP/Desktop/TIRUMALA%20SEVAPILOT/src/sidepanel/hooks/useReadiness.ts)
+* **Description**: `useReadiness` exposes a numerical `score` (0–100%) and internal checklist objects. While `Dashboard.tsx` now formats this into a clean binary `READY / ACTION REQUIRED`, other consumers or legacy dialogs still access the raw percentage, violating the consumer-first UI philosophy.
+
+---
+
+## P3 — Low Severity Issues
+
+### ISSUE-10 (P3): Tailwind v4-Style Utility Usage in Tailwind v3 Project
+* **Files**: `Settings.tsx`, `Dashboard.tsx`, `SessionHistoryModal.tsx`, etc.
+* **Description**: The codebase uses `shadow-xs`, `shadow-2xs`, and `backdrop-blur-xs`. These work currently because they are explicitly defined in `tailwind.config.js` under `extend`. However, when upgrading to Tailwind CSS v4 in the future, these redundant custom extensions may conflict with standard defaults.
+
+### ISSUE-11 (P3): In-Memory Mutex Storage Queue vs Multi-Tab Concurrency
+* **File**: [`src/storage/repository.ts`](file:///c:/Users/HP/Desktop/TIRUMALA%20SEVAPILOT/src/storage/repository.ts#L38-L44)
+* **Description**: `enqueueWrite` serializes writes within the same JavaScript execution environment (Side Panel). If multiple extension contexts (e.g. Side Panel and Popup) write simultaneously, `chrome.storage.local` could encounter race conditions without a cross-context lock mechanism.
