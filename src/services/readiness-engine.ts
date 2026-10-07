@@ -84,6 +84,7 @@ export class ReadinessEngine {
     const serviceConfig: TtdServiceConfig | undefined = resolvedServiceId
       ? getServiceConfig(resolvedServiceId)
       : undefined;
+    const isSrivariSeva = resolvedServiceId === 'srivari-seva' || serviceType === ServiceType.SRIVARI_SEVA;
 
 
     if (!profile) {
@@ -312,7 +313,6 @@ export class ReadinessEngine {
       }
 
       // 6. Mobile check: Required for Srivari Seva, optional for standard Darshan/Padmavathi/Homam
-      const isSrivariSeva = resolvedServiceId === 'srivari-seva' || serviceType === ServiceType.SRIVARI_SEVA;
       if (isSrivariSeva) {
         const mob = String(pilgrim.mobile || '').replace(/\D/g, '');
         if (mob.length !== 10) {
@@ -447,7 +447,6 @@ export class ReadinessEngine {
     let requiresMobile = false; // Phase 5 rule: Mobile is OPTIONAL unless explicitly required
     let requiresGothram = false;
     let requiresEmail = false;
-    const isSrivariSeva = serviceConfig?.serviceId === 'srivari-seva' || workflow?.serviceId === 'srivari-seva';
 
     if (serviceConfig) {
       requiresGeneralDetails = serviceConfig.requiredGeneralFields.length > 0;
@@ -752,21 +751,31 @@ export class ReadinessEngine {
         }
       }
 
-      fields.forEach((res, fieldKey) => {
+      for (const [fieldKey, res] of fields.entries()) {
         const isReq = requiredMap.get(fieldKey) ?? false;
         let hasVal = false;
         if (pilgrim) {
           switch (fieldKey) {
-            case 'idProofType': hasVal = Boolean(pilgrim.idType); break;
-            case 'idProofNumber': hasVal = Boolean(pilgrim.idNumber); break;
+            case 'idProofType':
+            case 'photoIdProof':
+              hasVal = Boolean(pilgrim.idType); break;
+            case 'idProofNumber':
+            case 'photoIdNumber':
+              hasVal = Boolean(pilgrim.idNumber); break;
             case 'mobile': hasVal = Boolean(pilgrim.mobile || profile?.general?.mobile); break;
             case 'photo': hasVal = Boolean(pilgrim.photo); break;
             case 'name': hasVal = Boolean(pilgrim.fullName || pilgrim.firstName); break;
-            case 'dateOfBirth': hasVal = Boolean(pilgrim.dateOfBirth); break;
-            case 'age': hasVal = Boolean(pilgrim.age); break;
+            case 'mentallyFit':
+            case 'physicallyFit':
+              hasVal = (res.element as HTMLInputElement)?.checked ?? false;
+              break;
+            case 'dateOfBirth': hasVal = Boolean(pilgrim.dateOfBirth || pilgrim.age); break;
+            case 'age': hasVal = Boolean(pilgrim.age || pilgrim.dateOfBirth); break;
             case 'gender': hasVal = Boolean(pilgrim.gender); break;
             case 'country': hasVal = Boolean(pilgrim.country || profile?.general?.country); break;
-            case 'pincode': hasVal = Boolean(pilgrim.pinCode || profile?.general?.pinCode); break;
+            case 'pincode':
+            case 'pinCode':
+              hasVal = Boolean(pilgrim.pinCode || profile?.general?.pinCode); break;
             case 'state': hasVal = Boolean(pilgrim.state || profile?.general?.state); break;
             case 'district': hasVal = Boolean(pilgrim.district); break;
             case 'city': hasVal = Boolean(pilgrim.city || profile?.general?.city); break;
@@ -800,7 +809,7 @@ export class ReadinessEngine {
             optionalSkipped.push(fieldKey);
           }
         }
-      });
+      }
 
       const isReady = missingRequired.length === 0 && Boolean(pilgrim);
       return {

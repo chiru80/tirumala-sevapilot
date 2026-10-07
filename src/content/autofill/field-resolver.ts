@@ -1059,7 +1059,7 @@ export function resolveSrivariEnrollmentFields(
 
   // 1. Identity Proof Section: idProofType, idProofNumber, mobile, photo
   const identityContainer = sections.identityProof || doc.body || doc.documentElement;
-  const identityFields: LogicalFieldType[] = ['idProofType', 'photoIdProof', 'idProofNumber', 'photoIdNumber', 'mobile', 'photo'];
+  const identityFields: LogicalFieldType[] = ['idProofType', 'idProofNumber', 'mobile', 'photo'];
   const resolvedIdentity = resolveFieldsInContainer(identityContainer, identityFields, doc);
   for (const [k, v] of resolvedIdentity) {
     fields.set(k, v);
@@ -1111,7 +1111,6 @@ export function resolveSrivariEnrollmentFields(
   const addressFields: LogicalFieldType[] = [
     'country',
     'pincode',
-    'pinCode',
     'state',
     'district',
     'mandal',

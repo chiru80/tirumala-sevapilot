@@ -3,6 +3,7 @@ import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor, cleanup, fireEvent } from '@testing-library/react';
 import { Dashboard } from '../../src/sidepanel/pages/Dashboard';
+import * as releaseCal from '../../src/services/ttd-information/ttd-release-calendar';
 import { Gender, IdType } from '../../src/shared/types';
 import type { Profile } from '../../src/shared/types';
 
@@ -208,6 +209,19 @@ describe('Dashboard Component — Redesign & Consumer Experience', () => {
 
     // Verified release info
     expect(screen.getAllByText(/Special Entry Darshan/i).length).toBeGreaterThan(0);
+  });
+
+  it('G. No verified release: displays fallback message without fabricating dates or countdowns', async () => {
+    const spy = vi.spyOn(releaseCal, 'getVerifiedReleaseEvents').mockReturnValue([]);
+    render(<Dashboard onNavigate={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Latest TTD release schedule unavailable/i)).toBeTruthy();
+    });
+
+    // Official TTD link is provided instead of fake dates
+    expect(screen.getByText(/VIEW TTD UPDATES ↗/i)).toBeTruthy();
+    spy.mockRestore();
   });
 
   it('H. Backend readiness: internal checks operate silently without dumping 6-check checklist', async () => {
