@@ -223,11 +223,11 @@ function PopupApp() {
       {/* Header */}
       <div className="flex items-center justify-between border-b border-gray-100 dark:border-gold-500/15 pb-2.5">
         <div className="flex items-center gap-2">
-          <div className="relative flex items-center justify-center w-7 h-7 rounded-full bg-gradient-to-br from-[#D4A72C] via-[#FFD700] to-[#8D6E18] p-[1.5px] shadow-xs shrink-0">
+          <div className="relative flex items-center justify-center w-7 h-7 rounded-lg overflow-hidden shadow-xs shrink-0 border border-gold-500/40 bg-[#2C1A35]">
             <img
               src="/icons/icon48.png"
               alt="SevaPilot"
-              className="w-full h-full rounded-full object-cover"
+              className="w-full h-full object-cover"
             />
           </div>
           <h1 className="text-base font-bold text-[#5B2A86] dark:text-[#F8EFD8] tracking-tight">{t('popup.title')}</h1>

@@ -82,11 +82,11 @@ export default function App() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             {/* Temple Emblem / Logo */}
-            <div className="relative flex items-center justify-center w-9 h-9 rounded-full bg-gradient-to-br from-[#D4A72C] via-[#FFD700] to-[#8D6E18] p-[1.5px] shadow-sm shrink-0">
+            <div className="relative flex items-center justify-center w-9 h-9 rounded-xl overflow-hidden shadow-sm shrink-0 border border-[#D4A72C]/40 bg-[#2C1A35]">
               <img
                 src="/icons/icon48.png"
                 alt="Tirumala SevaPilot Logo"
-                className="w-full h-full rounded-full object-cover"
+                className="w-full h-full object-cover"
               />
             </div>
 
