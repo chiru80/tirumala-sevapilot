@@ -13,8 +13,8 @@ describe('Phase 5 — Verified TTD Service Registry & Recognition', () => {
     it('retrieves verified configuration for special-entry-300', () => {
       const config = getServiceConfig('special-entry-300');
       expect(config).toBeDefined();
-      expect(config?.serviceId).toBe('special-entry-300');
-      expect(config?.workflowId).toBe('special-entry-v1');
+      expect(config?.serviceId).toBe('special-entry-darshan-300');
+      expect(config?.workflowId).toBe('special-entry-300-v1');
       expect(config?.price).toBe(300);
       expect(config?.maxPilgrims).toBe(6);
       expect(config?.requiresPilgrims).toBe(true);
@@ -37,7 +37,7 @@ describe('Phase 5 — Verified TTD Service Registry & Recognition', () => {
 
     it('recognizes Special Entry Darshan from DOM and returns Phase 5 contract', () => {
       document.body.innerHTML = `
-        <h1>Special Entry Darshan (Sri PAT)</h1>
+        <h1>Special Entry Darshan</h1>
         <label>Photo ID Proof</label>
         <label>Photo Id Number</label>
       `;
@@ -52,7 +52,7 @@ describe('Phase 5 — Verified TTD Service Registry & Recognition', () => {
       expect(result.confidenceScore).toBeGreaterThanOrEqual(70);
       expect(result.confidence).toBeGreaterThanOrEqual(0.7);
       expect(result.strategy).toContain('multi-signal');
-      expect(result.workflowId).toBe('special-entry-v1');
+      expect(result.workflowId).toBe('special-entry-300-v1');
       expect(result.verified).toBe(true);
       expect(result.reason).toBeDefined();
     });
@@ -62,7 +62,7 @@ describe('Phase 5 — Verified TTD Service Registry & Recognition', () => {
     it('retrieves verified configuration with NO General Details required', () => {
       const config = getServiceConfig('padmavathi-special-entry-200');
       expect(config).toBeDefined();
-      expect(config?.serviceId).toBe('padmavathi-special-entry-200');
+      expect(config?.serviceId).toBe('padmavathi-supadham-entry-200');
       expect(config?.workflowId).toBe('padmavathi-v1');
       expect(config?.price).toBe(200);
       expect(config?.maxPilgrims).toBe(6);

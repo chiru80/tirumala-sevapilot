@@ -262,6 +262,9 @@ export async function injectFloatingHelper(): Promise<void> {
       if (result.success) {
         if (statusText) statusText.textContent = `✓ ${result.totalVerified}/${result.totalFields} fields filled`;
         fillBtn.textContent = '✓ Done';
+      } else if (result.temporaryLock || result.state === 'TTD_TEMPORARY_BOOKING_LOCK') {
+        if (statusText) statusText.textContent = '⏳ TTD Temporary Lock';
+        fillBtn.textContent = 'Wait to Retry';
       } else {
         if (statusText) statusText.textContent = result.errors[0] || '⚠ Attention needed';
         fillBtn.textContent = '⚡ Retry';

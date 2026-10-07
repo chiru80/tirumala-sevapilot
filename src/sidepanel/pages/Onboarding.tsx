@@ -13,31 +13,31 @@ export function Onboarding({ onComplete }: OnboardingProps) {
     {
       num: '1 / 5',
       title: 'Create Your Pilgrim Profile',
-      description: 'Add your devotee details (Name, Age, Gender, Aadhaar, Mobile) once. All information stays strictly inside your browser.',
+      description: 'Add your pilgrim details (Name, Age, Gender, ID proof, Mobile) once. All information stays safely stored on this device.',
       icon: '👤',
     },
     {
       num: '2 / 5',
-      title: 'Organize Booking Squads',
-      description: 'Group family members or friends into squads matching TTD darshan quota limits (e.g., up to 6 pilgrims for Special Entry Darshan).',
+      title: 'Organize Pilgrim Groups',
+      description: 'Group family members or friends into profiles matching TTD darshan quota limits (e.g., up to 6 pilgrims for Special Entry Darshan).',
       icon: '👥',
     },
     {
       num: '3 / 5',
-      title: 'Open Official TTD Portal',
-      description: 'Navigate to ttdevasthanams.ap.gov.in. SevaPilot automatically recognizes whether you are booking Darshan or Accommodation.',
+      title: 'Open Official TTD Page',
+      description: 'Open the official TTD booking page. SevaPilot automatically recognizes whether you are booking Darshan, Homam, or Accommodation.',
       icon: '🛕',
     },
     {
       num: '4 / 5',
-      title: 'Pre-Flight Safety Review',
-      description: 'Verify your devotee details and readiness checklist before autofilling. SevaPilot ensures no incomplete profiles are submitted.',
+      title: 'Fill Safety Check',
+      description: 'Verify your pilgrim details and booking readiness checklist before filling. SevaPilot ensures all required fields are complete.',
       icon: '🔍',
     },
     {
       num: '5 / 5',
-      title: '1-Click Fast Autofill',
-      description: 'When the booking window opens, populate all devotee rows accurately in under 1 second. You maintain full control over final submission.',
+      title: 'Fill & Verify',
+      description: 'When the booking page is ready, populate and verify all pilgrim details. You maintain full control over final submission.',
       icon: '⚡',
     },
   ];
@@ -63,7 +63,7 @@ export function Onboarding({ onComplete }: OnboardingProps) {
                 SevaPilot
               </h1>
               <p className="text-[10px] text-[#6B5A70] dark:text-[#A898B0] mt-0.5">
-                TTD Booking Preparation Assistant
+                TTD Booking Assistant
               </p>
             </div>
           </div>

@@ -144,6 +144,38 @@ describe('Verification Engine (Post-Fill Explicit Check)', () => {
       const result = verifyDropdownSelection(matSelect, 'Aadhaar Card', 'photoIdProof', doc);
       expect(result.status).toBe('verified');
     });
+
+    it('verifies readonly input representing dropdown selection for gender and photoIdProof', () => {
+      const input = doc.createElement('input');
+      input.readOnly = true;
+      input.value = 'Male';
+      const result = verifyDropdownSelection(input, 'Male', 'gender', doc);
+      expect(result.status).toBe('verified');
+
+      const idInput = doc.createElement('input');
+      idInput.readOnly = true;
+      idInput.value = 'Aadhaar Card';
+      const idResult = verifyDropdownSelection(idInput, 'Aadhaar Card', 'photoIdProof', doc);
+      expect(idResult.status).toBe('verified');
+    });
+
+    it('verifies input inside form-field wrapper by checking wrapper trigger text', () => {
+      const wrapper = doc.createElement('div');
+      wrapper.className = 'form-group';
+      const label = doc.createElement('label');
+      label.textContent = 'Gender *';
+      const input = doc.createElement('input');
+      input.readOnly = true;
+      const textVal = doc.createElement('span');
+      textVal.className = 'mat-select-value-text';
+      textVal.textContent = 'Male';
+      wrapper.appendChild(label);
+      wrapper.appendChild(input);
+      wrapper.appendChild(textVal);
+
+      const result = verifyDropdownSelection(input, 'Male', 'gender', doc);
+      expect(result.status).toBe('verified');
+    });
   });
 
   describe('Universal verifyField Router', () => {

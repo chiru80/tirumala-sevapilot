@@ -238,7 +238,7 @@ function getFieldType(el: HTMLElement, label?: string): ScannedField['type'] {
  * 4. Closest ancestor with text
  * 5. Previous sibling text
  */
-function findLabelText(el: Element, doc: Document): string | undefined {
+export function findLabelText(el: Element, doc: Document): string | undefined {
   // Strategy 1: <label for="id">
   if (el.id) {
     const label = doc.querySelector(`label[for="${CSS.escape(el.id)}"]`);

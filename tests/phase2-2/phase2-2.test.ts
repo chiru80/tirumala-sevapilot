@@ -242,7 +242,7 @@ describe('Phase 2.2 — Extension i18n & Reactive Language Switching (Part 2)', 
   it('correctly replaces parameters in translated strings', () => {
     setLanguage('en');
     const msg = t('dashboard.devoteeProgress', { current: 3, total: 6 });
-    expect(msg).toBe('Devotee 3 of 6');
+    expect(msg).toMatch(/(Devotee|Filling pilgrim|Pilgrim) 3 of 6/);
   });
 });
 

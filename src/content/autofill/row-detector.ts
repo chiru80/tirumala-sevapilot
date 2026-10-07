@@ -4,8 +4,9 @@
 // ─────────────────────────────────────────────────
 
 import logger from '@shared/logger';
-import { resolvePilgrimFields, isElementVisible, type PilgrimFieldType } from './field-resolver';
+import { resolvePilgrimFields, isElementVisible, getAssociatedLabelText, type PilgrimFieldType } from './field-resolver';
 import type { FieldResolution } from './field-resolver';
+import { findLabelText } from '../form-scanner';
 
 export type { PilgrimFieldType };
 
@@ -122,6 +123,17 @@ function findRowContainers(doc: Document, expectedCount: number): HTMLElement[] 
         for (const ex of ['id', 'photo', 'email', 'login', 'mobile', 'phone']) {
           if (lblText.includes(ex)) return false;
         }
+      }
+    }
+
+    // Check comprehensive label text
+    const labelText = (findLabelText(el, doc) || '').toLowerCase();
+    if (labelText) {
+      for (const ex of ['id', 'photo', 'email', 'login', 'mobile', 'phone', 'captcha', 'search', 'password']) {
+        if (labelText.includes(ex)) return false;
+      }
+      if (labelText.includes('name') || labelText.includes('devotee') || labelText.includes('pilgrim')) {
+        return true;
       }
     }
 
@@ -256,17 +268,21 @@ function scoreContainerForPilgrimFields(
     'select, mat-select, [role="combobox"], [role="listbox"], p-dropdown, ng-select'
   ));
 
+  const doc = container.ownerDocument || document;
+
   // Age check: +20
   const hasAge = allInputs.some(input => {
     const str = `${input.name} ${input.id} ${input.getAttribute('formcontrolname')} ${input.placeholder}`.toLowerCase();
-    return input.type === 'number' || str.includes('age');
+    const lbl = (findLabelText(input, doc) || getAssociatedLabelText(input, container, doc) || '').toLowerCase();
+    return input.type === 'number' || str.includes('age') || lbl.includes('age') || lbl.includes('years');
   });
   if (hasAge) score += 20;
 
   // Gender check: +20 (select or radio)
   const hasGenderSelect = selects.some(sel => {
     const str = `${sel.getAttribute('name')} ${sel.id} ${sel.getAttribute('formcontrolname')} ${sel.getAttribute('aria-label')}`.toLowerCase();
-    return str.includes('gender') || str.includes('sex');
+    const lbl = (findLabelText(sel, doc) || getAssociatedLabelText(sel, container, doc) || '').toLowerCase();
+    return str.includes('gender') || str.includes('sex') || lbl.includes('gender') || lbl.includes('sex');
   });
   const hasGenderRadio = container.querySelectorAll('input[type="radio"]').length > 0;
   if (hasGenderSelect || hasGenderRadio) score += 20;
@@ -274,15 +290,19 @@ function scoreContainerForPilgrimFields(
   // ID Type check: +20
   const hasIdType = selects.some(sel => {
     const str = `${sel.getAttribute('name')} ${sel.id} ${sel.getAttribute('formcontrolname')} ${sel.getAttribute('aria-label')}`.toLowerCase();
-    return str.includes('proof') || str.includes('idtype') || str.includes('prooftype') || str.includes('photoid');
+    const lbl = (findLabelText(sel, doc) || getAssociatedLabelText(sel, container, doc) || '').toLowerCase();
+    return str.includes('proof') || str.includes('idtype') || str.includes('prooftype') || str.includes('photoid') ||
+      lbl.includes('proof') || lbl.includes('photo id') || lbl.includes('id type') || lbl.includes('identity');
   });
   if (hasIdType) score += 20;
 
   // ID Number check: +20
   const hasIdNumber = allInputs.some(input => {
     const str = `${input.name} ${input.id} ${input.getAttribute('formcontrolname')} ${input.placeholder}`.toLowerCase();
-    return (str.includes('idnumber') || str.includes('aadhaar') || str.includes('cardnumber') || str.includes('proofnumber')) &&
-      !str.includes('otp') && !str.includes('mobile') && !str.includes('phone');
+    const lbl = (findLabelText(input, doc) || getAssociatedLabelText(input, container, doc) || '').toLowerCase();
+    return (str.includes('idnumber') || str.includes('aadhaar') || str.includes('cardnumber') || str.includes('proofnumber') || str.includes('photoid') || str.includes('idproof') ||
+      lbl.includes('id number') || lbl.includes('id no') || lbl.includes('aadhaar') || lbl.includes('photo id number') || lbl.includes('card number') || lbl.includes('identity number')) &&
+      !str.includes('otp') && !str.includes('mobile') && !str.includes('phone') && !lbl.includes('otp') && !lbl.includes('mobile');
   });
   if (hasIdNumber) score += 20;
 
@@ -335,17 +355,25 @@ function fallbackRowDetection(doc: Document, expectedCount: number): HTMLElement
     return tableRows;
   }
 
-  // Strategy 2: Card/fieldset containers
+  // Strategy 2: Card/fieldset/section containers
   const cards = Array.from(
     doc.querySelectorAll<HTMLElement>(
-      '.pilgrim-card, .devotee-card, .pilgrim-row, mat-card, .mat-mdc-card, .card, fieldset'
+      '.pilgrim-card, .devotee-card, .pilgrim-row, mat-card, .mat-mdc-card, .card, fieldset, section, form, [class*="card" i], [class*="section" i], [class*="box" i], [class*="panel" i], [class*="details" i]'
     )
   ).filter(card => {
-    return card.querySelectorAll('input:not([type="hidden"]), select, mat-select, [role="combobox"]').length >= 3;
+    if (card === doc.body || card === doc.documentElement) return false;
+    const controls = card.querySelectorAll('input:not([type="hidden"]):not([type="submit"]):not([type="button"]), select, mat-select, [role="combobox"]');
+    if (controls.length < 2) return false;
+    const cardText = (card.textContent || '').toLowerCase();
+    // Must contain pilgrim field structure
+    return cardText.includes('name') && (cardText.includes('age') || cardText.includes('gender') || cardText.includes('proof') || cardText.includes('id'));
   });
 
+  // Prefer smallest containers containing the fields
+  cards.sort((a, b) => a.querySelectorAll('*').length - b.querySelectorAll('*').length);
+
   if (cards.length >= expectedCount || (cards.length > 0 && expectedCount === 1)) {
-    return cards;
+    return cards.slice(0, expectedCount);
   }
 
   // Strategy 3: Repeated sibling structures

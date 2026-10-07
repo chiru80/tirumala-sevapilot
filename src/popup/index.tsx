@@ -2,12 +2,12 @@ import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
 import '../index.css';
 import { getProfiles, getSettings } from '@storage/repository';
-import type { Profile, Pilgrim } from '@shared/types';
+import type { Profile, Pilgrim, TtdTemporaryLockState } from '@shared/types';
 import { MessageType } from '@shared/types';
 import { t, useI18n, setLanguage, type Language } from '@i18n/index';
 import type { AutofillProgress, AutofillManagerResult } from '../content/autofill/types';
 
-export type ViewState = 'HOME' | 'FILLING' | 'SUCCESS' | 'ATTENTION';
+export type ViewState = 'HOME' | 'FILLING' | 'SUCCESS' | 'ATTENTION' | 'TEMPORARY_LOCK';
 
 interface FailedFieldItem {
   pilgrimIndex?: number;
@@ -28,6 +28,7 @@ function PopupApp() {
   const [result, setResult] = useState<AutofillManagerResult | null>(null);
   const [failedItems, setFailedItems] = useState<FailedFieldItem[]>([]);
   const [missingRequirements, setMissingRequirements] = useState<string[]>([]);
+  const [lockState, setLockState] = useState<TtdTemporaryLockState | null>(null);
 
   useEffect(() => {
     init();
@@ -67,6 +68,10 @@ function PopupApp() {
 
           if (scanRes?.success && scanRes.data) {
             setFieldsDetectedCount(scanRes.data.mappedFields?.length || 0);
+            if (scanRes.data.temporaryLock) {
+              setLockState(scanRes.data.temporaryLock);
+              setViewState('TEMPORARY_LOCK');
+            }
           }
         }
       }
@@ -149,6 +154,20 @@ function PopupApp() {
       };
 
       setResult(res);
+
+      if (response?.temporaryLock || res.temporaryLock || res.state === 'TTD_TEMPORARY_BOOKING_LOCK') {
+        const lock = response?.temporaryLock || res.temporaryLock;
+        setLockState(lock || {
+          status: 'temporary-lock',
+          detectedAt: Date.now(),
+          detectedAtIso: new Date().toISOString(),
+          message: 'Your previous booking attempt is still holding this pilgrim.',
+          supportingMessage: 'TTD usually releases the lock after a few minutes.',
+          hasExplicitTimer: false,
+        });
+        setViewState('TEMPORARY_LOCK');
+        return;
+      }
 
       if (res.success && res.totalFailed === 0) {
         setViewState('SUCCESS');
@@ -417,6 +436,45 @@ function PopupApp() {
             className="w-full min-h-[44px] rounded-xl text-sm font-semibold text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 transition-colors cursor-pointer border border-gray-200 dark:border-gray-700"
           >
             {t('popup.backToHome')}
+          </button>
+        </div>
+      )}
+
+      {/* ─── TEMPORARY LOCK UI ─── */}
+      {viewState === 'TEMPORARY_LOCK' && (
+        <div className="flex flex-col gap-3.5 py-1">
+          <div className="flex items-center gap-2 text-sm font-bold text-amber-900 dark:text-amber-200 bg-amber-50 dark:bg-amber-950/40 px-3 py-2 rounded-xl border border-amber-300 dark:border-amber-800">
+            <span>⚠</span>
+            <span>TTD TEMPORARY LOCK</span>
+          </div>
+
+          <div className="space-y-1.5 text-xs text-amber-950 dark:text-amber-100 bg-amber-50/60 dark:bg-amber-950/30 p-3 rounded-xl border border-amber-200 dark:border-amber-800/60">
+            <p className="font-bold">
+              {lockState?.message || 'Your previous booking attempt is still holding this pilgrim.'}
+            </p>
+            <p className="text-amber-800 dark:text-amber-300 font-medium">
+              {lockState?.supportingMessage || 'TTD usually releases the temporary lock after a few minutes.'}
+            </p>
+          </div>
+
+          <button
+            onClick={() => {
+              chrome.tabs?.create?.({ url: 'https://ttdevasthanams.ap.gov.in/booking-history' });
+            }}
+            className="w-full min-h-[44px] rounded-xl font-bold text-sm bg-[#5B2A86] text-white hover:bg-[#4A2070] transition-colors cursor-pointer shadow-xs flex items-center justify-center gap-2"
+          >
+            <span>📜</span>
+            <span>Check Booking History</span>
+          </button>
+          <p className="text-[11px] text-center text-gray-500 dark:text-gray-400 font-medium">
+            Make sure the previous attempt did not create a booking.
+          </p>
+
+          <button
+            onClick={() => setViewState('HOME')}
+            className="w-full min-h-[40px] rounded-xl text-xs font-semibold text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 transition-colors cursor-pointer border border-gray-200 dark:border-gray-700"
+          >
+            Try Again
           </button>
         </div>
       )}

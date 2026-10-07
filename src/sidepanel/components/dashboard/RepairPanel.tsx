@@ -65,7 +65,7 @@ export const RepairPanel: React.FC<RepairPanelProps> = ({
           >
             <div className="min-w-0 pr-2">
               <span className="font-bold text-[#30213A] dark:text-[#F8EFD8] block truncate text-xs">
-                {t('dashboard.devoteeLabel')} {item.pilgrimIndex + 1}: {item.label}
+                Pilgrim {item.pilgrimIndex + 1}: {item.label}
               </span>
               <span className="text-xs text-[#B64747] dark:text-[#EF9A9A] truncate block mt-0.5">
                 {item.error || t('dashboard.couldNotVerify')}

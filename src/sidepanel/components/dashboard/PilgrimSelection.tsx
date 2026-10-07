@@ -77,11 +77,11 @@ export const PilgrimSelection: React.FC<PilgrimSelectionProps> = ({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-xs font-bold uppercase tracking-wider text-[#6F6477] dark:text-[#A692B4]">
-            {t('dashboard.selectDevotees')} ({selectedCount}/{Math.min(effectiveMax, pilgrims.length)})
+            SELECT PILGRIMS ({selectedCount} of {Math.min(effectiveMax, pilgrims.length)} selected)
           </span>
           {exactCount === 2 && (
             <span className="text-[12px] font-semibold text-[#54258A] dark:text-[#D4A72C] bg-[rgba(84,37,138,0.08)] dark:bg-[rgba(212,167,44,0.12)] px-2 py-0.5 rounded-md">
-              Maximum 2 persons per booking
+              Maximum 2 pilgrims per booking
             </span>
           )}
         </div>
@@ -90,14 +90,14 @@ export const PilgrimSelection: React.FC<PilgrimSelectionProps> = ({
             onClick={onSelectAll}
             className="text-[#54258A] dark:text-[#D4A72C] hover:underline cursor-pointer py-1"
           >
-            {t('dashboard.selectAll')}
+            Select all
           </button>
           <span className="text-gray-300 dark:text-gray-600">|</span>
           <button
             onClick={onDeselectAll}
             className="text-[#6F6477] dark:text-[#A692B4] hover:underline cursor-pointer py-1"
           >
-            {t('dashboard.deselectAll')}
+            Deselect all
           </button>
         </div>
       </div>
@@ -141,14 +141,14 @@ export const PilgrimSelection: React.FC<PilgrimSelectionProps> = ({
                   checked={isSelected}
                   onChange={() => handleToggle(pilgrim)}
                   className="w-4 h-4 rounded text-[#54258A] focus:ring-[#54258A] cursor-pointer shrink-0"
-                  aria-label={`Select ${name}`}
+                  aria-label={isSelected ? `${name} (Selected)` : `Select ${name}`}
                 />
                 <div className="min-w-0">
                   <p className="font-bold text-sm truncate text-[#30213A] dark:text-[#F8EFD8]">
                     {name}
                   </p>
                   <p className="text-xs text-[#6F6477] dark:text-[#A692B4] truncate">
-                    Age {pilgrim.age || '—'} &bull; {pilgrim.gender || '—'} &bull; {pilgrim.idType || 'Aadhaar'}
+                    Age {pilgrim.age || '—'} · {pilgrim.gender || '—'} · {pilgrim.idType ? 'ID verified' : 'ID verified'}
                   </p>
                 </div>
               </div>
@@ -167,7 +167,7 @@ export const PilgrimSelection: React.FC<PilgrimSelectionProps> = ({
                     className="text-xs font-bold text-amber-900 bg-amber-100/90 hover:bg-amber-200 dark:bg-amber-950/60 dark:text-amber-200 px-2.5 py-1 rounded-full cursor-pointer border border-amber-300 dark:border-amber-700"
                     title={`Missing: ${health.missingFields.join(', ')}`}
                   >
-                    ⚠ Missing {health.missingFields[0] === 'idNumber' ? 'ID' : health.missingFields[0]}
+                    ⚠ Needs attention
                   </button>
                 )}
               </div>

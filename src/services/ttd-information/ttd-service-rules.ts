@@ -42,6 +42,21 @@ export interface TtdServiceConfig {
 
   releasePattern?: string;
 
+  /** Number of months in advance the quota is released (e.g. 3 for ₹300 SED, 1 for Homam) */
+  advanceMonths?: number;
+
+  /** Release type: MONTHLY_QUOTA_RELEASE, ONE_MONTH_ADVANCE, etc. */
+  releaseType?: string;
+
+  /** Timezone for release schedule evaluation (e.g. 'Asia/Kolkata') */
+  timezone?: string;
+
+  /** Participant categorization (e.g. 'HOUSEHOLDERS' for Homam) */
+  participantType?: string;
+
+  /** Human-readable participants requirement (e.g. 'EXACTLY 2 HOUSEHOLDERS') */
+  participantsDescription?: string;
+
   source?: {
     url: string;
     publishedDate?: string;
@@ -53,11 +68,17 @@ export interface TtdServiceConfig {
 
 // ─── 1. Verified Services ────────────────────────────────────
 
+/**
+ * SPECIAL ENTRY ₹300:
+ * Expected advance-booking pattern: 3 months (THREE_MONTHS_ADVANCE_MONTHLY_QUOTA).
+ * NOT an exact 90-day calculation.
+ * The exact release date/time must always come from the latest official TTD announcement.
+ */
 export const SPECIAL_ENTRY_300_CONFIG: TtdServiceConfig = {
-  serviceId: 'special-entry-300',
-  displayName: 'Special Entry Darshan (₹300)',
+  serviceId: 'special-entry-darshan-300',
+  displayName: 'Special Entry Darshan ₹300',
   category: 'darshan',
-  workflowId: 'special-entry-v1',
+  workflowId: 'special-entry-300-v1',
   workflowVersion: '1.0.0',
   price: 300,
   minPilgrims: 1,
@@ -67,7 +88,10 @@ export const SPECIAL_ENTRY_300_CONFIG: TtdServiceConfig = {
   optionalPilgrimFields: ['dateOfBirth', 'mobile'],
   requiredGeneralFields: ['email', 'city', 'state', 'country', 'pinCode'],
   optionalGeneralFields: ['mobile'], // Mobile is OPTIONAL per Phase 5 rules — never blocks readiness
-  releasePattern: 'Released typically in the 3rd or 4th week of the preceding month at 10:00 AM IST.',
+  releasePattern: 'THREE_MONTHS_ADVANCE_MONTHLY_QUOTA',
+  advanceMonths: 3,
+  releaseType: 'MONTHLY_QUOTA_RELEASE',
+  timezone: 'Asia/Kolkata',
   source: {
     url: 'https://news.tirumala.org/',
     verifiedAt: '2026-10-06T00:00:00.000Z',
@@ -76,8 +100,8 @@ export const SPECIAL_ENTRY_300_CONFIG: TtdServiceConfig = {
 };
 
 export const PADMAVATHI_200_CONFIG: TtdServiceConfig = {
-  serviceId: 'padmavathi-special-entry-200',
-  displayName: 'Sri Padmavathi Ammavari Special Entry (₹200)',
+  serviceId: 'padmavathi-supadham-entry-200',
+  displayName: 'Padmavathi / Sri PAT',
   category: 'darshan',
   workflowId: 'padmavathi-v1',
   workflowVersion: '1.0.0',
@@ -90,7 +114,8 @@ export const PADMAVATHI_200_CONFIG: TtdServiceConfig = {
   // In the verified observed flow, General Details were NOT requested after Pilgrim Details
   requiredGeneralFields: [],
   optionalGeneralFields: [],
-  releasePattern: 'Released monthly per official temple notifications.',
+  releasePattern: 'MONTHLY_QUOTA_RELEASE',
+  advanceMonths: 1,
   source: {
     url: 'https://www.tirumala.org/',
     verifiedAt: '2026-10-06T00:00:00.000Z',
@@ -98,9 +123,17 @@ export const PADMAVATHI_200_CONFIG: TtdServiceConfig = {
   verified: true,
 };
 
+/**
+ * SRI SRINIVASA DIVYANUGRAHA VISHESHA HOMAM ₹1600:
+ * Expected advance-booking pattern: 1 month (ONE_MONTH_ADVANCE).
+ * One ticket: ₹1600.
+ * Participants: EXACTLY 2 HOUSEHOLDERS.
+ * The 1-month rule must NOT be converted into an exact 30-day calculation.
+ * The exact availability/release information must come from the latest official TTD source.
+ */
 export const HOMAM_1600_CONFIG: TtdServiceConfig = {
   serviceId: 'sri-srinivasa-divyanugraha-homam',
-  displayName: 'Sri Srinivasa Divyanugraha Homam (₹1600)',
+  displayName: 'Sri Srinivasa Divyanugraha Vishesha Homam (₹1600)',
   category: 'arjitha_seva',
   workflowId: 'homam-v1',
   workflowVersion: '1.0.0',
@@ -108,6 +141,8 @@ export const HOMAM_1600_CONFIG: TtdServiceConfig = {
   minPilgrims: 2,
   maxPilgrims: 2,
   exactPilgrims: 2, // Strictly 2 devotees per booking/login
+  participantType: 'HOUSEHOLDERS',
+  participantsDescription: 'EXACTLY 2 HOUSEHOLDERS',
   requiresPilgrims: true,
   requiredPilgrimFields: ['fullName', 'age', 'gender', 'idType', 'idNumber'],
   optionalPilgrimFields: ['mobile'],
@@ -117,10 +152,34 @@ export const HOMAM_1600_CONFIG: TtdServiceConfig = {
   specialRequirements: {
     gothram: true, // Gothram required in General Details
   },
-  releasePattern: 'Released approximately one month in advance.',
+  releasePattern: 'ONE_MONTH_ADVANCE',
+  advanceMonths: 1,
+  releaseType: 'ONE_MONTH_ADVANCE',
+  timezone: 'Asia/Kolkata',
   source: {
     url: 'https://news.tirumala.org/',
     verifiedAt: '2026-10-06T00:00:00.000Z',
+  },
+  verified: true,
+};
+
+export const SRIVARI_SEVA_CONFIG: TtdServiceConfig = {
+  serviceId: 'srivari-seva',
+  displayName: 'Srivari Seva',
+  category: 'volunteer',
+  workflowId: 'srivari-seva-enrollment-v1',
+  workflowVersion: '1.0.0',
+  minPilgrims: 1,
+  maxPilgrims: 1,
+  requiresPilgrims: true,
+  requiredPilgrimFields: ['fullName', 'dateOfBirth', 'age', 'gender', 'idType', 'idNumber', 'mobile', 'country'],
+  optionalPilgrimFields: ['email'],
+  requiredGeneralFields: ['city', 'state', 'country', 'pinCode'],
+  optionalGeneralFields: [],
+  releasePattern: 'VOLUNTARY_ENROLLMENT',
+  source: {
+    url: 'https://ttdevasthanams.ap.gov.in/srivari-seva/instructions',
+    verifiedAt: '2026-10-07T00:00:00.000Z',
   },
   verified: true,
 };
@@ -210,10 +269,21 @@ export const UNVERIFIED_SERVICES_REGISTRY: Record<string, TtdServiceConfig> = {
 
 export const VERIFIED_SERVICES_REGISTRY: Record<string, TtdServiceConfig> = {
   'special-entry-300': SPECIAL_ENTRY_300_CONFIG,
-  'special-entry-darshan-300': SPECIAL_ENTRY_300_CONFIG, // Canonical alias
+  'special-entry-darshan-300': SPECIAL_ENTRY_300_CONFIG,
+  'special-entry-300-v1': SPECIAL_ENTRY_300_CONFIG,
+  'special-entry-v1': SPECIAL_ENTRY_300_CONFIG,
   'padmavathi-special-entry-200': PADMAVATHI_200_CONFIG,
-  'padmavathi-supadham-entry-200': PADMAVATHI_200_CONFIG, // Canonical alias
+  'padmavathi-supadham-entry-200': PADMAVATHI_200_CONFIG,
+  'padmavathi-200': PADMAVATHI_200_CONFIG,
+  'padmavathi-v1': PADMAVATHI_200_CONFIG,
   'sri-srinivasa-divyanugraha-homam': HOMAM_1600_CONFIG,
+  'sri-srinivasa-divyanugraha-vishesha-homam': HOMAM_1600_CONFIG,
+  'homam-1600': HOMAM_1600_CONFIG,
+  'homam-v1': HOMAM_1600_CONFIG,
+  'homam': HOMAM_1600_CONFIG,
+  'srivari-seva': SRIVARI_SEVA_CONFIG,
+  'srivari-seva-enrollment-v1': SRIVARI_SEVA_CONFIG,
+  'srivari-seva-voluntary-service': SRIVARI_SEVA_CONFIG,
 };
 
 /**
@@ -230,7 +300,7 @@ export function getServiceConfig(serviceId: string): TtdServiceConfig | undefine
  * Returns all verified TTD service configurations.
  */
 export function getAllVerifiedServices(): TtdServiceConfig[] {
-  return [SPECIAL_ENTRY_300_CONFIG, PADMAVATHI_200_CONFIG, HOMAM_1600_CONFIG];
+  return [SPECIAL_ENTRY_300_CONFIG, PADMAVATHI_200_CONFIG, HOMAM_1600_CONFIG, SRIVARI_SEVA_CONFIG];
 }
 
 /**

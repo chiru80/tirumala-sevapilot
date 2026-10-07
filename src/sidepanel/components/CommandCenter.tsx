@@ -110,7 +110,7 @@ export const CommandCenter: React.FC<CommandCenterProps> = ({
       id: `group-${p.id}`,
       category: t('profiles.title'),
       title: `${p.name}`,
-      subtitle: `${p.pilgrims?.length || 0} devotees • ${p.isDefault ? t('profiles.active') : ''}`,
+      subtitle: `${p.pilgrims?.length || 0} ${p.pilgrims?.length === 1 ? 'pilgrim' : 'pilgrims'} • ${p.isDefault ? t('profiles.active') : ''}`,
       action: () => { onSelectProfile(p); onNavigate('dashboard'); onClose(); },
     });
 

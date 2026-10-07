@@ -453,3 +453,189 @@ export function detectPageTicketLimit(doc: Document = document): number | null {
   return null;
 }
 
+/**
+ * Checks if a checkbox represents an explicit legal declaration or medical fitness attestation.
+ * Under NO circumstances should SevaPilot automatically tick these checkboxes.
+ */
+export function isUserDeclarationCheckbox(element: HTMLElement, doc: Document = document): boolean {
+  if (!element) return false;
+  const tag = element.tagName?.toLowerCase();
+  const type = element.getAttribute('type')?.toLowerCase();
+  const role = element.getAttribute('role')?.toLowerCase();
+  if (tag !== 'input' && role !== 'checkbox' && !element.closest('mat-checkbox')) {
+    return false;
+  }
+  if (tag === 'input' && type !== 'checkbox') {
+    return false;
+  }
+
+  const name = (element.getAttribute('name') || '').toLowerCase();
+  const formControlName = (element.getAttribute('formcontrolname') || '').toLowerCase();
+  const ariaLabel = (element.getAttribute('aria-label') || '').toLowerCase();
+  const id = (element.id || '').toLowerCase();
+
+  const directAttrs = `${name} ${formControlName} ${ariaLabel} ${id}`;
+  if (
+    directAttrs.includes('declare') ||
+    directAttrs.includes('declaration') ||
+    directAttrs.includes('terms') ||
+    directAttrs.includes('condition') ||
+    directAttrs.includes('mentallyfit') ||
+    directAttrs.includes('physicallyfit') ||
+    directAttrs.includes('fitness') ||
+    directAttrs.includes('agree') ||
+    directAttrs.includes('attest')
+  ) {
+    return true;
+  }
+
+  // Label or surrounding text
+  const label = element.closest('label, mat-checkbox, .checkbox, .form-check, [class*="declaration" i]') ||
+    (element.id ? doc.querySelector(`label[for="${CSS.escape(element.id)}"]`) : null) ||
+    element.parentElement;
+
+  const text = (label?.textContent || '').toLowerCase();
+  return (
+    text.includes('i hereby declare') ||
+    text.includes('declare') ||
+    text.includes('terms and conditions') ||
+    text.includes('terms & conditions') ||
+    text.includes('follow instructions') ||
+    text.includes('i agree') ||
+    text.includes('mentally fit') ||
+    text.includes('physically fit') ||
+    text.includes('fitness') ||
+    text.includes('undertaking') ||
+    text.includes('consent')
+  );
+}
+
+/**
+ * Detect declaration checkbox on Instructions or Enrollment page.
+ * Strictly user-controlled: autoCheck is always false.
+ */
+export function detectDeclarationCheckbox(doc: Document = document): {
+  detected: boolean;
+  element?: HTMLInputElement;
+  checked: boolean;
+  requiresUserAction: boolean;
+  autoCheck: false;
+} {
+  const checkboxes = Array.from(doc.querySelectorAll<HTMLInputElement>(
+    'input[type="checkbox"], mat-checkbox input, [role="checkbox"] input'
+  ));
+
+  for (const cb of checkboxes) {
+    if (isUserDeclarationCheckbox(cb, doc)) {
+      return {
+        detected: true,
+        element: cb,
+        checked: cb.checked,
+        requiresUserAction: !cb.checked,
+        autoCheck: false,
+      };
+    }
+  }
+
+  // Fallback: look for any checkbox whose parent/container mentions declaration/instructions
+  for (const cb of checkboxes) {
+    const parentText = (cb.closest('label, .declaration, mat-checkbox, [class*="declaration" i], div, p')?.textContent || '').toLowerCase();
+    if (
+      parentText.includes('declare') ||
+      parentText.includes('instructions') ||
+      parentText.includes('terms and conditions') ||
+      parentText.includes('terms & conditions') ||
+      parentText.includes('agree')
+    ) {
+      return {
+        detected: true,
+        element: cb,
+        checked: cb.checked,
+        requiresUserAction: !cb.checked,
+        autoCheck: false,
+      };
+    }
+  }
+
+  return {
+    detected: false,
+    checked: false,
+    requiresUserAction: true,
+    autoCheck: false,
+  };
+}
+
+/**
+ * Detect Srivari Seva Instructions page.
+ */
+export function detectSrivariSevaInstructions(doc: Document = document, url: string = ''): {
+  isCurrentStep: boolean;
+  confidence: number;
+} {
+  let score = 0;
+  const sanitizedUrl = url.toLowerCase();
+
+  if (/srivari[-_]?seva.*instructions/i.test(sanitizedUrl) || (sanitizedUrl.includes('srivari') && sanitizedUrl.includes('instructions'))) {
+    score += 55;
+  }
+
+  const pageText = (doc.body?.innerText || doc.body?.textContent || '').toLowerCase();
+
+  if (pageText.includes('srivari seva')) score += 20;
+  if (pageText.includes('instructions')) score += 15;
+  if (
+    pageText.includes('how to apply') ||
+    pageText.includes('general instructions for all sevaks') ||
+    pageText.includes('general seva') ||
+    pageText.includes('navaneetha seva') ||
+    pageText.includes('parakamani seva') ||
+    pageText.includes('group leader') ||
+    pageText.includes('local temples')
+  ) {
+    score += 25;
+  }
+  if (pageText.includes('i hereby declare') || pageText.includes('follow instructions, terms and conditions')) {
+    score += 25;
+  }
+
+  const confidence = Math.min(100, score);
+  return {
+    isCurrentStep: confidence >= 40,
+    confidence,
+  };
+}
+
+/**
+ * Detect Srivari Seva Enrollment Form (Unified Profile).
+ */
+export function detectSrivariSevaEnrollment(doc: Document = document, url: string = ''): {
+  isCurrentStep: boolean;
+  confidence: number;
+} {
+  let score = 0;
+  const sanitizedUrl = url.toLowerCase();
+
+  if (/srivari[-_]?seva.*(?:unified-profile|enrollment|profile)/i.test(sanitizedUrl) || sanitizedUrl.includes('unified-profile')) {
+    score += 50;
+  }
+
+  const pageText = (doc.body?.innerText || doc.body?.textContent || '').toLowerCase();
+
+  if (pageText.includes('srivari seva')) score += 15;
+
+  let sectionCount = 0;
+  if (pageText.includes('identity proof')) sectionCount++;
+  if (pageText.includes('basic details')) sectionCount++;
+  if (pageText.includes('fitness')) sectionCount++;
+  if (pageText.includes('profession & education') || pageText.includes('profession')) sectionCount++;
+  if (pageText.includes('address details') || pageText.includes('address')) sectionCount++;
+
+  score += sectionCount * 12;
+
+  const confidence = Math.min(100, score);
+  return {
+    isCurrentStep: confidence >= 40,
+    confidence,
+  };
+}
+

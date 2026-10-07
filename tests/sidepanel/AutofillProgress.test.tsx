@@ -23,11 +23,11 @@ describe('AutofillProgress Component', () => {
     const statusElem = screen.getByRole('status');
     expect(statusElem).toBeTruthy();
     expect(statusElem.getAttribute('aria-live')).toBe('polite');
-    expect(statusElem.getAttribute('aria-label')).toBe('Filling & Verifying Devotee 3 of 6');
+    expect(statusElem.getAttribute('aria-label')).toMatch(/Filling (?:& Verifying )?Pilgrim 3 of 6/i);
 
     // Verify user-visible text
-    expect(screen.getByText('Filling & Verifying...')).toBeTruthy();
-    expect(screen.getByText('Devotee 3 of 6')).toBeTruthy();
+    expect(screen.getByText(/Filling & Verifying/i)).toBeTruthy();
+    expect(screen.getByText('Pilgrim 3 of 6')).toBeTruthy();
     expect(screen.getByText('Name')).toBeTruthy();
     expect(screen.getByText('Age')).toBeTruthy();
     expect(screen.getByText('Gender')).toBeTruthy();

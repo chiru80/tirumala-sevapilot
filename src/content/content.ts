@@ -14,6 +14,7 @@ import { injectFloatingHelper } from './floating-helper';
 import { AngularFormObserver } from './angular-form-observer';
 // Legacy ttd-pilgrim-autofill is no longer imported — all autofill goes through autofill-manager
 import { executeAutofill, repairFailedFields, requestStop } from './autofill/autofill-manager';
+import { detectTtdTemporaryLock } from '@services/ttd-information/ttd-lock-detector';
 import { STORAGE_KEYS } from '@shared/constants';
 import { MessageType, ServiceType } from '@shared/types';
 import type { ExtensionMessage, Pilgrim, Profile, FieldMapping, ScanResult, AutofillMode } from '@shared/types';
@@ -25,13 +26,18 @@ logger.info('SevaPilot content script loaded');
 const recognition = ServiceRecognitionEngine.recognize(window.location.href, document);
 
 if (recognition.status !== 'not-detected') {
+  const initLock = detectTtdTemporaryLock(document, window.location.href);
   updatePageState({
     url: window.location.href,
     isSupported: true,
     serviceType: recognition.serviceType,
+    serviceId: recognition.serviceId,
+    serviceName: recognition.serviceName,
+    workflowId: recognition.workflowId,
     serviceConfidence: recognition.confidenceScore,
     formDetected: document.querySelectorAll('input:not([type="hidden"]), select').length > 0,
     fieldCount: document.querySelectorAll('input:not([type="hidden"]), select').length,
+    temporaryLock: initLock.isLocked && initLock.lockState ? initLock.lockState : undefined,
   });
 
   logger.info(`TTD service detected: ${recognition.serviceName} (${recognition.confidenceScore}% confidence)`);
@@ -48,7 +54,9 @@ if (recognition.status !== 'not-detected') {
     type: MessageType.PAGE_DETECTED,
     payload: {
       type: recognition.serviceType,
+      serviceType: recognition.serviceType,
       serviceId: recognition.serviceId,
+      workflowId: recognition.workflowId,
       confidence: recognition.confidenceScore,
       name: recognition.serviceName,
       status: recognition.status,
@@ -71,6 +79,9 @@ const observer = createPageObserver(() => {
       url: window.location.href,
       isSupported: true,
       serviceType: currentRec.serviceType,
+      serviceId: currentRec.serviceId,
+      serviceName: currentRec.serviceName,
+      workflowId: currentRec.workflowId,
       serviceConfidence: currentRec.confidenceScore,
       formDetected: inputCount > 0,
       fieldCount: inputCount,
@@ -89,6 +100,9 @@ domLifecycle.subscribe((event) => {
         url: window.location.href,
         isSupported: true,
         serviceType: currentRec.serviceType,
+        serviceId: currentRec.serviceId,
+        serviceName: currentRec.serviceName,
+        workflowId: currentRec.workflowId,
         serviceConfidence: currentRec.confidenceScore,
       });
     }
@@ -156,8 +170,11 @@ async function handleMessage(
           }).catch(() => {});
         }
 
+        const lockCheck = detectTtdTemporaryLock(document, window.location.href);
         const scanResult: ScanResult = {
           serviceType: state.serviceType ?? ServiceType.GENERIC,
+          serviceId: state.serviceId ?? recognition.serviceId,
+          workflowId: state.workflowId ?? recognition.workflowId,
           serviceConfidence: state.serviceConfidence ?? 0,
           url: window.location.href,
           totalFields: scannedFields.length,
@@ -166,6 +183,7 @@ async function handleMessage(
           pilgrimCardCount: mappedResult.groupCount,
           formFingerprint: generateFingerprint(scannedFields),
           timestamp: new Date().toISOString(),
+          temporaryLock: lockCheck.isLocked && lockCheck.lockState ? lockCheck.lockState : undefined,
         };
 
         updatePageState({
@@ -173,6 +191,7 @@ async function handleMessage(
           formDetected: scannedFields.length > 0,
           fieldCount: scannedFields.length,
           lastScan: scanResult,
+          temporaryLock: scanResult.temporaryLock,
         });
 
         sendResponse({ success: true, data: scanResult });
@@ -248,6 +267,7 @@ async function handleMessage(
               pilgrims,
               profile: safeProfile,
               doc: document,
+              url: window.location.href,
               serviceId: (payload as any).serviceId || recognition.serviceId,
               workflow: (payload as any).workflow,
               onProgress: onProg,
@@ -352,6 +372,17 @@ async function handleMessage(
             data: fillResults,
             managerResult,
             error: managerResult.success ? undefined : (managerResult.errors.join('; ') || 'General details could not be verified'),
+          });
+          break;
+        }
+
+        if (managerResult.temporaryLock || managerResult.state === 'TTD_TEMPORARY_BOOKING_LOCK') {
+          sendResponse({
+            success: false,
+            data: [],
+            managerResult,
+            temporaryLock: managerResult.temporaryLock,
+            error: managerResult.temporaryLock?.message || managerResult.errors.join('; '),
           });
           break;
         }

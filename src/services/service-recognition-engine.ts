@@ -87,8 +87,12 @@ const SERVICE_SIGNATURES: ServiceSignature[] = [
   {
     type: ServiceType.DARSHAN,
     serviceId: 'padmavathi-supadham-entry-200',
-    displayName: 'Sri Padmavathi Ammavari Supadham Entry ₹200',
+    displayName: 'Padmavathi / Sri PAT',
     urlRegex: [
+      /\/spat\//i,
+      /\/spat\b/i,
+      /flow=spat/i,
+      /flowidentifier=spat/i,
       /\/padmavathi/i,
       /\/ammavari/i,
       /\/tiruchanoor/i,
@@ -103,6 +107,8 @@ const SERVICE_SIGNATURES: ServiceSignature[] = [
       'ammavari',
       'tiruchanoor',
       'supadham entry',
+      'sri pat',
+      'spat',
     ],
     headingTokens: [
       'padmavathi ammavari',
@@ -110,44 +116,39 @@ const SERVICE_SIGNATURES: ServiceSignature[] = [
       'tiruchanoor',
       'supadham',
       'padmavathi',
+      'sri pat',
+      'spat',
     ],
     fieldLabelTokens: [
       'pilgrim details',
       'photo id proof',
+      'photo id number',
       'additional laddus',
     ],
     domMarkers: [
       '#padmavathiForm',
       '[data-service*="padmavathi" i]',
       '[data-service*="ammavari" i]',
+      '[data-service*="spat" i]',
     ],
   },
   {
     type: ServiceType.DARSHAN,
     serviceId: 'special-entry-darshan-300',
-    displayName: 'Special Entry Darshan (Sri PAT)',
+    displayName: 'Special Entry Darshan ₹300',
     urlRegex: [
       /\/sed\b/i,
       /\/special.*entry.*darshan/i,
-      /\/darshan/i,
       /\/srstd/i,
-      /\/spat\b/i,
-      /\/spat\//i,
-      /flow=spat/i,
-      /slot-booking/i,
-      /pilgrim-details/i,
+      /\/darshan/i,
     ],
     titleTokens: [
       'special entry darshan',
       'darshan',
-      'sri pat',
-      'spat',
       'tirumala darshan',
     ],
     headingTokens: [
       'special entry darshan',
-      'sri pat',
-      'pilgrim details',
       'darshan booking',
       'slot selection',
       'special darshan',
@@ -158,7 +159,6 @@ const SERVICE_SIGNATURES: ServiceSignature[] = [
       'photo id number',
       'laddu count',
       'darshan slot',
-      'sri pat',
     ],
     domMarkers: [
       '#darshanForm',
@@ -180,7 +180,6 @@ const SERVICE_SIGNATURES: ServiceSignature[] = [
       'arjitha seva',
       'seva booking',
       'electronic dip',
-      'srivari seva',
     ],
     headingTokens: [
       'arjitha seva',
@@ -269,9 +268,10 @@ const SERVICE_SIGNATURES: ServiceSignature[] = [
   },
   {
     type: ServiceType.SRIVARI_SEVA,
-    displayName: 'Srivari Seva Voluntary Service',
+    serviceId: 'srivari-seva',
+    displayName: 'Srivari Seva',
     urlRegex: [
-      /\/srivari.*seva/i,
+      /\/srivari[-_]?seva/i,
       /\/volunteer/i,
     ],
     titleTokens: [
@@ -280,16 +280,30 @@ const SERVICE_SIGNATURES: ServiceSignature[] = [
       'parakamani seva',
     ],
     headingTokens: [
+      'srivari seva',
       'volunteer registration',
       'srivari seva team',
       'seva team leader',
+      'general seva',
+      'navaneetha seva',
+      'instructions',
     ],
     fieldLabelTokens: [
+      'id proof type',
+      'id proof number',
+      'mentally fit',
+      'physically fit',
+      'mandal',
+      'qualification',
+      'door number',
       'team size',
       'institution name',
       'seva batch',
     ],
     domMarkers: [
+      '#srivariSevaForm',
+      '[data-service*="srivari-seva" i]',
+      '[data-testid*="srivari-seva"]',
       '#volunteerForm',
     ],
   },
@@ -303,7 +317,84 @@ export class ServiceRecognitionEngine {
   public static recognize(url: string, doc?: Document): ServiceRecognitionResult {
     const isOfficialDomain = isOfficialTTDDomain(url);
 
-    // Extract DOM text context safely
+    // Route Dominance: SPAT URLs strictly resolve to Padmavathi / Sri PAT (₹200)
+    // Generic page headings like "Special Entry Darshan" must NOT override the explicit SPAT route.
+    const lowerUrl = (url || '').toLowerCase();
+    const isSpatRoute =
+      lowerUrl.includes('/spat/') ||
+      lowerUrl.includes('/spat?') ||
+      lowerUrl.endsWith('/spat') ||
+      lowerUrl.includes('flow=spat') ||
+      lowerUrl.includes('flowidentifier=spat');
+
+    if (isSpatRoute) {
+      const config = getServiceConfig('padmavathi-supadham-entry-200');
+      const verified = Boolean(config?.verified && isOfficialDomain);
+      const summary = 'Identified Padmavathi / Sri PAT (₹200) with 100% confidence via dominant SPAT route pattern.';
+      const signals: DetectionSignal[] = [
+        {
+          type: 'url',
+          name: 'SPAT Route Dominance',
+          matched: true,
+          score: 40,
+          evidence: url,
+        },
+      ];
+      return {
+        status: 'detected',
+        serviceType: ServiceType.DARSHAN,
+        serviceId: 'padmavathi-supadham-entry-200',
+        serviceName: 'Padmavathi / Sri PAT',
+        confidenceScore: 100,
+        confidence: 1,
+        confidenceBand: 'High',
+        strategy: 'spat-route-dominance',
+        workflowId: 'padmavathi-v1',
+        verified,
+        reason: summary,
+        signals,
+        summary,
+        isOfficialDomain,
+      };
+    }
+
+    // Route Dominance: Srivari Seva route patterns strictly resolve to Srivari Seva
+    const isSrivariSevaRoute =
+      lowerUrl.includes('/srivari-seva') ||
+      lowerUrl.includes('/srivariseva') ||
+      lowerUrl.includes('flow=srivari-seva') ||
+      lowerUrl.includes('service=srivari-seva');
+
+    if (isSrivariSevaRoute) {
+      const config = getServiceConfig('srivari-seva');
+      const verified = Boolean(config?.verified && isOfficialDomain);
+      const summary = 'Identified Srivari Seva with 100% confidence via dominant Srivari Seva route pattern.';
+      const signals: DetectionSignal[] = [
+        {
+          type: 'url',
+          name: 'Srivari Seva Route Dominance',
+          matched: true,
+          score: 40,
+          evidence: url,
+        },
+      ];
+      return {
+        status: 'detected',
+        serviceType: ServiceType.SRIVARI_SEVA,
+        serviceId: 'srivari-seva',
+        serviceName: 'Srivari Seva',
+        confidenceScore: 100,
+        confidence: 1,
+        confidenceBand: 'High',
+        strategy: 'srivari-seva-route-dominance',
+        workflowId: 'srivari-seva-enrollment-v1',
+        verified,
+        reason: summary,
+        signals,
+        summary,
+        isOfficialDomain,
+      };
+    }
     const titleText = (doc?.title ?? '').toLowerCase();
     const headingElements = doc ? Array.from(doc.querySelectorAll('h1, h2, h3, h4, .page-title, .header-title')) : [];
     const headingsText = headingElements.map(h => (h.textContent ?? '').toLowerCase()).join(' ');

@@ -56,7 +56,7 @@ export function Documents() {
         >
           {profiles.map(p => (
             <option key={p.id} value={p.id}>
-              {p.name} ({p.pilgrims?.length || 0} devotees)
+              {p.name} ({p.pilgrims?.length || 0} {p.pilgrims?.length === 1 ? 'pilgrim' : 'pilgrims'})
             </option>
           ))}
         </select>

@@ -2,7 +2,7 @@
 // Tirumala SevaPilot — V1 Autofill Types & Contracts
 // ─────────────────────────────────────────────────
 
-import type { Pilgrim, Profile } from '@shared/types';
+import type { Pilgrim, Profile, TtdTemporaryLockState } from '@shared/types';
 
 /** Supported pilgrim fields in TTD V1 (strictly 1 to 6 pilgrims) */
 export type PilgrimFieldType = 'name' | 'age' | 'gender' | 'photoIdProof' | 'photoIdNumber';
@@ -92,7 +92,19 @@ export interface PilgrimProgress {
 }
 
 /** Active booking step in the TTD workflow */
-export type BookingStep = 'PILGRIM_DETAILS' | 'GENERAL_DETAILS' | 'UNKNOWN';
+export type BookingStep =
+  | 'PILGRIM_DETAILS'
+  | 'GENERAL_DETAILS'
+  | 'INSTRUCTIONS_REVIEW'
+  | 'SRIVARI_SEVA_ENROLLMENT'
+  | 'UNKNOWN';
+
+/** Instructions review state machine for user-attested declarations */
+export type InstructionsState =
+  | 'NOT_REVIEWED'
+  | 'READY_FOR_USER_CONFIRMATION'
+  | 'USER_CONFIRMED'
+  | 'BLOCKED';
 
 /** State machine states for autofill manager */
 export type AutofillState =
@@ -105,10 +117,13 @@ export type AutofillState =
   | 'REPAIRING_FAILED'
   | 'FILLING_GENERAL'
   | 'VERIFYING_GENERAL'
+  | 'SRIVARI_INSTRUCTIONS'
+  | 'SRIVARI_ENROLLMENT'
   | 'COMPLETE'
   | 'PARTIAL_SUCCESS'
   | 'ERROR'
-  | 'STOPPED';
+  | 'STOPPED'
+  | 'TTD_TEMPORARY_BOOKING_LOCK';
 
 /** Progress payload emitted during execution */
 export interface AutofillProgress {
@@ -122,13 +137,19 @@ export interface AutofillProgress {
   startedAt: number;
   elapsedMs: number;
   percent: number;
+  temporaryLock?: TtdTemporaryLockState;
 }
 
 /** Final comprehensive report returned by AutofillManager */
 export interface AutofillManagerResult {
   success: boolean;
   state: AutofillState;
-  step: 'pilgrim' | 'general' | 'unknown';
+  step: 'pilgrim' | 'general' | 'unknown' | 'srivari_instructions' | 'srivari_enrollment';
+  instructionsState?: InstructionsState;
+  actionRequired?: boolean;
+  actionMessage?: string;
+  optionalFieldsSkipped?: string[];
+  optionalFieldsFilled?: string[];
   pilgrimResults: PilgrimProgress[];
   generalResults: FieldTransactionResult[];
   totalVerified: number;
@@ -144,6 +165,7 @@ export interface AutofillManagerResult {
     fieldLabel: string;
     error: string;
   }>;
+  temporaryLock?: TtdTemporaryLockState;
 }
 
 /** Options provided to executeAutofill */

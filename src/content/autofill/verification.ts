@@ -271,8 +271,28 @@ export function verifyDropdownSelection(
     };
   }
 
-  // Angular Material mat-select: check trigger text
+  // Check HTMLInputElement value directly (e.g. readonly input representing the dropdown)
+  if (control instanceof HTMLInputElement) {
+    const inputVal = (control.value || '').trim();
+    if (inputVal && isDropdownMatch(inputVal.toLowerCase(), inputVal.toLowerCase(), normTarget, fieldKey)) {
+      reasons.push(`Input dropdown value verified: "${inputVal}"`);
+      return {
+        field: fieldKey,
+        status: 'verified',
+        expectedValue: targetValue,
+        actualValue: inputVal,
+        maskedExpected: targetValue,
+        maskedActual: inputVal,
+        reasons,
+      };
+    }
+  }
+
+  // Angular Material mat-select or wrapper: check trigger text on control or parent/wrapper
+  const parentWrapper = (control.closest('mat-form-field, .mat-form-field, .mat-mdc-form-field, .form-group, .field') as HTMLElement) || control.parentElement;
   const triggerTextEl = control.querySelector(
+    '.mat-select-value-text, .mat-mdc-select-value-text, .mat-select-min-line, .mat-mdc-select-min-line, .mat-select-value, .mat-mdc-select-value, [class*="select-value"]'
+  ) || parentWrapper?.querySelector(
     '.mat-select-value-text, .mat-mdc-select-value-text, .mat-select-min-line, .mat-mdc-select-min-line, .mat-select-value, .mat-mdc-select-value, [class*="select-value"]'
   );
   if (triggerTextEl?.textContent) {
@@ -291,8 +311,9 @@ export function verifyDropdownSelection(
     }
   }
 
-  // Check aria-label or aria-valuetext on the control
-  const ariaVal = control.getAttribute('aria-label') || control.getAttribute('aria-valuetext') || '';
+  // Check aria-label or aria-valuetext on the control or wrapper
+  const ariaVal = control.getAttribute('aria-label') || control.getAttribute('aria-valuetext')
+    || parentWrapper?.getAttribute('aria-label') || parentWrapper?.getAttribute('aria-valuetext') || '';
   if (ariaVal && isDropdownMatch(ariaVal.toLowerCase(), '', normTarget, fieldKey)) {
     reasons.push(`Aria attribute verified: "${ariaVal}"`);
     return {
@@ -307,7 +328,8 @@ export function verifyDropdownSelection(
   }
 
   // Check ng-reflect-model or internal value attribute
-  const ngModel = control.getAttribute('ng-reflect-model') || control.getAttribute('ng-reflect-value') || '';
+  const ngModel = control.getAttribute('ng-reflect-model') || control.getAttribute('ng-reflect-value')
+    || parentWrapper?.getAttribute('ng-reflect-model') || parentWrapper?.getAttribute('ng-reflect-value') || '';
   if (ngModel && isDropdownMatch(ngModel.toLowerCase(), '', normTarget, fieldKey)) {
     reasons.push(`ng-reflect-model verified: "${ngModel}"`);
     return {
@@ -317,6 +339,21 @@ export function verifyDropdownSelection(
       actualValue: ngModel,
       maskedExpected: targetValue,
       maskedActual: ngModel,
+      reasons,
+    };
+  }
+
+  // Check direct text content (for custom component container)
+  const textContent = (control.textContent || '').trim();
+  if (textContent && isDropdownMatch(textContent.toLowerCase(), '', normTarget, fieldKey)) {
+    reasons.push(`Container text verified: "${textContent}"`);
+    return {
+      field: fieldKey,
+      status: 'verified',
+      expectedValue: targetValue,
+      actualValue: textContent,
+      maskedExpected: targetValue,
+      maskedActual: textContent,
       reasons,
     };
   }

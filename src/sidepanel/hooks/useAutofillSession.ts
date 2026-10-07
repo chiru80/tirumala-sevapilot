@@ -7,6 +7,7 @@ import type {
   FieldMapping,
   PilgrimRowReport,
   AutofillMode,
+  TtdTemporaryLockState,
 } from '@shared/types';
 import { recordSessionHistory, addNotification } from '@storage/repository';
 
@@ -66,12 +67,15 @@ export interface UseAutofillSessionResult {
   ) => Promise<void>;
   resetSession: () => void;
   setFillStatus: (status: string | null) => void;
+  temporaryLock: TtdTemporaryLockState | null;
+  clearTemporaryLock: () => void;
 }
 
 export function useAutofillSession(): UseAutofillSessionResult {
   const [isFilling, setIsFilling] = useState<boolean>(false);
   const [fillStatus, setFillStatus] = useState<string | null>(null);
   const [statusType, setStatusType] = useState<'info' | 'success' | 'warning' | 'error'>('info');
+  const [temporaryLock, setTemporaryLock] = useState<TtdTemporaryLockState | null>(null);
 
   const [fillStage, setFillStage] = useState<AutofillStageState>({
     active: false,
@@ -140,7 +144,7 @@ export function useAutofillSession(): UseAutofillSessionResult {
   ): Promise<boolean> => {
     const targetPilgrims = overridePilgrims || pilgrims;
     if (targetPilgrims.length === 0) {
-      setFillStatus('No devotees selected to fill.');
+      setFillStatus('No pilgrims selected to fill.');
       setStatusType('warning');
       return false;
     }
@@ -155,7 +159,7 @@ export function useAutofillSession(): UseAutofillSessionResult {
       fieldsFilledCount: 0,
       validationComplete: false,
     });
-    setFillStatus(`Filling & verifying details for ${targetPilgrims.length} devotee(s)...`);
+    setFillStatus(`Filling & verifying details for ${targetPilgrims.length} ${targetPilgrims.length === 1 ? 'pilgrim' : 'pilgrims'}...`);
     setStatusType('info');
 
     const fillStartTime = performance.now();
@@ -250,7 +254,7 @@ export function useAutofillSession(): UseAutofillSessionResult {
           addNotification({
             type: 'success',
             title: 'Autofill & Verification Complete',
-            message: `Filled and verified ${filled} fields for ${targetPilgrims.length} devotees in ${serviceName}.`,
+            message: `Filled and verified ${filled} fields for ${targetPilgrims.length} ${targetPilgrims.length === 1 ? 'pilgrim' : 'pilgrims'} in ${serviceName}.`,
           }).catch(() => {});
           return true;
         } else {
@@ -263,6 +267,18 @@ export function useAutofillSession(): UseAutofillSessionResult {
           }).catch(() => {});
           return false;
         }
+      } else if (fillResponse?.temporaryLock || fillResponse?.managerResult?.temporaryLock) {
+        const lock: TtdTemporaryLockState = fillResponse.temporaryLock || fillResponse.managerResult?.temporaryLock;
+        setTemporaryLock(lock);
+        setFillStage(prev => ({ ...prev, active: false }));
+        setFillStatus(lock.message || 'Your previous booking attempt is still holding this pilgrim.');
+        setStatusType('warning');
+        addNotification({
+          type: 'warning',
+          title: 'TTD Temporary Lock',
+          message: lock.message || 'Your previous booking attempt is still holding these pilgrim details.',
+        }).catch(() => {});
+        return false;
       } else {
         setFillStage(prev => ({ ...prev, active: false }));
         setFillStatus(`Fill failed: ${fillResponse?.error || 'Unknown error'}`);
@@ -298,9 +314,14 @@ export function useAutofillSession(): UseAutofillSessionResult {
       setFillStatus('Autofill stopped by user.');
       setStatusType('warning');
       setIsFilling(false);
+      setTemporaryLock(null);
     } catch {
       setIsFilling(false);
     }
+  }, []);
+
+  const clearTemporaryLock = useCallback(() => {
+    setTemporaryLock(null);
   }, []);
 
   const handleRepairMissing = useCallback(async (
@@ -365,7 +386,7 @@ export function useAutofillSession(): UseAutofillSessionResult {
           setStatusType('success');
           return true;
         } else {
-          setFillStatus(`${failedRemaining} devotee(s) still have unverified fields.`);
+          setFillStatus(`${failedRemaining} pilgrim${failedRemaining === 1 ? '' : 's'} still have unverified fields.`);
           setStatusType('warning');
           return false;
         }
@@ -493,6 +514,7 @@ export function useAutofillSession(): UseAutofillSessionResult {
   const resetSession = useCallback(() => {
     setFieldResults([]);
     setPilgrimReports([]);
+    setTemporaryLock(null);
     setFillStatus(null);
     setFillStage({
       active: false,
@@ -521,5 +543,7 @@ export function useAutofillSession(): UseAutofillSessionResult {
     handleRetryAllFailed,
     resetSession,
     setFillStatus,
+    temporaryLock,
+    clearTemporaryLock,
   };
 }

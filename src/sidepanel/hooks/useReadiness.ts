@@ -39,8 +39,9 @@ export function useReadiness(
     const missingDetails: string[] = [];
     const recommendations: string[] = [];
 
-    const workflow = serviceId ? getWorkflowById(serviceId) : getWorkflowById(serviceType as string);
-    const requiresGeneralContact = workflow ? workflow.hasGeneralDetailsStep : true;
+    const effectiveServiceId = serviceId || (scanResult?.serviceId) || (serviceType !== ServiceType.DARSHAN && serviceType !== ServiceType.GENERIC ? serviceType : undefined);
+    const workflow = effectiveServiceId ? getWorkflowById(effectiveServiceId) : getWorkflowById(serviceType as string);
+    const requiresGeneralContact = workflow ? workflow.hasGeneralDetailsStep : (effectiveServiceId && (effectiveServiceId.includes('padmavathi') || effectiveServiceId.includes('spat')) ? false : true);
 
     // 1. TTD Connection check
     checks.push({
@@ -48,7 +49,7 @@ export function useReadiness(
       label: 'TTD Portal Connection',
       passed: pageDetected,
       severity: 'error',
-      message: pageDetected ? 'Official TTD portal connected' : 'Please open ttdevasthanams.ap.gov.in',
+      message: pageDetected ? 'Official TTD portal connected' : 'Open the official TTD booking page',
     });
 
     // 2. Profile selection check
@@ -58,7 +59,7 @@ export function useReadiness(
       label: 'Profile',
       passed: hasProfile,
       severity: 'error',
-      message: activeProfile ? `Profile: Complete (${activeProfile.name})` : 'No profile selected',
+      message: activeProfile ? `Profile complete (${activeProfile.name})` : 'Profile needs attention',
     });
 
     // 3. Pilgrim selection & health check
@@ -71,7 +72,7 @@ export function useReadiness(
       label: 'Pilgrims',
       passed: hasPilgrims,
       severity: 'error',
-      message: hasPilgrims ? `${pilgrimCount} selected` : 'No devotees selected for booking',
+      message: hasPilgrims ? `Pilgrim selected (${pilgrimCount})` : 'Select pilgrims',
     });
 
     // Detail completeness checks (only 5 core identity fields required for devotees)
@@ -94,12 +95,12 @@ export function useReadiness(
     const allPilgrimsReady = hasPilgrims && health.ready === pilgrimCount;
     checks.push({
       id: 'required-details',
-      label: 'Devotee Required Details',
+      label: 'Required Pilgrim Details',
       passed: allPilgrimsReady,
       severity: 'error',
       message: allPilgrimsReady
-        ? 'All required devotee details verified'
-        : `${health.incomplete} devotee(s) require additional details`,
+        ? 'Required pilgrim details verified'
+        : `${health.incomplete} pilgrim(s) need attention`,
     });
 
     // General Details / Booking Contact check — service-aware
@@ -176,22 +177,30 @@ export function useReadiness(
         label: 'Pilgrim Limit',
         passed: false,
         severity: 'error',
-        message: `Exactly ${exactPilgrims} devotees required per booking (selected: ${pilgrimCount})`,
+        message: `Exactly ${exactPilgrims} pilgrims required per booking (selected: ${pilgrimCount})`,
       });
-      missingDetails.push(`Exactly ${exactPilgrims} devotees required for ${workflow.serviceName}`);
+      missingDetails.push(`Exactly ${exactPilgrims} pilgrims required for ${workflow.serviceName}`);
     }
 
-    checks.push({
-      id: 'general-details',
-      label: 'General Details',
-      passed: hasValidContact,
-      severity: requiresGeneralContact ? 'warning' : 'info',
-      message: !requiresGeneralContact
-        ? 'Not required for this service'
-        : hasValidContact
-        ? `All general details ready${requiresGothram ? ' (incl. Gothram)' : ''}`
-        : `Missing: ${generalMissing.join(', ')}`,
-    });
+    if (requiresGeneralContact) {
+      checks.push({
+        id: 'general-details',
+        label: 'General Details',
+        passed: hasValidContact,
+        severity: 'warning',
+        message: hasValidContact
+          ? `General details ready${requiresGothram ? ' (incl. Gothram)' : ''}`
+          : `Missing: ${generalMissing.join(', ')}`,
+      });
+    } else {
+      checks.push({
+        id: 'pilgrim-details',
+        label: 'Pilgrim Details',
+        passed: allPilgrimsReady,
+        severity: 'info',
+        message: 'Pilgrim details ready',
+      });
+    }
 
     // Form scanned status
     const formMapped = Boolean(scanResult && scanResult.mappedFields && scanResult.mappedFields.length > 0);
@@ -219,12 +228,12 @@ export function useReadiness(
     }
 
     // Collect missing details strings for quick reporting
-    if (!pageDetected) missingDetails.push('Open TTD Booking page');
+    if (!pageDetected) missingDetails.push('Open the official TTD booking page');
     if (!hasProfile) missingDetails.push('Select or create a Profile');
-    if (!hasPilgrims) missingDetails.push('Select at least 1 devotee');
+    if (!hasPilgrims) missingDetails.push('Select pilgrims');
     if (health.missingByField['fullName']) missingDetails.push(`Name missing (${health.missingByField['fullName']})`);
     if (health.missingByField['idNumber'] || hasInvalidAadhaar) missingDetails.push('ID Number needs attention');
-    if (hasInvalidMobile) missingDetails.push('Devotee mobile format invalid (10 digits)');
+    if (hasInvalidMobile) missingDetails.push('Pilgrim mobile format invalid (10 digits)');
     if (requiresGeneralContact && !hasValidContact) {
       if (generalMissing.length > 0) {
         missingDetails.push(`General Details: ${generalMissing.join(', ')} required`);

@@ -82,12 +82,12 @@ export function ProfileCard({
           </div>
 
           <div className="flex items-center gap-1">
-            {/* Print Devotee Queue Slip Button */}
+            {/* Print Profile Button */}
             <button
               onClick={() => onPrintSlip(profile)}
               className="p-2 rounded-lg hover:bg-gold-100/50 dark:hover:bg-gold-900/30 text-gold-700 dark:text-gold-400 transition-colors"
-              title="Print Devotee Travel Slip / Checklist"
-              aria-label="Print Devotee Travel Slip"
+              title={t('profiles.printProfile')}
+              aria-label={t('profiles.printProfile')}
             >
               <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/>
@@ -149,7 +149,11 @@ export function ProfileCard({
             />
           </div>
 
-          {health.percentage < 100 && Object.keys(health.missingByField).length > 0 && (
+          {health.percentage === 100 ? (
+            <p className="text-xs text-[#1B5E20] dark:text-[#A5D6A7] font-medium pt-0.5">
+              All required details complete
+            </p>
+          ) : Object.keys(health.missingByField).length > 0 ? (
             <div className="text-xs text-[#8D6E18] dark:text-[#FFE082] pt-0.5 space-y-0.5">
               <span className="font-semibold">Missing: </span>
               {Object.entries(health.missingByField)
@@ -165,7 +169,7 @@ export function ProfileCard({
                 })
                 .join(', ')}
             </div>
-          )}
+          ) : null}
         </div>
 
         {/* Profile Card Actions: [Select] and [Edit] */}

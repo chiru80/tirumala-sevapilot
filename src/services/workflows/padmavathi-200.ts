@@ -24,7 +24,8 @@ import {
 
 export const PADMAVATHI_SUPADHAM_ENTRY_200: ServiceWorkflow = {
   serviceId: 'padmavathi-supadham-entry-200',
-  serviceName: 'Sri Padmavathi Ammavari Supadham Entry ₹200',
+  serviceName: 'Padmavathi / Sri PAT',
+  workflowId: 'padmavathi-v1',
   workflowVersion: '1.0.0',
   serviceType: ServiceType.DARSHAN,
   temple: 'Sri Padmavathi Ammavari Temple, Tiruchanoor',
@@ -198,10 +199,18 @@ export const PADMAVATHI_SUPADHAM_ENTRY_200: ServiceWorkflow = {
   ],
 
   detectService(url: string, doc: Document) {
-    let score = 0;
     const lowerUrl = url.toLowerCase();
     const sanitizedUrl = lowerUrl.replace(/:\d+/, '');
 
+    // SPAT route dominance: /spat/ or flow=spat or flowIdentifier=spat
+    if (sanitizedUrl.includes('/spat/') || sanitizedUrl.includes('flow=spat') || sanitizedUrl.includes('flowidentifier=spat')) {
+      return {
+        matches: true,
+        confidence: 100,
+      };
+    }
+
+    let score = 0;
     if (/padmavathi|ammavari|tiruchanoor|supadham|spat.*200|\bpat\b/i.test(sanitizedUrl)) {
       score += 50;
     }
@@ -212,7 +221,8 @@ export const PADMAVATHI_SUPADHAM_ENTRY_200: ServiceWorkflow = {
       text.includes('ammavari') ||
       text.includes('tiruchanoor') ||
       text.includes('supadham') ||
-      text.includes('₹200')
+      text.includes('₹200') ||
+      text.includes('sri pat')
     ) {
       score += 45;
     }

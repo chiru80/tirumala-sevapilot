@@ -32,7 +32,7 @@ export const AutofillProgress: React.FC<AutofillProgressProps> = ({
   const currentStep = Math.max(0, (currentPilgrim - 1) * PILGRIM_FIELDS.length + (currentIdx >= 0 ? currentIdx + 1 : 0));
   const progressPct = totalSteps > 0 ? Math.min(Math.round((currentStep / totalSteps) * 100), 100) : 0;
 
-  const accessibleStatus = `Filling & Verifying Devotee ${currentPilgrim} of ${totalPilgrims}`;
+  const accessibleStatus = `Filling pilgrim ${currentPilgrim} of ${totalPilgrims}`;
 
   return (
     <div
@@ -44,10 +44,10 @@ export const AutofillProgress: React.FC<AutofillProgressProps> = ({
       <div className="flex items-center justify-between">
         <div>
           <span className="text-xs font-bold uppercase tracking-wider text-[#54258A] dark:text-[#D4A72C]">
-            Filling & Verifying...
+            FILLING & VERIFYING…
           </span>
           <h3 className="text-base font-bold text-[#30213A] dark:text-[#F8EFD8] mt-0.5">
-            Devotee {currentPilgrim} of {totalPilgrims}
+            Pilgrim {currentPilgrim} of {totalPilgrims}
           </h3>
         </div>
         <span className="w-3 h-3 rounded-full bg-blue-500 animate-ping" />

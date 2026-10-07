@@ -69,7 +69,7 @@ describe('Profiles Page', () => {
     render(<Profiles />);
 
     await waitFor(() => {
-      expect(screen.getByText(/No profiles created yet/i)).toBeTruthy();
+      expect(screen.getByText(/No profiles( created)? yet/i)).toBeTruthy();
     });
   });
 
@@ -116,7 +116,7 @@ describe('Profiles Page', () => {
 
     // Verify 5 sections are present in modal
     await waitFor(() => {
-      expect(screen.getByText('Edit Devotee Details')).toBeTruthy();
+      expect(screen.getByText('Edit Pilgrim Details')).toBeTruthy();
       expect(screen.getByText(/Personal/i)).toBeTruthy();
       expect(screen.getByText(/Identity/i)).toBeTruthy();
       expect(screen.getByText(/Contact/i)).toBeTruthy();

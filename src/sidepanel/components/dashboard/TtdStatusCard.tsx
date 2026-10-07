@@ -39,11 +39,16 @@ export const TtdStatusCard: React.FC<TtdStatusCardProps> = ({
               <span className="w-3 h-3 rounded-full bg-[#2F8F68] animate-pulse" />
             </div>
             <div className="min-w-0">
-              <span className="text-xs font-bold uppercase tracking-wider text-[#2F8F68] dark:text-[#4ADE80] block">
-                🟢 {t('dashboard.ttdBookingPage')}
-              </span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-bold uppercase tracking-wider text-[#2F8F68] dark:text-[#4ADE80]">
+                  TTD PAGE
+                </span>
+                <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-[#2F8F68]/15 text-[#1B5E20] dark:text-[#A5D6A7]">
+                  TTD Connected
+                </span>
+              </div>
               <p className="text-base font-bold text-[#30213A] dark:text-[#F8EFD8] truncate mt-0.5">
-                {serviceName || 'Special Entry Darshan'}
+                {serviceName || 'Supported booking page detected.'}
               </p>
             </div>
           </div>
@@ -83,7 +88,7 @@ export const TtdStatusCard: React.FC<TtdStatusCardProps> = ({
           <span className="text-lg">🟡</span>
           <div>
             <h4 className="text-sm font-bold text-amber-900 dark:text-amber-200 uppercase tracking-wider">
-              {t('dashboard.ttdPageDetected')}
+              TTD PAGE
             </h4>
             <p className="text-xs text-amber-800 dark:text-amber-300 mt-0.5">
               {t('dashboard.unsupportedMessage')}
@@ -104,10 +109,10 @@ export const TtdStatusCard: React.FC<TtdStatusCardProps> = ({
           </div>
           <div>
             <span className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 block">
-              ⚪ {t('dashboard.ttdNotDetected')}
+              TTD PAGE · Not detected
             </span>
             <p className="text-xs text-[#6F6477] dark:text-[#D4C3E0] mt-0.5">
-              {t('dashboard.openSupportedPage')}
+              Open a supported TTD booking page to continue.
             </p>
           </div>
         </div>

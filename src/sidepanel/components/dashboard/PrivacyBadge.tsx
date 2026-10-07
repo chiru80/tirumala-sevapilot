@@ -21,9 +21,8 @@ export const PrivacyBadge: React.FC<PrivacyBadgeProps> = ({ onOpenModal }) => {
       <button
         onClick={handleClick}
         className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[#F5F2F8] dark:bg-[#3E1B68]/30 border border-[rgba(84,37,138,0.15)] text-[#54258A] dark:text-[#D4A72C] hover:bg-[#EBE5F2] transition-all cursor-pointer select-none"
-        aria-label={t('dashboard.localPrivacyModel')}
+        aria-label="Data stored locally"
       >
-        <span>🔐</span>
         <span>{t('dashboard.localData')}</span>
       </button>
 

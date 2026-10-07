@@ -153,6 +153,191 @@ export const PINCODE_CONTRACT: FieldContract = {
   validate: (val) => typeof val === 'string' && /^\d{6}$/.test(val.replace(/\D/g, '')),
 };
 
+export const DOB_CONTRACT: FieldContract = {
+  key: 'dateOfBirth',
+  required: true,
+  confidenceThreshold: 60,
+  allowedTypes: ['text', 'date'],
+  aliases: ['dateOfBirth', 'dob', 'birthDate'],
+  isIdentity: true,
+  validate: (val) => typeof val === 'string' && val.trim().length >= 4,
+};
+
+export const FATHER_SPOUSE_NAME_CONTRACT: FieldContract = {
+  key: 'fatherSpouseName',
+  required: false,
+  confidenceThreshold: 55,
+  allowedTypes: ['text'],
+  aliases: ['fatherSpouseName', 'fatherName', 'spouseName', 'husbandName'],
+  isIdentity: false,
+  validate: (val) => !val || (typeof val === 'string' && val.trim().length >= 2),
+};
+
+export const BLOOD_GROUP_CONTRACT: FieldContract = {
+  key: 'bloodGroup',
+  required: false,
+  confidenceThreshold: 55,
+  allowedTypes: ['select', 'text'],
+  aliases: ['bloodGroup', 'bloodGrp'],
+  isIdentity: false,
+  validate: (val) => !val || (typeof val === 'string' && val.trim().length >= 1),
+};
+
+export const DISTRICT_CONTRACT: FieldContract = {
+  key: 'district',
+  required: true,
+  confidenceThreshold: 55,
+  allowedTypes: ['select', 'text'],
+  aliases: ['district', 'dist'],
+  isIdentity: false,
+  validate: (val) => typeof val === 'string' && val.trim().length >= 2,
+};
+
+export const MANDAL_CONTRACT: FieldContract = {
+  key: 'mandal',
+  required: false,
+  confidenceThreshold: 50,
+  allowedTypes: ['select', 'text'],
+  aliases: ['mandal', 'tehsil'],
+  isIdentity: false,
+  validate: (val) => !val || (typeof val === 'string' && val.trim().length >= 2),
+};
+
+export const STREET_CONTRACT: FieldContract = {
+  key: 'street',
+  required: true,
+  confidenceThreshold: 55,
+  allowedTypes: ['text'],
+  aliases: ['street', 'streetName', 'addressLine2'],
+  isIdentity: false,
+  validate: (val) => typeof val === 'string' && val.trim().length >= 2,
+};
+
+export const DOOR_NUMBER_CONTRACT: FieldContract = {
+  key: 'doorNumber',
+  required: true,
+  confidenceThreshold: 55,
+  allowedTypes: ['text'],
+  aliases: ['doorNumber', 'doorNo', 'houseNo', 'dNo'],
+  isIdentity: false,
+  validate: (val) => typeof val === 'string' && val.trim().length >= 1,
+};
+
+export const PHOTO_CONTRACT: FieldContract = {
+  key: 'photo',
+  required: true,
+  confidenceThreshold: 60,
+  allowedTypes: ['file'],
+  aliases: ['photo', 'photoUpload', 'recentPhoto'],
+  isIdentity: true,
+  validate: (val) => Boolean(val),
+};
+
+export const DOCUMENT_CONTRACT: FieldContract = {
+  key: 'document',
+  required: false,
+  confidenceThreshold: 50,
+  allowedTypes: ['file'],
+  aliases: ['document', 'uploadDocument', 'supportingDocument'],
+  isIdentity: false,
+  validate: (val) => true,
+};
+
+export const QUALIFICATION_CONTRACT: FieldContract = {
+  key: 'qualification',
+  required: false,
+  confidenceThreshold: 50,
+  allowedTypes: ['select', 'text'],
+  aliases: ['qualification', 'education'],
+  isIdentity: false,
+  validate: (val) => true,
+};
+
+export const PROFESSION_CONTRACT: FieldContract = {
+  key: 'profession',
+  required: false,
+  confidenceThreshold: 50,
+  allowedTypes: ['select', 'text'],
+  aliases: ['profession', 'occupation'],
+  isIdentity: false,
+  validate: (val) => true,
+};
+
+export const AREA_OF_INTEREST_CONTRACT: FieldContract = {
+  key: 'areaOfInterest',
+  required: false,
+  confidenceThreshold: 50,
+  allowedTypes: ['select', 'text'],
+  aliases: ['areaOfInterest', 'interest'],
+  isIdentity: false,
+  validate: (val) => true,
+};
+
+export const EMPLOYEE_ID_CONTRACT: FieldContract = {
+  key: 'employeeId',
+  required: false,
+  confidenceThreshold: 50,
+  allowedTypes: ['text'],
+  aliases: ['employeeId', 'empId'],
+  isIdentity: false,
+  validate: (val) => true,
+};
+
+export const DESIGNATION_CONTRACT: FieldContract = {
+  key: 'designation',
+  required: false,
+  confidenceThreshold: 50,
+  allowedTypes: ['text', 'select'],
+  aliases: ['designation', 'retiredAs'],
+  isIdentity: false,
+  validate: (val) => true,
+};
+
+export const SPECIALISATION_CONTRACT: FieldContract = {
+  key: 'specialisation',
+  required: false,
+  confidenceThreshold: 50,
+  allowedTypes: ['text', 'select'],
+  aliases: ['specialisation', 'specialization', 'skill'],
+  isIdentity: false,
+  validate: (val) => true,
+};
+
+export const PLACE_OF_WORK_CONTRACT: FieldContract = {
+  key: 'placeOfWork',
+  required: false,
+  confidenceThreshold: 50,
+  allowedTypes: ['text'],
+  aliases: ['placeOfWork', 'placeOfWorking', 'workLocation'],
+  isIdentity: false,
+  validate: (val) => true,
+};
+
+export const MENTALLY_FIT_CONTRACT: FieldContract = {
+  key: 'mentallyFit',
+  required: true,
+  confidenceThreshold: 60,
+  allowedTypes: ['checkbox'],
+  aliases: ['mentallyFit', 'mentalFitness'],
+  isIdentity: false,
+  validate: (val) => Boolean(val),
+};
+
+export const PHYSICALLY_FIT_CONTRACT: FieldContract = {
+  key: 'physicallyFit',
+  required: true,
+  confidenceThreshold: 60,
+  allowedTypes: ['checkbox'],
+  aliases: ['physicallyFit', 'physicalFitness'],
+  isIdentity: false,
+  validate: (val) => Boolean(val),
+};
+
+export const SRIVARI_MOBILE_CONTRACT: FieldContract = {
+  ...MOBILE_CONTRACT,
+  required: true, // Mobile is marked with * and required in Srivari Seva Identity section
+};
+
 // ─── Service-Specific Field Contract Bundles ───
 
 export const SPECIAL_ENTRY_300_CONTRACTS: Record<string, FieldContract> = {
@@ -193,6 +378,50 @@ export const PADMAVATHI_CONTRACTS: Record<string, FieldContract> = {
   // General details contracts only required if actually observed on page
 };
 
+export const SRIVARI_SEVA_CONTRACTS: Record<string, FieldContract> = {
+  // Identity Proof (Required with *)
+  photoIdProof: ID_TYPE_CONTRACT,
+  idProofType: ID_TYPE_CONTRACT,
+  photoIdNumber: ID_NUMBER_CONTRACT,
+  idProofNumber: ID_NUMBER_CONTRACT,
+  mobile: SRIVARI_MOBILE_CONTRACT,
+  photo: PHOTO_CONTRACT,
+
+  // Basic Details
+  name: NAME_CONTRACT,
+  fatherSpouseName: FATHER_SPOUSE_NAME_CONTRACT,
+  dateOfBirth: DOB_CONTRACT,
+  age: AGE_CONTRACT,
+  email: { ...EMAIL_CONTRACT, required: false },
+  bloodGroup: BLOOD_GROUP_CONTRACT,
+  gender: GENDER_CONTRACT,
+
+  // Fitness (Checkboxes, required user-controlled declarations)
+  mentallyFit: MENTALLY_FIT_CONTRACT,
+  physicallyFit: PHYSICALLY_FIT_CONTRACT,
+
+  // Profession & Education (Optional by default)
+  qualification: QUALIFICATION_CONTRACT,
+  profession: PROFESSION_CONTRACT,
+  areaOfInterest: AREA_OF_INTEREST_CONTRACT,
+  employeeId: EMPLOYEE_ID_CONTRACT,
+  designation: DESIGNATION_CONTRACT,
+  specialisation: SPECIALISATION_CONTRACT,
+  placeOfWork: PLACE_OF_WORK_CONTRACT,
+  document: DOCUMENT_CONTRACT,
+
+  // Address Details
+  country: COUNTRY_CONTRACT,
+  pinCode: PINCODE_CONTRACT,
+  pincode: PINCODE_CONTRACT,
+  state: STATE_CONTRACT,
+  district: DISTRICT_CONTRACT,
+  mandal: MANDAL_CONTRACT,
+  city: CITY_CONTRACT,
+  street: STREET_CONTRACT,
+  doorNumber: DOOR_NUMBER_CONTRACT,
+};
+
 /**
  * Retrieves the field contract bundle for a given service.
  */
@@ -200,6 +429,9 @@ export function getServiceFieldContracts(serviceId?: string): Record<string, Fie
   if (!serviceId) return SPECIAL_ENTRY_300_CONTRACTS;
 
   const id = serviceId.toLowerCase();
+  if (id.includes('srivari')) {
+    return SRIVARI_SEVA_CONTRACTS;
+  }
   if (id.includes('homam')) {
     return HOMAM_CONTRACTS;
   }

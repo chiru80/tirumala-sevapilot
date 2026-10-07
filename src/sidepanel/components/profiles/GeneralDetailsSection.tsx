@@ -161,7 +161,7 @@ export function GeneralDetailsSection({
               type="email"
               value={email}
               onChange={e => setEmail(e.target.value)}
-              placeholder="e.g. devotee@gmail.com"
+              placeholder="e.g. pilgrim@gmail.com"
               className="sp-input text-base"
             />
           </div>
@@ -231,7 +231,7 @@ export function GeneralDetailsSection({
                 onClick={handleCopyFromPrimary}
                 className="text-xs text-[#54258A] dark:text-gold-400 font-semibold hover:underline min-h-[44px] flex items-center"
               >
-                Copy from {profile?.pilgrims?.[0]?.fullName || 'First Devotee'}
+                Copy from {profile?.pilgrims?.[0]?.fullName || 'First Pilgrim'}
               </button>
             )}
             <button

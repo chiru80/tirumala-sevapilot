@@ -16,9 +16,12 @@ import type { FieldResolution } from './field-resolver';
 import { performTextTransaction, performDropdownTransaction, executeTextTransaction, executeDropdownTransaction } from './field-transaction';
 import { retryWithVerification, waitForElementInContainer } from './retry-engine';
 import { verifyField } from './verification';
-import { detectActiveBookingStep } from './page-workflow';
+import { detectActiveBookingStep, detectWorkflowStep } from './page-workflow';
 import { getWorkflowById, detectActiveWorkflow, resolveWorkflowWithConfidence } from '../../services/workflows/registry';
-import { detectPageTicketLimit, detectDigitalQueue, detectPayment, detectReviewDetails } from '../../services/workflows/step-detectors';
+import { detectPageTicketLimit, detectDigitalQueue, detectPayment, detectReviewDetails, detectPilgrimDetails } from '../../services/workflows/step-detectors';
+import { detectTtdTemporaryLock, logSafeTtdLockDetected } from '../../services/ttd-information/ttd-lock-detector';
+import { scanForm } from '../form-scanner';
+import { FieldMappingEngine } from '../field-mapping-engine';
 import { validateFormStructure } from '../../services/workflows/structure-validator';
 import type { ServiceWorkflow } from '../../services/workflows/types';
 import { waitForCondition } from '../smart-wait';
@@ -195,15 +198,39 @@ export async function executeAutofill(opts: AutofillOptions = {}): Promise<Autof
     onProgress?.({ ...progress });
   };
 
+  const url = (opts as any).url || doc.location?.href || '';
+  let workflow: ServiceWorkflow | undefined = (opts as any).workflow;
+
   try {
     // ─── DETECT_STEP ───
     progress.state = 'DETECT_STEP';
     emit();
 
-    const url = (opts as any).url || doc.location?.href || '';
+    // CAPTCHA safety boundary (Priority 1 - Phase 6 Section 26)
+    const captchaDetected = doc.querySelector('#captcha-container, .captcha-container, img[src*="captcha" i], input[placeholder*="captcha" i], .g-recaptcha, .cf-turnstile');
+    if (captchaDetected) {
+      progress.state = 'ERROR';
+      progress.errors.push('CAPTCHA detected. Complete it manually.');
+      emit();
+      return buildResult(progress, 'unknown', startedAt);
+    }
 
-    // Phase 3: Service-Specific Workflow Engine
-    let workflow: ServiceWorkflow | undefined = (opts as any).workflow;
+    // TTD Temporary Pilgrim/ID Lock safety boundary (Priority 2)
+    const lockCheck = detectTtdTemporaryLock(doc, url);
+    if (lockCheck.isLocked && lockCheck.lockState) {
+      logSafeTtdLockDetected({
+        serviceId: (opts as any).serviceId || workflow?.serviceId,
+        workflowId: workflow?.workflowId || (opts as any).workflow?.id,
+        elapsedSeconds: lockCheck.lockState.elapsedSeconds,
+      });
+      progress.state = 'TTD_TEMPORARY_BOOKING_LOCK';
+      progress.temporaryLock = lockCheck.lockState;
+      progress.errors = [lockCheck.lockState.message];
+      emit();
+      return buildResult(progress, 'unknown', startedAt, workflow);
+    }
+
+    // Phase 3: Service-Specific Workflow Engine (Priority 4)
     let isUncertain = false;
     let resolutionMessage: string | undefined;
     let detectedConfidence = 0;
@@ -235,15 +262,6 @@ export async function executeAutofill(opts: AutofillOptions = {}): Promise<Autof
       return buildResult(progress, 'unknown', startedAt);
     }
 
-    // CAPTCHA safety boundary (Phase 6 Section 26)
-    const captchaDetected = doc.querySelector('#captcha-container, .captcha-container, img[src*="captcha" i], input[placeholder*="captcha" i], .g-recaptcha, .cf-turnstile');
-    if (captchaDetected) {
-      progress.state = 'ERROR';
-      progress.errors.push('CAPTCHA detected. Complete it manually.');
-      emit();
-      return buildResult(progress, 'unknown', startedAt);
-    }
-
     // Digital Queue handling (Passive waiting only - Section 12 & Phase 6 Section 27)
     if (detectDigitalQueue(doc, url).isCurrentStep) {
       progress.state = 'ERROR';
@@ -262,19 +280,40 @@ export async function executeAutofill(opts: AutofillOptions = {}): Promise<Autof
       return buildResult(progress, 'unknown', startedAt);
     }
 
-    const bookingStep = detectActiveBookingStep(doc);
-    const step: 'pilgrim' | 'general' | 'unknown' =
+    const bookingStep = detectActiveBookingStep(doc, url);
+    let step: 'pilgrim' | 'general' | 'unknown' =
       bookingStep === 'PILGRIM_DETAILS' ? 'pilgrim'
         : bookingStep === 'GENERAL_DETAILS' ? 'general'
           : 'unknown';
 
+    if (step === 'unknown') {
+      if (detectPilgrimDetails(doc, url).isCurrentStep) {
+        step = 'pilgrim';
+      } else if (workflow && detectWorkflowStep(doc, url, workflow) === 'PILGRIM_DETAILS') {
+        step = 'pilgrim';
+      }
+    }
+
     logger.info(`Detected booking step: ${step} (raw: ${bookingStep})`);
 
     if (step === 'unknown') {
+      const lockOnFail = detectTtdTemporaryLock(doc, url);
+      if (lockOnFail.isLocked && lockOnFail.lockState) {
+        logSafeTtdLockDetected({
+          serviceId: (opts as any).serviceId || workflow?.serviceId,
+          workflowId: workflow?.workflowId || (opts as any).workflow?.id,
+          elapsedSeconds: lockOnFail.lockState.elapsedSeconds,
+        });
+        progress.state = 'TTD_TEMPORARY_BOOKING_LOCK';
+        progress.temporaryLock = lockOnFail.lockState;
+        progress.errors = [lockOnFail.lockState.message];
+        emit();
+        return buildResult(progress, step, startedAt, workflow);
+      }
       progress.state = 'ERROR';
       progress.errors.push('Pilgrim fields could not be safely identified.');
       emit();
-      return buildResult(progress, step, startedAt);
+      return buildResult(progress, step, startedAt, workflow);
     }
 
     // Phase 3 Section 3 & 4: If service has NO General Details step (e.g. Padmavathi ₹200),
@@ -321,9 +360,21 @@ export async function executeAutofill(opts: AutofillOptions = {}): Promise<Autof
     return buildResult(progress, step, startedAt);
   } catch (err) {
     logger.error('Autofill manager error:', err);
+    const lockInCatch = detectTtdTemporaryLock(doc, url);
+    if (lockInCatch.isLocked && lockInCatch.lockState) {
+      logSafeTtdLockDetected({
+        serviceId: (opts as any).serviceId || workflow?.serviceId,
+        workflowId: workflow?.workflowId || (opts as any).workflow?.id,
+        elapsedSeconds: lockInCatch.lockState.elapsedSeconds,
+      });
+      progress.state = 'TTD_TEMPORARY_BOOKING_LOCK';
+      progress.temporaryLock = lockInCatch.lockState;
+      progress.errors = [lockInCatch.lockState.message];
+      return buildResult(progress, 'unknown', startedAt, workflow);
+    }
     progress.state = 'ERROR';
     progress.errors.push(err instanceof Error ? err.message : 'Unknown error');
-    return buildResult(progress, 'unknown', startedAt);
+    return buildResult(progress, 'unknown', startedAt, workflow);
   } finally {
     isRunning = false;
     shouldStop = false;
@@ -379,8 +430,75 @@ async function executePilgrimStep(
   progress.state = 'LOCK_ROWS';
   emit();
 
-  const lockedRows = detectAndLockPilgrimRows(doc, targetPilgrims.length);
+  let lockedRows = detectAndLockPilgrimRows(doc, targetPilgrims.length);
   logger.info(`Locked ${lockedRows.length} row(s) for ${targetPilgrims.length} pilgrim(s) (limit: ${maxAllowed})`);
+
+  if (lockedRows.length === 0) {
+    try {
+      const scannedFields = scanForm(doc);
+      const mappedResult = FieldMappingEngine.map(scannedFields);
+      const pilgrimMappings = mappedResult.allMapped.filter(m => m.pilgrimKey !== null);
+      if (pilgrimMappings.length >= 2) {
+        const fieldKeyMap: Record<string, PilgrimFieldType> = {
+          fullName: 'name',
+          firstName: 'name',
+          name: 'name',
+          age: 'age',
+          gender: 'gender',
+          idType: 'photoIdProof',
+          photoIdProof: 'photoIdProof',
+          idNumber: 'photoIdNumber',
+          photoIdNumber: 'photoIdNumber',
+        };
+
+        const fields = new Map<PilgrimFieldType, HTMLElement>();
+        const fieldResolutions = new Map<PilgrimFieldType, FieldResolution>();
+
+        for (const mapping of pilgrimMappings) {
+          const pKey = fieldKeyMap[mapping.pilgrimKey as string];
+          if (!pKey || fields.has(pKey)) continue;
+
+          let targetEl: HTMLElement | null = null;
+          if (mapping.scannedField.element) {
+            try {
+              targetEl = doc.querySelector(mapping.scannedField.element) as HTMLElement;
+            } catch {}
+          }
+          if (!targetEl && mapping.scannedField.id) {
+            targetEl = doc.getElementById(mapping.scannedField.id);
+          }
+
+          if (targetEl && isElementVisible(targetEl)) {
+            fields.set(pKey, targetEl);
+            fieldResolutions.set(pKey, {
+              element: targetEl,
+              field: pKey,
+              confidence: mapping.confidence || 85,
+              strategy: 'scannerMapping',
+              reasons: mapping.matchReasons || ['Scanned form field match'],
+            });
+          }
+        }
+
+        if (fields.size >= 2) {
+          const firstEl = Array.from(fields.values())[0];
+          const rowContainer = (firstEl.closest('.card, .pilgrim-card, .devotee-card, mat-card, fieldset, section, form, div') as HTMLElement) || firstEl.parentElement || doc.body;
+          lockedRows = [{
+            index: 0,
+            element: rowContainer,
+            fingerprint: 'row-0:scanner-mapped',
+            confidence: 85,
+            fields,
+            fieldResolutions,
+            isLocked: true,
+          }];
+          logger.info(`Constructed fallback locked row with ${fields.size} scanner mapped fields`);
+        }
+      }
+    } catch (e) {
+      logger.warn('Fallback scanner mapping error:', e);
+    }
+  }
 
   if (lockedRows.length === 0) {
     progress.state = 'ERROR';
@@ -904,7 +1022,18 @@ async function fillPilgrimRow(
   let idNumEl = idNumRes.element as HTMLInputElement;
   if (idNumEl.disabled) {
     const startWait = Date.now();
-    await waitForCondition(() => !idNumEl.disabled, { timeoutMs: 1200, pollMs: 50 });
+    await waitForCondition(() => {
+      if (!idNumEl.disabled) return true;
+      // Re-resolve in case Angular replaced the element or updated reactive form state
+      resolutions = resolvePilgrimFields(container, doc);
+      const refRes = getRes('photoIdNumber');
+      if (refRes && !(refRes.element as HTMLInputElement).disabled) {
+        idNumEl = refRes.element as HTMLInputElement;
+        idNumRes = refRes;
+        return true;
+      }
+      return false;
+    }, { timeoutMs: 2500, pollMs: 50 });
 
     if (shouldStop) return;
 
@@ -1605,7 +1734,9 @@ function buildResult(
     }));
 
   const isPartial = !isSuccess && totalVerified > 0 && totalFailed > 0;
-  const finalState: AutofillState = isPartial ? 'PARTIAL_SUCCESS' : progress.state;
+  const finalState: AutofillState = progress.state === 'TTD_TEMPORARY_BOOKING_LOCK'
+    ? 'TTD_TEMPORARY_BOOKING_LOCK'
+    : (isPartial ? 'PARTIAL_SUCCESS' : progress.state);
 
   return {
     success: isSuccess,
@@ -1618,7 +1749,8 @@ function buildResult(
     totalFields: allResults.length,
     durationMs: Math.round(performance.now() - startedAt),
     errors,
-    needsAttention: !isSuccess && totalFailed > 0,
+    needsAttention: !isSuccess && (totalFailed > 0 || progress.state === 'TTD_TEMPORARY_BOOKING_LOCK'),
     failedItems,
+    temporaryLock: progress.temporaryLock,
   };
 }

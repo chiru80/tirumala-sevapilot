@@ -43,12 +43,17 @@ export const ReadinessCard: React.FC<ReadinessCardProps> = ({
         </span>
       </div>
 
-      {/* Progress Bar */}
-      <div className="w-full h-2.5 bg-[#E5E0EB] dark:bg-[#3E1B68]/40 rounded-full overflow-hidden">
-        <div
-          className={`h-full rounded-full transition-all duration-500 ${progressColor}`}
-          style={{ width: `${score}%` }}
-        />
+      {/* Progress Bar & Subtext */}
+      <div className="space-y-1.5">
+        <div className="w-full h-2.5 bg-[#E5E0EB] dark:bg-[#3E1B68]/40 rounded-full overflow-hidden">
+          <div
+            className={`h-full rounded-full transition-all duration-500 ${progressColor}`}
+            style={{ width: `${score}%` }}
+          />
+        </div>
+        <div className="flex items-center justify-between text-xs text-[#6F6477] dark:text-[#A692B4] font-medium">
+          <span>{checks.filter(c => c.passed).length} of {checks.length} checks complete</span>
+        </div>
       </div>
 
       {/* Readiness Check List */}
@@ -82,9 +87,9 @@ export const ReadinessCard: React.FC<ReadinessCardProps> = ({
           <button
             onClick={onFixProfile}
             className="min-h-[44px] text-sm font-bold px-4 py-2 rounded-xl bg-[#54258A] hover:bg-[#4A216E] text-white shadow-xs transition-all cursor-pointer whitespace-nowrap active:scale-[0.98]"
-            aria-label={t('dashboard.fixProfile')}
+            aria-label={missingDetails[0]?.toLowerCase().includes('open') ? 'Open TTD' : t('dashboard.fixProfile')}
           >
-            {t('dashboard.fixProfile')} →
+            {missingDetails[0]?.toLowerCase().includes('open') ? 'Open TTD →' : `${t('dashboard.fixProfile')} →`}
           </button>
         </div>
       )}

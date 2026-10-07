@@ -13,16 +13,23 @@ export interface UseProfilesResult {
   selectedPilgrims: Pilgrim[];
   selectedPilgrimIds: string[];
   switchProfile: (profileId: string) => Promise<void>;
-  togglePilgrimSelection: (serviceType: ServiceType, pilgrimId: string) => Promise<void>;
-  selectAllPilgrims: (serviceType: ServiceType) => Promise<void>;
-  deselectAllPilgrims: (serviceType: ServiceType) => Promise<void>;
+  togglePilgrimSelection: (serviceKey: ServiceType | string, pilgrimId: string) => Promise<void>;
+  selectAllPilgrims: (serviceKey: ServiceType | string) => Promise<void>;
+  deselectAllPilgrims: (serviceKey: ServiceType | string) => Promise<void>;
   reloadProfiles: () => Promise<void>;
 }
 
-export function useProfiles(currentService: ServiceType = ServiceType.DARSHAN): UseProfilesResult {
+export function useProfiles(
+  currentService: ServiceType | string = ServiceType.DARSHAN,
+  serviceId?: string,
+  maxAllowedPilgrims?: number,
+): UseProfilesResult {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [activeProfile, setActiveProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+
+  const effectiveKey = serviceId || String(currentService);
+  const maxLimit = typeof maxAllowedPilgrims === 'number' && maxAllowedPilgrims > 0 ? maxAllowedPilgrims : 6;
 
   const reloadProfiles = useCallback(async () => {
     try {
@@ -61,18 +68,18 @@ export function useProfiles(currentService: ServiceType = ServiceType.DARSHAN): 
 
   // Compute selected pilgrims for current service
   // Semantics:
-  // undefined = service has never been configured (defaults to first min(6, all.length))
+  // undefined = service has never been configured (defaults to first min(maxLimit, all.length))
   // [] = user explicitly selected ZERO pilgrims (NEVER convert [] into all pilgrims)
-  // [string IDs] = explicitly selected pilgrims (strictly capped at 6)
+  // [string IDs] = explicitly selected pilgrims (strictly capped at maxLimit)
   const { selectedPilgrims, selectedPilgrimIds } = useMemo(() => {
     if (!activeProfile || !activeProfile.pilgrims || activeProfile.pilgrims.length === 0) {
       return { selectedPilgrims: [], selectedPilgrimIds: [] };
     }
     const all = activeProfile.pilgrims;
-    const configured = activeProfile.selectedPilgrims?.[currentService];
+    const configured = activeProfile.selectedPilgrims?.[effectiveKey];
 
     if (configured === undefined) {
-      const defaultPilgrims = all.slice(0, 6);
+      const defaultPilgrims = all.slice(0, maxLimit);
       return {
         selectedPilgrims: defaultPilgrims,
         selectedPilgrimIds: defaultPilgrims.map(p => p.id),
@@ -86,7 +93,7 @@ export function useProfiles(currentService: ServiceType = ServiceType.DARSHAN): 
           selectedPilgrimIds: [],
         };
       }
-      const validPilgrims = all.filter(p => configured.includes(p.id)).slice(0, 6);
+      const validPilgrims = all.filter(p => configured.includes(p.id)).slice(0, maxLimit);
       return {
         selectedPilgrims: validPilgrims,
         selectedPilgrimIds: validPilgrims.map(p => p.id),
@@ -94,21 +101,22 @@ export function useProfiles(currentService: ServiceType = ServiceType.DARSHAN): 
     }
 
     return { selectedPilgrims: [], selectedPilgrimIds: [] };
-  }, [activeProfile, currentService]);
+  }, [activeProfile, effectiveKey, maxLimit]);
 
-  const togglePilgrimSelection = useCallback(async (serviceType: ServiceType, pilgrimId: string) => {
+  const togglePilgrimSelection = useCallback(async (serviceKey: ServiceType | string, pilgrimId: string) => {
     if (!activeProfile) return;
-    const configured = activeProfile.selectedPilgrims?.[serviceType];
+    const key = String(serviceKey);
+    const configured = activeProfile.selectedPilgrims?.[key];
     const currentList = configured !== undefined
       ? configured
-      : activeProfile.pilgrims.slice(0, 6).map(p => p.id);
+      : activeProfile.pilgrims.slice(0, maxLimit).map(p => p.id);
 
     let updatedList: string[];
     if (currentList.includes(pilgrimId)) {
       updatedList = currentList.filter(id => id !== pilgrimId);
     } else {
-      // Strictly prevent selecting a seventh pilgrim (maximum 6)
-      if (currentList.length >= 6) {
+      // Strictly prevent selecting beyond max allowed
+      if (currentList.length >= maxLimit) {
         return;
       }
       updatedList = [...currentList, pilgrimId];
@@ -118,46 +126,47 @@ export function useProfiles(currentService: ServiceType = ServiceType.DARSHAN): 
       ...activeProfile,
       selectedPilgrims: {
         ...(activeProfile.selectedPilgrims || {}),
-        [serviceType]: updatedList,
+        [key]: updatedList,
       },
       updatedAt: new Date().toISOString(),
     };
 
     setActiveProfile(updatedProfile);
     setProfiles(prev => prev.map(p => p.id === updatedProfile.id ? updatedProfile : p));
-    await updateSelectedPilgrims(updatedProfile.id, serviceType, updatedList).catch(() => {});
-  }, [activeProfile]);
+    await updateSelectedPilgrims(updatedProfile.id, key, updatedList).catch(() => {});
+  }, [activeProfile, maxLimit]);
 
-  const selectAllPilgrims = useCallback(async (serviceType: ServiceType) => {
+  const selectAllPilgrims = useCallback(async (serviceKey: ServiceType | string) => {
     if (!activeProfile) return;
-    // Select All must select: Math.min(6, availablePilgrims.length)
-    const cappedIds = activeProfile.pilgrims.slice(0, 6).map(p => p.id);
+    const key = String(serviceKey);
+    const cappedIds = activeProfile.pilgrims.slice(0, maxLimit).map(p => p.id);
     const updatedProfile: Profile = {
       ...activeProfile,
       selectedPilgrims: {
         ...(activeProfile.selectedPilgrims || {}),
-        [serviceType]: cappedIds,
+        [key]: cappedIds,
       },
       updatedAt: new Date().toISOString(),
     };
     setActiveProfile(updatedProfile);
     setProfiles(prev => prev.map(p => p.id === updatedProfile.id ? updatedProfile : p));
-    await updateSelectedPilgrims(updatedProfile.id, serviceType, cappedIds).catch(() => {});
-  }, [activeProfile]);
+    await updateSelectedPilgrims(updatedProfile.id, key, cappedIds).catch(() => {});
+  }, [activeProfile, maxLimit]);
 
-  const deselectAllPilgrims = useCallback(async (serviceType: ServiceType) => {
+  const deselectAllPilgrims = useCallback(async (serviceKey: ServiceType | string) => {
     if (!activeProfile) return;
+    const key = String(serviceKey);
     const updatedProfile: Profile = {
       ...activeProfile,
       selectedPilgrims: {
         ...(activeProfile.selectedPilgrims || {}),
-        [serviceType]: [],
+        [key]: [],
       },
       updatedAt: new Date().toISOString(),
     };
     setActiveProfile(updatedProfile);
     setProfiles(prev => prev.map(p => p.id === updatedProfile.id ? updatedProfile : p));
-    await updateSelectedPilgrims(updatedProfile.id, serviceType, []).catch(() => {});
+    await updateSelectedPilgrims(updatedProfile.id, key, []).catch(() => {});
   }, [activeProfile]);
 
   return {

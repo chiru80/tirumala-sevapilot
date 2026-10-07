@@ -35,8 +35,8 @@ export function TravelChecklist({ slipProfile, onClose }: TravelChecklistProps) 
       <div className="bg-[#FFFDF7] dark:bg-[#2C1A35] rounded-2xl max-w-sm w-full p-4 shadow-2xl border border-gold-500/40 max-h-[90vh] overflow-y-auto space-y-3">
         <div className="flex items-center justify-between border-b border-gold-500/20 pb-2">
           <div>
-            <h3 className="text-sm font-bold font-serif text-[#5B2A86] dark:text-[#F8EFD8]">Devotee Travel Checklist</h3>
-            <p className="text-[10px] text-[#6B5A70] dark:text-[#A692B4]">{slipProfile.name} • {slipProfile.pilgrims.length} pilgrim(s)</p>
+            <h3 className="text-sm font-bold font-serif text-[#5B2A86] dark:text-[#F8EFD8]">Pilgrim Travel Checklist</h3>
+            <p className="text-[10px] text-[#6B5A70] dark:text-[#A692B4]">{slipProfile.name} • {slipProfile.pilgrims.length} {slipProfile.pilgrims.length === 1 ? 'pilgrim' : 'pilgrims'}</p>
           </div>
           <button
             onClick={onClose}
@@ -79,7 +79,7 @@ export function TravelChecklist({ slipProfile, onClose }: TravelChecklistProps) 
             className="sp-btn-primary flex-1 text-xs py-2 flex items-center justify-center gap-1.5"
           >
             <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>
-            <span>Print Devotee Slip</span>
+            <span>Print Pilgrim Slip</span>
           </button>
           <button
             onClick={onClose}

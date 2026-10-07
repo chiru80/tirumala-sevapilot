@@ -55,6 +55,7 @@ export const FIELD_SECTION_MAP: Record<keyof Pilgrim, FormSectionType> = {
   id: 'other',
   photo: 'other',
   notes: 'other',
+  srivariSeva: 'other',
   createdAt: 'other',
   updatedAt: 'other',
 };

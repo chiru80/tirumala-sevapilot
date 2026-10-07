@@ -52,10 +52,10 @@ export function PilgrimEditorModal({
         <div className="flex items-center justify-between pb-2 border-b border-gold-500/15">
           <div>
             <h3 className="text-xs font-bold font-serif text-[#5B2A86] dark:text-[#F8EFD8]">
-              Edit Devotee Details
+              Edit Pilgrim Details
             </h3>
             <p className="text-[10px] text-[#6B5A70] dark:text-[#A692B4]">
-              {pilgrim.fullName || 'New Devotee'}
+              {pilgrim.fullName || 'New Pilgrim'}
             </p>
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-white text-xs font-bold p-1">
@@ -87,7 +87,7 @@ export function PilgrimEditorModal({
               <label className="sp-label">Full Name *</label>
               <input
                 className="sp-input text-xs"
-                placeholder="Devotee name as per Photo ID"
+                placeholder="Pilgrim name as per Photo ID"
                 value={pilgrim.fullName || ''}
                 onChange={e => setPilgrim({
                   ...pilgrim,
@@ -203,7 +203,7 @@ export function PilgrimEditorModal({
                 onChange={e => setPilgrim({ ...pilgrim, mobile: e.target.value.replace(/\D/g, '').slice(0, 10) })}
               />
               <p className="text-[10px] text-[#6B5A70] dark:text-[#A692B4] mt-0.5">
-                Optional devotee mobile. Booking contact mobile is maintained in General Details.
+                Optional pilgrim mobile. Booking contact mobile is maintained in General Details.
               </p>
             </div>
 
@@ -212,7 +212,7 @@ export function PilgrimEditorModal({
               <input
                 type="email"
                 className="sp-input text-xs"
-                placeholder="devotee@example.com"
+                placeholder="pilgrim@example.com"
                 value={pilgrim.email || ''}
                 onChange={e => setPilgrim({ ...pilgrim, email: e.target.value })}
               />

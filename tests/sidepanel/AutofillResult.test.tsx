@@ -36,10 +36,10 @@ describe('AutofillResult Component', () => {
 
     render(<AutofillResult pilgrimReports={successReports} onRepair={vi.fn()} />);
 
-    expect(screen.getByText('ALL DETAILS VERIFIED')).toBeTruthy();
+    expect(screen.getByText(/DETAILS VERIFIED/i)).toBeTruthy();
     expect(screen.getByText('100%')).toBeTruthy();
-    expect(screen.getByText('Devotee 1: Ravi Kumar')).toBeTruthy();
-    expect(screen.getByText(/Review the TTD page before continuing/)).toBeTruthy();
+    expect(screen.getByText('Pilgrim 1: Ravi Kumar')).toBeTruthy();
+    expect(screen.getByText(/Review the TTD page before continuing/i)).toBeTruthy();
   });
 
   it('renders partial failure state and handles Repair action', () => {

@@ -32,6 +32,22 @@ export enum IdType {
   RATION_CARD = 'Ration Card',
 }
 
+export interface SrivariSevaDetails {
+  qualification?: string;
+  profession?: string;
+  areaOfInterest?: string;
+  employeeId?: string;
+  designation?: string;
+  specialisation?: string;
+  placeOfWork?: string;
+  fatherSpouseName?: string;
+  bloodGroup?: string;
+  doorNumber?: string;
+  street?: string;
+  mandal?: string;
+  document?: string;
+}
+
 /** Pilgrim information — all fields a pilgrim can have */
 export interface Pilgrim {
   id: string;
@@ -58,6 +74,7 @@ export interface Pilgrim {
   visaNumber?: string;
   visaExpiry?: string;
   notes?: string;
+  srivariSeva?: SrivariSevaDetails;
   createdAt: string;
   updatedAt?: string;
 }
@@ -192,9 +209,33 @@ export interface ConflictInfo {
   resolution?: 'keep-current' | 'use-saved' | 'manual';
 }
 
+/**
+ * Dedicated first-class TTD server-side Temporary Pilgrim/ID Lock state.
+ * Emitted when TTD holds pilgrim/ID details from a previous booking attempt.
+ * Strictly Zero-PII: Never logs or stores Aadhaar, ID numbers, mobile, email, etc.
+ */
+export interface TtdTemporaryLockState {
+  status: 'temporary-lock';
+  detectedAt: number;
+  detectedAtIso: string;
+  estimatedRetryAt?: number;
+  estimatedRetryAtIso?: string;
+  durationMinutes?: number;
+  elapsedSeconds?: number;
+  remainingSeconds?: number;
+  message: string;
+  supportingMessage: string;
+  hasExplicitTimer: boolean;
+  rawSnippet?: string;
+  serviceId?: string;
+  workflowId?: string;
+}
+
 /** Page scan result */
 export interface ScanResult {
   serviceType: ServiceType;
+  serviceId?: string;
+  workflowId?: string;
   serviceConfidence: number;
   url: string;
   totalFields: number;
@@ -203,6 +244,7 @@ export interface ScanResult {
   pilgrimCardCount: number;
   formFingerprint: string;
   timestamp: string;
+  temporaryLock?: TtdTemporaryLockState;
 }
 
 /** Validation result for a single check */
@@ -228,6 +270,8 @@ export interface BookingReadiness {
   ready: boolean;
   pilgrims: PilgrimReadiness[];
   serviceType: ServiceType;
+  serviceId?: string;
+  workflowId?: string;
   totalRequired: number;
   totalComplete: number;
 }
@@ -401,11 +445,15 @@ export interface PageState {
   url: string;
   isSupported: boolean;
   serviceType?: ServiceType;
+  serviceId?: string;
+  serviceName?: string;
+  workflowId?: string;
   serviceConfidence?: number;
   formDetected: boolean;
   fieldCount: number;
   lastScan?: ScanResult;
   lastFill?: FillResult[];
+  temporaryLock?: TtdTemporaryLockState;
 }
 
 /** Service adapter interface */

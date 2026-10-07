@@ -33,7 +33,7 @@ export const AutofillResult: React.FC<AutofillResultProps> = ({
                 {t('dashboard.allDetailsVerified')}
               </h3>
               <p className="text-xs text-[#2F8F68] font-medium mt-0.5">
-                {totalPilgrims} / {totalPilgrims} {t('dashboard.devoteesSelected')} &bull; {totalFields} / {totalFields} (100%)
+                {totalPilgrims} / {totalPilgrims} {totalPilgrims === 1 ? 'pilgrim' : 'pilgrims'} selected &bull; {totalFields} / {totalFields} (100%)
               </p>
             </div>
           </div>
@@ -47,15 +47,15 @@ export const AutofillResult: React.FC<AutofillResultProps> = ({
             <div key={p.pilgrimIndex} className="flex items-center justify-between text-xs py-1.5 px-3 rounded-lg bg-white/70 dark:bg-[#1B1022]/40">
               <span className="font-semibold text-[#1B5E20] dark:text-[#A5D6A7] flex items-center gap-2">
                 <span className="text-[#2F8F68] font-bold">✓</span>
-                {t('dashboard.devoteeLabel')} {p.pilgrimIndex + 1}: {p.pilgrimName}
+                Pilgrim {p.pilgrimIndex + 1}: {p.pilgrimName}
               </span>
               <span className="text-xs text-[#2F8F68] font-bold">5/5 {t('dashboard.verified')}</span>
             </div>
           ))}
         </div>
 
-        <p className="text-xs text-[#6F6477] dark:text-[#D4C3E0] italic pt-1">
-          {t('dashboard.reviewNotice')}
+        <p className="text-xs text-[#6F6477] dark:text-[#D4C3E0] font-medium pt-1">
+          {t('dashboard.allDetailsVerifiedDesc')}
         </p>
       </div>
     );
@@ -88,7 +88,7 @@ export const AutofillResult: React.FC<AutofillResultProps> = ({
           return (
             <div key={p.pilgrimIndex} className="p-3 rounded-xl bg-white/80 dark:bg-[#1B1022]/60 border border-[rgba(201,138,24,0.2)] text-xs space-y-1.5">
               <div className="font-bold text-sm text-[#30213A] dark:text-[#F8EFD8]">
-                {t('dashboard.devoteeLabel')} {p.pilgrimIndex + 1}: {p.pilgrimName}
+                Pilgrim {p.pilgrimIndex + 1}: {p.pilgrimName}
               </div>
               {failedFields.map(f => (
                 <div key={f.fieldType} className="flex items-center justify-between text-xs text-[#B64747] dark:text-[#EF9A9A] pl-2">

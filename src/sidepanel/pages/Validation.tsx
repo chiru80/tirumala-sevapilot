@@ -138,7 +138,7 @@ export function Validation() {
             className="sp-input text-xs font-serif"
           >
             {profiles.map(p => (
-              <option key={p.id} value={p.id}>{p.name} ({p.pilgrims?.length || 0} devotees)</option>
+              <option key={p.id} value={p.id}>{p.name} ({p.pilgrims?.length || 0} {p.pilgrims?.length === 1 ? 'pilgrim' : 'pilgrims'})</option>
             ))}
           </select>
         </div>
@@ -167,7 +167,7 @@ export function Validation() {
               {allDevoteesValid ? `✓ ${t('validation.allDevoteesReady')}` : `⚠ ${t('validation.attentionNeeded')}`}
             </p>
             <p className="text-xs text-[#6B5A70] dark:text-[#A692B4] mt-0.5">
-              {validations.filter(v => v.isComplete).length} of {validations.length} devotee(s) 100% verified
+              {validations.filter(v => v.isComplete).length} of {validations.length} pilgrim{validations.length === 1 ? '' : 's'} verified
             </p>
           </div>
         </div>

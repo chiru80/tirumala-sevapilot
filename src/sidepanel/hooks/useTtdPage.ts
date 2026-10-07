@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { MessageType, ServiceType } from '@shared/types';
-import type { ScanResult } from '@shared/types';
+import type { ScanResult, TtdTemporaryLockState } from '@shared/types';
+
+import { ServiceRecognitionEngine } from '../../services/service-recognition-engine';
 
 export type TtdPageStatus = 'LOADING' | 'TTD_DETECTED' | 'NOT_TTD' | 'UNSUPPORTED';
 
@@ -17,14 +19,18 @@ export interface UseTtdPageResult {
   pageDetected: boolean;
   serviceName: string;
   serviceType: ServiceType;
+  serviceId?: string;
+  workflowId?: string;
   isSupported: boolean;
   scanResult: ScanResult | null;
+  temporaryLock: TtdTemporaryLockState | null;
   isScanning: boolean;
   currentTime: string;
   countdown: CountdownState;
   scanPage: () => Promise<ScanResult | null>;
   openTtdWebsite: () => void;
   checkPageState: () => Promise<void>;
+  clearTemporaryLock: () => void;
 }
 
 export function useTtdPage(): UseTtdPageResult {
@@ -32,8 +38,11 @@ export function useTtdPage(): UseTtdPageResult {
   const [pageDetected, setPageDetected] = useState<boolean>(false);
   const [serviceName, setServiceName] = useState<string>('Special Entry Darshan (₹300)');
   const [serviceType, setServiceType] = useState<ServiceType>(ServiceType.DARSHAN);
+  const [serviceId, setServiceId] = useState<string | undefined>(undefined);
+  const [workflowId, setWorkflowId] = useState<string | undefined>(undefined);
   const [isSupported, setIsSupported] = useState<boolean>(true);
   const [scanResult, setScanResult] = useState<ScanResult | null>(null);
+  const [temporaryLock, setTemporaryLock] = useState<TtdTemporaryLockState | null>(null);
   const [isScanning, setIsScanning] = useState<boolean>(false);
   const [currentTime, setCurrentTime] = useState<string>('');
   const [countdown, setCountdown] = useState<CountdownState>({
@@ -69,6 +78,13 @@ export function useTtdPage(): UseTtdPageResult {
         if (targetTab?.url && (targetTab.url.includes('ttdevasthanams.ap.gov.in') || targetTab.url.includes('tirupatibalaji.ap.gov.in'))) {
           isTtdTab = true;
           setPageDetected(true);
+          const rec = ServiceRecognitionEngine.recognize(targetTab.url);
+          if (rec.status !== 'not-detected') {
+            setServiceName(rec.serviceName);
+            setServiceType(rec.serviceType);
+            if (rec.serviceId) setServiceId(rec.serviceId);
+            if (rec.workflowId) setWorkflowId(rec.workflowId);
+          }
         }
       }
 
@@ -91,8 +107,25 @@ export function useTtdPage(): UseTtdPageResult {
         if (response.data.serviceType) {
           setServiceType(response.data.serviceType as ServiceType);
         }
+        if (response.data.serviceId) {
+          setServiceId(response.data.serviceId);
+        }
+        if (response.data.workflowId) {
+          setWorkflowId(response.data.workflowId);
+        }
+        if (response.data.serviceName) {
+          setServiceName(response.data.serviceName);
+        }
         if (response.data.lastScan) {
           setScanResult(response.data.lastScan);
+          if (response.data.lastScan.serviceId) {
+            setServiceId(response.data.lastScan.serviceId);
+          }
+        }
+        if (response.data.temporaryLock || response.data.lastScan?.temporaryLock) {
+          setTemporaryLock(response.data.temporaryLock || response.data.lastScan?.temporaryLock);
+        } else {
+          setTemporaryLock(null);
         }
         if (response.data.isSupported === false) {
           setStatus('UNSUPPORTED');
@@ -131,6 +164,17 @@ export function useTtdPage(): UseTtdPageResult {
         setStatus('TTD_DETECTED');
         if (response.data.serviceType) {
           setServiceType(response.data.serviceType as ServiceType);
+        }
+        if (response.data.serviceId) {
+          setServiceId(response.data.serviceId);
+        }
+        if (response.data.workflowId) {
+          setWorkflowId(response.data.workflowId);
+        }
+        if (response.data.temporaryLock) {
+          setTemporaryLock(response.data.temporaryLock);
+        } else {
+          setTemporaryLock(null);
         }
         return response.data;
       }
@@ -240,6 +284,8 @@ export function useTtdPage(): UseTtdPageResult {
         setStatus('TTD_DETECTED');
         if (message.payload?.name) setServiceName(message.payload.name);
         if (message.payload?.serviceType) setServiceType(message.payload.serviceType as ServiceType);
+        if (message.payload?.serviceId) setServiceId(message.payload.serviceId);
+        if (message.payload?.workflowId) setWorkflowId(message.payload.workflowId);
       }
     };
     chrome.runtime?.onMessage?.addListener(messageListener);
@@ -262,13 +308,17 @@ export function useTtdPage(): UseTtdPageResult {
     pageDetected,
     serviceName,
     serviceType,
+    serviceId,
+    workflowId,
     isSupported,
     scanResult,
+    temporaryLock,
     isScanning,
     currentTime,
     countdown,
     scanPage,
     openTtdWebsite,
     checkPageState,
+    clearTemporaryLock: () => setTemporaryLock(null),
   };
 }

@@ -32,6 +32,8 @@ export type WorkflowStepType =
   | 'REVIEW_DETAILS'        // Step 6: Confirmation & verification summary
   | 'PAYMENT'               // Step 7: Payment gateway transition (Strictly user-controlled)
   | 'COMPLETED'             // Step 8: Booking receipt / confirmation
+  | 'INSTRUCTIONS_REVIEW'   // Srivari Seva Step 1: Instructions & Declaration Review
+  | 'SRIVARI_SEVA_ENROLLMENT' // Srivari Seva Step 2: Unified Profile Enrollment Form
   | 'UNKNOWN';
 
 /**
@@ -92,6 +94,7 @@ export interface AdditionalServiceItem {
 export interface ServiceWorkflow {
   serviceId: string;           // e.g. 'special-entry-darshan-300', 'padmavathi-supadham-entry-200'
   serviceName: string;         // Human-readable title
+  workflowId?: string;         // Canonical workflow ID (e.g. 'padmavathi-v1', 'special-entry-300-v1')
   workflowVersion: string;     // Explicit workflow schema version (e.g. '1.0.0')
   serviceType: ServiceType;    // Underlying enum for backward compatibility
   temple: string;              // e.g. 'Sri Venkateswara Swamy Temple, Tirumala'

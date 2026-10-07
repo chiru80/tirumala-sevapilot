@@ -1,12 +1,14 @@
 // @vitest-environment jsdom
 import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, waitFor, cleanup } from '@testing-library/react';
+import { render, screen, waitFor, cleanup, fireEvent } from '@testing-library/react';
 import { Dashboard } from '../../src/sidepanel/pages/Dashboard';
 import { Gender, IdType } from '../../src/shared/types';
 import type { Profile } from '../../src/shared/types';
 
 const storageMap = new Map<string, any>();
+
+let mockActiveTabUrl = 'https://ttdevasthanams.ap.gov.in/darshan/entry';
 
 (globalThis as any).chrome = {
   storage: {
@@ -32,9 +34,10 @@ const storageMap = new Map<string, any>();
   tabs: {
     query: vi.fn(async () => [{
       id: 101,
-      url: 'https://ttdevasthanams.ap.gov.in/darshan/entry',
+      url: mockActiveTabUrl,
       title: 'TTD Special Entry Darshan',
     }]),
+    create: vi.fn(async () => ({ id: 102 })),
     sendMessage: vi.fn(async () => ({ success: true })),
     onActivated: { addListener: vi.fn(), removeListener: vi.fn() },
     onUpdated: { addListener: vi.fn(), removeListener: vi.fn() },
@@ -54,7 +57,7 @@ const sampleProfile: Profile = {
   isDefault: true,
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
-  selectedPilgrims: { darshan: ['p1'] },
+  selectedPilgrims: { 'special-entry-darshan-300': ['p1'] },
   pilgrims: [
     {
       id: 'p1',
@@ -80,9 +83,11 @@ const sampleProfile: Profile = {
   },
 };
 
-describe('Dashboard Component', () => {
+describe('Dashboard Component — Redesign & Consumer Experience', () => {
   beforeEach(() => {
     storageMap.clear();
+    mockActiveTabUrl = 'https://ttdevasthanams.ap.gov.in/darshan/entry';
+    (globalThis as any).chrome.runtime.sendMessage = vi.fn(async () => ({ success: true }));
     storageMap.set('sp_profiles', [sampleProfile]);
     storageMap.set('sp_settings', {
       language: 'en',
@@ -108,7 +113,7 @@ describe('Dashboard Component', () => {
     expect(actionBtn).toBeTruthy();
 
     // Check Privacy badge
-    expect(screen.getAllByText(/Local data/i)[0]).toBeTruthy();
+    expect(screen.getAllByText(/Data stored locally|Local data/i)[0]).toBeTruthy();
 
     // Check Quick Actions
     expect(screen.getByText(/Quick Actions/i)).toBeTruthy();
@@ -123,4 +128,165 @@ describe('Dashboard Component', () => {
 
     expect(screen.getByText(/Booking Readiness/i)).toBeTruthy();
   });
+
+  // ─── Verification of Scenarios A through I ───
+
+  it('A. First-time user: renders CREATE PROFILE and simple welcome without percentage clutter', async () => {
+    storageMap.set('sp_profiles', []);
+    const onNavigate = vi.fn();
+    render(<Dashboard onNavigate={onNavigate} />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/No profile yet/i)).toBeTruthy();
+    });
+
+    // Primary CTA dominates with CREATE PROFILE
+    const createBtn = screen.getAllByRole('button', { name: /CREATE PROFILE/i })[0];
+    expect(createBtn).toBeTruthy();
+
+    // Should NOT show confusing percentages or check counts on home
+    expect(screen.queryByText(/80%/i)).toBeNull();
+    expect(screen.queryByText(/4 of 6 checks/i)).toBeNull();
+
+    // Clicking navigates to profiles
+    fireEvent.click(createBtn);
+    expect(onNavigate).toHaveBeenCalledWith('profiles');
+  });
+
+  it('B. Existing profile: renders clean profile summary with Ready status and HOW IT WORKS', async () => {
+    render(<Dashboard onNavigate={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Family')).toBeTruthy();
+    });
+
+    // Clean devotee count and Ready status
+    expect(screen.getByText(/1 pilgrim/i)).toBeTruthy();
+    expect(screen.getAllByText(/Ready/i).length).toBeGreaterThan(0);
+
+    // HOW IT WORKS card is rendered with 3 simple steps
+    expect(screen.getByText(/HOW IT WORKS/i)).toBeTruthy();
+    expect(screen.getAllByText(/CREATE PROFILE/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/SELECT PILGRIMS/i).length).toBeGreaterThan(0);
+  });
+
+  it('C. TTD page detected: renders TTD PAGE READY and service context', async () => {
+    mockActiveTabUrl = 'https://ttdevasthanams.ap.gov.in/darshan/entry';
+    render(<Dashboard onNavigate={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/TTD PAGE READY/i)).toBeTruthy();
+    });
+
+    const actionBtn = screen.getByRole('button', { name: /FILL & VERIFY/i });
+    expect(actionBtn).toBeTruthy();
+  });
+
+  it('D. TTD page not detected: renders contextual OPEN TTD BOOKING action', async () => {
+    mockActiveTabUrl = 'https://google.com';
+    render(<Dashboard onNavigate={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Family')).toBeTruthy();
+    });
+
+    // Dominant action changes contextually to OPEN TTD BOOKING
+    const openBtn = screen.getByRole('button', { name: /OPEN TTD/i });
+    expect(openBtn).toBeTruthy();
+    expect(screen.getByText(/Open a supported TTD booking page to start/i)).toBeTruthy();
+  });
+
+  it('F. Upcoming releases: displays verified official TTD quota information', async () => {
+    render(<Dashboard onNavigate={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/UPCOMING TTD RELEASES/i)).toBeTruthy();
+    });
+
+    // Official TTD badge
+    expect(screen.getByText(/Official TTD update/i)).toBeTruthy();
+
+    // Verified release info
+    expect(screen.getAllByText(/Special Entry Darshan/i).length).toBeGreaterThan(0);
+  });
+
+  it('H. Backend readiness: internal checks operate silently without dumping 6-check checklist', async () => {
+    render(<Dashboard onNavigate={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Family')).toBeTruthy();
+    });
+
+    // Detailed checks are not visible by default
+    expect(screen.queryByText(/Profile selected & complete/i)).toBeNull();
+    expect(screen.queryByText(/Required special details complete/i)).toBeNull();
+
+    // But progressive disclosure toggle is available
+    const viewDetailsBtn = document.getElementById('sp-toggle-readiness-details-btn');
+    expect(viewDetailsBtn).not.toBeNull();
+
+    // Clicking reveals progressive disclosure details
+    fireEvent.click(viewDetailsBtn!);
+    expect(screen.getByText(/System Verification State/i)).toBeTruthy();
+  });
+
+  it('E. Temporary lock: renders CHECK BOOKING HISTORY and TRY AGAIN without showing Fill failed', async () => {
+    (globalThis as any).chrome.runtime.sendMessage = vi.fn(async (msg: any) => {
+      if (msg?.type === 'GET_PAGE_STATE' || msg?.type === 'PAGE_SCAN' || msg?.type === 'GET_ACTIVE_STEP') {
+        return {
+          success: true,
+          data: {
+            temporaryLock: {
+              isLocked: true,
+              title: 'TEMPORARY TTD LOCK',
+              message: 'Your previous booking attempt is still active.',
+              detectedAt: new Date().toISOString(),
+            },
+          },
+        };
+      }
+      return { success: true };
+    });
+
+    render(<Dashboard onNavigate={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Family')).toBeTruthy();
+    });
+
+    // Should NOT show "Fill failed"
+    expect(screen.queryByText(/Fill failed/i)).toBeNull();
+
+    // Primary action provides CHECK BOOKING HISTORY or TRY AGAIN
+    const lockBtn = screen.getByRole('button', { name: /CHECK BOOKING HISTORY/i });
+    expect(lockBtn).toBeTruthy();
+
+    const tryAgainBtn = screen.getByRole('button', { name: /TRY AGAIN/i });
+    expect(tryAgainBtn).toBeTruthy();
+  });
+
+  it('I. Optional fields: pilgrim mobile number is optional for Special Entry Darshan and does not block readiness', async () => {
+    const profileWithoutPilgrimMobile: Profile = {
+      ...sampleProfile,
+      pilgrims: [
+        {
+          ...sampleProfile.pilgrims[0],
+          mobile: undefined, // Optional mobile
+        },
+      ],
+    };
+    storageMap.set('sp_profiles', [profileWithoutPilgrimMobile]);
+
+    render(<Dashboard onNavigate={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Family')).toBeTruthy();
+    });
+
+    // Dominant action is still ready to FILL & VERIFY
+    const actionBtn = screen.getByRole('button', { name: /FILL & VERIFY/i });
+    expect(actionBtn).toBeTruthy();
+    expect(actionBtn.hasAttribute('disabled')).toBe(false);
+  });
 });
+

@@ -11,3 +11,7 @@ export * from './PrivacyBadge';
 export * from './DiagnosticModal';
 export * from './ReleaseCountdownCard';
 export * from './BookingPreparationCard';
+export * from './TemporaryLockCard';
+export * from './ReleaseTicker';
+export * from './HowItWorksCard';
+export * from './UpcomingReleasesCard';

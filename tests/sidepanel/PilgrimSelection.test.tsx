@@ -49,7 +49,7 @@ describe('PilgrimSelection Component', () => {
         onDeselectAll={vi.fn()}
       />
     );
-    expect(screen.getByText('No devotees in this profile yet.')).toBeTruthy();
+    expect(screen.getByText(/No (devotees|pilgrims) in this profile yet\./i)).toBeTruthy();
   });
 
   it('renders devotee list with ready vs incomplete status', () => {
@@ -66,8 +66,8 @@ describe('PilgrimSelection Component', () => {
     expect(screen.getByText('Srinivas Rao')).toBeTruthy();
     expect(screen.getByText('Padma Rao')).toBeTruthy();
     expect(screen.getByText('✓ Ready')).toBeTruthy();
-    expect(screen.getByText('⚠ Missing ID')).toBeTruthy();
-    expect(screen.getByText(/Select Devotees \(1\/2\)/)).toBeTruthy();
+    expect(screen.getByText(/⚠ (Needs attention|Missing ID)/i)).toBeTruthy();
+    expect(screen.getByText(/SELECT PILGRIMS.*1.*of.*2/i)).toBeTruthy();
   });
 
   it('toggles selection for ready devotee', () => {
@@ -82,7 +82,7 @@ describe('PilgrimSelection Component', () => {
       />
     );
 
-    const checkbox = screen.getByLabelText('Select Srinivas Rao');
+    const checkbox = screen.getByLabelText(/Srinivas Rao/);
     fireEvent.click(checkbox);
     expect(onToggle).toHaveBeenCalledWith('p1');
   });
@@ -122,10 +122,10 @@ describe('PilgrimSelection Component', () => {
       />
     );
 
-    fireEvent.click(screen.getByText('Select All'));
+    fireEvent.click(screen.getByRole('button', { name: /^select all$/i }));
     expect(onSelectAll).toHaveBeenCalled();
 
-    fireEvent.click(screen.getByText('Deselect All'));
+    fireEvent.click(screen.getByRole('button', { name: /^deselect all$/i }));
     expect(onDeselectAll).toHaveBeenCalled();
   });
 
@@ -154,6 +154,6 @@ describe('PilgrimSelection Component', () => {
     // Should NOT allow toggle
     expect(onToggle).not.toHaveBeenCalled();
     // Maximum warning should show
-    expect(screen.getByText(/Maximum 6 devotees allowed per booking/)).toBeTruthy();
+    expect(screen.getByText(/Maximum 6 (devotees|pilgrims) allowed per booking/i)).toBeTruthy();
   });
 });

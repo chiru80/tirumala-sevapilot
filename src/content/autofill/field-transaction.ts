@@ -46,6 +46,22 @@ export async function performTextTransaction(
 
   dispatchAngularCompatibleEvents(element, value);
 
+  // If there is a pattern mismatch (e.g. government form requiring Title Case or Uppercase), adapt value
+  if (element instanceof HTMLInputElement && element.validity?.patternMismatch) {
+    // 1. Try Title Case (e.g. "Anusuri chirudeep" -> "Anusuri Chirudeep")
+    const titleCased = value.replace(/\b[a-z]/g, c => c.toUpperCase());
+    if (titleCased !== value) {
+      dispatchAngularCompatibleEvents(element, titleCased);
+    }
+    // 2. If still mismatch, try UPPERCASE (e.g. "ANUSURI CHIRUDEEP")
+    if (element.validity?.patternMismatch) {
+      const upperCased = value.toUpperCase();
+      if (upperCased !== value && upperCased !== titleCased) {
+        dispatchAngularCompatibleEvents(element, upperCased);
+      }
+    }
+  }
+
   // Microtask yield for framework change detection
   await new Promise(r => setTimeout(r, 20));
 }
@@ -128,7 +144,21 @@ export async function performDropdownTransaction(
     control.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true, composed: true }));
   }
 
+  // Also click container or chevron arrow if control is an input
+  const parentContainer = (control.closest('mat-form-field, .mat-form-field, .mat-mdc-form-field, .form-group, .field') as HTMLElement) || control.parentElement;
+  if (parentContainer && parentContainer !== control && parentContainer !== triggerEl) {
+    const arrow = parentContainer.querySelector<HTMLElement>(
+      '.mat-select-arrow, .mat-mdc-select-arrow, .mat-select-arrow-wrapper, svg, [class*="chevron"], [class*="arrow"], button'
+    );
+    if (arrow) {
+      arrow.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true, composed: true }));
+      arrow.click();
+      arrow.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true, composed: true }));
+    }
+  }
+
   // Keyboard trigger fallback
+  triggerEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', code: 'ArrowDown', bubbles: true }));
   triggerEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true }));
 
   // Wait for overlay options to appear
@@ -138,6 +168,7 @@ export async function performDropdownTransaction(
       doc.querySelector('.mat-select-panel'),
       doc.querySelector('.mat-mdc-select-panel'),
       doc.querySelector('.cdk-overlay-pane'),
+      parentContainer,
       control.parentElement,
       doc.body,
     ];
@@ -145,7 +176,7 @@ export async function performDropdownTransaction(
     for (const root of searchRoots) {
       if (!root) continue;
       const overlayOptions = Array.from(root.querySelectorAll<HTMLElement>(
-        '[role="option"], mat-option, .mat-option, .mat-mdc-option'
+        '[role="option"], mat-option, .mat-option, .mat-mdc-option, [role="listbox"] > *, .cdk-overlay-pane li, .cdk-overlay-container li, .dropdown-item, .dropdown-menu li, .ng-option, [class*="option"]'
       ));
       if (overlayOptions.length > 0) {
         const match = matchOverlayOption(overlayOptions, targetValue, fieldKey);
@@ -169,6 +200,20 @@ export async function performDropdownTransaction(
       const backdrop = doc.querySelector('.cdk-overlay-backdrop');
       return (!overlay && !backdrop) || !matchedOption.isConnected;
     }, { timeoutMs: 400, pollMs: 20 });
+
+    // Inform Angular and control
+    control.dispatchEvent(new Event('change', { bubbles: true, cancelable: true, composed: true }));
+    control.dispatchEvent(new CustomEvent('selectionChange', {
+      bubbles: true,
+      cancelable: true,
+      composed: true,
+      detail: { value: targetValue },
+    }));
+
+    if (control instanceof HTMLInputElement) {
+      const optionText = matchedOption.textContent?.trim() || targetValue;
+      dispatchAngularCompatibleEvents(control, optionText);
+    }
 
     await new Promise(r => setTimeout(r, 60));
     return;

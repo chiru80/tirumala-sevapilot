@@ -5,7 +5,11 @@
 // ─────────────────────────────────────────────────────────────
 
 import { validateTtdSource } from './ttd-source-validator';
-import { type TtdReleaseEvent, IST_TIMEZONE } from './ttd-release-calendar';
+import {
+  type TtdReleaseEvent,
+  IST_TIMEZONE,
+  registerOfficialAnnouncement,
+} from './ttd-release-calendar';
 import { getServiceConfig } from './ttd-service-rules';
 
 export interface AnnouncementParseInput {
@@ -13,6 +17,8 @@ export interface AnnouncementParseInput {
   content: string;
   sourceUrl: string;
   publishedDate?: string;
+  releasePattern?: string;
+  advanceMonths?: number;
 }
 
 /**
@@ -164,7 +170,51 @@ function extractReleaseTime(text: string, defaultTime: string): string {
 }
 
 /**
+ * Extracts release pattern and advance months from announcement text if specified.
+ */
+export function extractAdvancePattern(text: string): { releasePattern: string; advanceMonths: number } | null {
+  const normalized = text.toLowerCase();
+
+  // Pattern: "3 months in advance" or "three months advance"
+  if (/(?:three|3)\s*months?\s*(?:in\s*)?advance/i.test(normalized)) {
+    return {
+      releasePattern: 'THREE_MONTHS_ADVANCE_MONTHLY_QUOTA',
+      advanceMonths: 3,
+    };
+  }
+
+  // Pattern: "1 month in advance" or "one month advance"
+  if (/(?:one|1)\s*month\s*(?:in\s*)?advance/i.test(normalized)) {
+    return {
+      releasePattern: 'ONE_MONTH_ADVANCE',
+      advanceMonths: 1,
+    };
+  }
+
+  // Pattern: "2 months in advance" or "two months advance"
+  if (/(?:two|2)\s*months?\s*(?:in\s*)?advance/i.test(normalized)) {
+    return {
+      releasePattern: 'TWO_MONTHS_ADVANCE',
+      advanceMonths: 2,
+    };
+  }
+
+  const match = normalized.match(/(\d+)\s*months?\s*(?:in\s*)?advance/i);
+  if (match) {
+    const months = parseInt(match[1], 10);
+    return {
+      releasePattern: `${months}_MONTHS_ADVANCE`,
+      advanceMonths: months,
+    };
+  }
+
+  return null;
+}
+
+/**
  * Parses announcement into structured release events.
+ * If the latest official TTD announcement changes the pattern,
+ * the official announcement overrides the stored default.
  */
 export function parseTtdAnnouncement(input: AnnouncementParseInput): TtdReleaseEvent[] {
   const fullText = `${input.title} \n ${input.content}`;
@@ -181,6 +231,18 @@ export function parseTtdAnnouncement(input: AnnouncementParseInput): TtdReleaseE
       if (extracted) {
         const time = extractReleaseTime(fullText, sig.defaultTime);
         const config = getServiceConfig(sig.serviceId);
+        const textPattern = extractAdvancePattern(fullText);
+
+        // If the official TTD announcement changes/specifies the pattern,
+        // the official announcement overrides the stored default.
+        const releasePattern =
+          input.releasePattern || textPattern?.releasePattern || config?.releasePattern;
+        const advanceMonths =
+          input.advanceMonths !== undefined
+            ? input.advanceMonths
+            : textPattern?.advanceMonths !== undefined
+            ? textPattern.advanceMonths
+            : config?.advanceMonths;
 
         events.push({
           id: `announcement-${sig.serviceId}-${extracted.releaseDate}`,
@@ -190,14 +252,29 @@ export function parseTtdAnnouncement(input: AnnouncementParseInput): TtdReleaseE
           releaseDate: extracted.releaseDate,
           releaseTime: time,
           timezone: IST_TIMEZONE,
+          releasePattern,
+          advanceMonths,
+          releaseType: config?.releaseType || 'MONTHLY_QUOTA_RELEASE',
           sourceUrl: input.sourceUrl,
           sourceDate: input.publishedDate || new Date().toISOString().slice(0, 10),
           verified: validation.isValid,
+          isConfirmed: validation.isValid && Boolean(extracted.releaseDate),
           fetchedAt: new Date().toISOString(),
         });
       }
     }
   }
 
+  return events;
+}
+
+/**
+ * Parses announcement and registers verified events, overriding stored defaults.
+ */
+export function parseAndRegisterTtdAnnouncement(input: AnnouncementParseInput): TtdReleaseEvent[] {
+  const events = parseTtdAnnouncement(input);
+  for (const event of events) {
+    registerOfficialAnnouncement(event);
+  }
   return events;
 }

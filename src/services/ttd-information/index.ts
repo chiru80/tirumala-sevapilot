@@ -10,3 +10,4 @@ export * from './ttd-release-calendar';
 export * from './ttd-cache';
 export * from './ttd-announcement-parser';
 export * from './workflow-recorder';
+export * from './ttd-lock-detector';

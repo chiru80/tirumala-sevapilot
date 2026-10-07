@@ -21,6 +21,7 @@ import {
 export const SPECIAL_ENTRY_DARSHAN_300: ServiceWorkflow = {
   serviceId: 'special-entry-darshan-300',
   serviceName: 'Special Entry Darshan ₹300',
+  workflowId: 'special-entry-300-v1',
   workflowVersion: '1.0.0',
   serviceType: ServiceType.DARSHAN,
   temple: 'Sri Venkateswara Swamy Temple, Tirumala',
@@ -217,16 +218,24 @@ export const SPECIAL_ENTRY_DARSHAN_300: ServiceWorkflow = {
   ],
 
   detectService(url: string, doc: Document) {
-    let score = 0;
     const lowerUrl = url.toLowerCase();
     const sanitizedUrl = lowerUrl.replace(/:\d+/, '');
 
-    if (/sed|special.*entry|\b300\b|srstd|spat\b/i.test(sanitizedUrl)) {
+    // Route Dominance: SPAT routes MUST NOT match ₹300
+    if (sanitizedUrl.includes('/spat/') || sanitizedUrl.includes('flow=spat') || sanitizedUrl.includes('flowidentifier=spat')) {
+      return {
+        matches: false,
+        confidence: 0,
+      };
+    }
+
+    let score = 0;
+    if (/sed|special.*entry|\b300\b|srstd/i.test(sanitizedUrl)) {
       score += 45;
     }
 
     const text = (doc.body?.innerText || doc.body?.textContent || '').toLowerCase();
-    if (text.includes('special entry darshan') || text.includes('sed ₹300') || text.includes('sri pat') || text.includes('seeghra darshanam')) {
+    if (text.includes('special entry darshan') || text.includes('sed ₹300') || text.includes('seeghra darshanam')) {
       score += 40;
     }
 

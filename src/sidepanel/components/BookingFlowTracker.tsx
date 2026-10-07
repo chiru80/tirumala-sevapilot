@@ -5,6 +5,8 @@ interface BookingFlowTrackerProps {
   pageDetected: boolean;
   serviceDetected: boolean;
   formDetected: boolean;
+  isTemporaryLock?: boolean;
+  statusMessage?: string;
 }
 
 export const BookingFlowTracker: React.FC<BookingFlowTrackerProps> = ({
@@ -12,23 +14,33 @@ export const BookingFlowTracker: React.FC<BookingFlowTrackerProps> = ({
   pageDetected,
   serviceDetected,
   formDetected,
+  isTemporaryLock,
+  statusMessage,
 }) => {
-  const steps = [
-    { num: 1, label: 'Page', done: pageDetected, current: !pageDetected || currentStep === 1 },
-    { num: 2, label: 'Pilgrims', done: serviceDetected, current: pageDetected && currentStep === 2 },
-    { num: 3, label: 'Fill', done: currentStep >= 4, current: currentStep === 3 },
-    { num: 4, label: 'Verify', done: currentStep >= 5, current: currentStep === 4 },
-    { num: 5, label: 'Review', done: false, current: currentStep === 5 },
-  ];
+  const steps = isTemporaryLock
+    ? [
+        { num: 1, label: 'Page', done: true, current: false, isWarning: false },
+        { num: 2, label: 'Pilgrims', done: true, current: false, isWarning: false },
+        { num: 3, label: 'Fill', done: true, current: false, isWarning: false },
+        { num: 4, label: 'Verify', done: true, current: false, isWarning: false },
+        { num: 5, label: 'Review / Payment', done: false, current: true, isWarning: true },
+      ]
+    : [
+        { num: 1, label: 'Page', done: pageDetected, current: !pageDetected || currentStep === 1, isWarning: false },
+        { num: 2, label: 'Pilgrims', done: serviceDetected, current: pageDetected && currentStep === 2, isWarning: false },
+        { num: 3, label: 'Fill', done: currentStep >= 4, current: currentStep === 3, isWarning: false },
+        { num: 4, label: 'Verify', done: currentStep >= 5, current: currentStep === 4, isWarning: false },
+        { num: 5, label: 'Review', done: false, current: currentStep === 5, isWarning: false },
+      ];
 
   return (
     <div className="bg-[#FFFDF7] dark:bg-[#2A1733] border border-[rgba(212,167,44,0.3)] rounded-xl p-3 shadow-xs">
       <div className="flex items-center justify-between mb-2">
         <span className="text-[11px] font-bold uppercase tracking-wider text-[#5B2A86] dark:text-[#D4A72C]">
-          TTD Booking Flow
+          BOOKING FLOW
         </span>
         <span className="text-[10px] text-[#6B5A70] dark:text-[#A898B0]">
-          User-Reviewed Submission
+          User-controlled submission
         </span>
       </div>
 
@@ -39,9 +51,12 @@ export const BookingFlowTracker: React.FC<BookingFlowTrackerProps> = ({
         {steps.map((s, idx) => {
           const isDone = s.done;
           const isCurrent = s.current;
+          const isWarning = s.isWarning;
 
           let badgeBg = 'bg-[#FFF8E8] text-[#8B7D8F] border-[rgba(212,167,44,0.3)]';
-          if (isDone) {
+          if (isWarning) {
+            badgeBg = 'bg-amber-500 text-white border-amber-600 ring-2 ring-amber-400/50';
+          } else if (isDone) {
             badgeBg = 'bg-[#2E7D5B] text-white border-[#2E7D5B]';
           } else if (isCurrent) {
             badgeBg = 'bg-[#5B2A86] text-white border-[#D4A72C] ring-2 ring-[#D4A72C]/40';
@@ -53,10 +68,14 @@ export const BookingFlowTracker: React.FC<BookingFlowTrackerProps> = ({
                 className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold border transition-all ${badgeBg}`}
                 title={s.label}
               >
-                {isDone ? '✓' : s.num}
+                {isWarning ? '⚠' : isDone ? '✓' : s.num}
               </div>
-              <span className={`text-[9px] mt-1 font-medium text-center truncate max-w-[56px] ${
-                isCurrent ? 'text-[#5B2A86] dark:text-[#F0CC63] font-bold' : 'text-[#6B5A70] dark:text-[#A898B0]'
+              <span className={`text-[9px] mt-1 font-medium text-center truncate max-w-[62px] ${
+                isWarning
+                  ? 'text-amber-700 dark:text-amber-300 font-bold'
+                  : isCurrent
+                  ? 'text-[#5B2A86] dark:text-[#F0CC63] font-bold'
+                  : 'text-[#6B5A70] dark:text-[#A898B0]'
               }`}>
                 {s.label}
               </span>
@@ -64,6 +83,13 @@ export const BookingFlowTracker: React.FC<BookingFlowTrackerProps> = ({
           );
         })}
       </div>
+
+      {isTemporaryLock && (
+        <div className="mt-2.5 pt-2 border-t border-amber-200 dark:border-amber-900/50 flex items-center gap-1.5 text-[11px] font-semibold text-amber-800 dark:text-amber-300">
+          <span>Status:</span>
+          <span>{statusMessage || 'Previous booking attempt is still active.'}</span>
+        </div>
+      )}
     </div>
   );
 };

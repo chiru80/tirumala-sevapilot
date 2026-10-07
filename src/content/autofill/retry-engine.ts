@@ -123,7 +123,12 @@ export async function retryWithVerification(opts: {
           continue;
         }
       }
-      if (currentElement.readOnly) {
+      const isDropdownField = fieldType === 'gender' || fieldType === 'photoIdProof'
+        || fieldType === 'state' || fieldType === 'country'
+        || currentElement.getAttribute('role') === 'combobox'
+        || currentElement.closest('mat-select, [role="combobox"], .mat-mdc-select, .p-dropdown, ng-select') !== null;
+
+      if (currentElement.readOnly && !isDropdownField) {
         logger.debug(`Retry ${attempt + 1}: ${fieldType} field is readOnly`);
         if (attempt === config.maxAttempts - 1) {
           return {

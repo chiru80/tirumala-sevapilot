@@ -5,9 +5,16 @@
 // ─────────────────────────────────────────────────
 
 import { isElementVisible } from './field-resolver';
+import { findLabelText } from '../form-scanner';
 import logger from '@shared/logger';
 
-export type BookingStep = 'PILGRIM_DETAILS' | 'GENERAL_DETAILS' | 'UNKNOWN';
+import {
+  detectSrivariSevaInstructions,
+  detectSrivariSevaEnrollment,
+} from '../../services/workflows/step-detectors';
+import type { BookingStep } from './types';
+
+export type { BookingStep };
 
 /**
  * Detect the active booking step by inspecting visible form sections.
@@ -15,7 +22,17 @@ export type BookingStep = 'PILGRIM_DETAILS' | 'GENERAL_DETAILS' | 'UNKNOWN';
  * Does NOT rely on document.body.textContent.
  * Only inspects visible forms/sections, step indicators, and actual controls.
  */
-export function detectActiveBookingStep(doc: Document = document): BookingStep {
+export function detectActiveBookingStep(doc: Document = document, url: string = ''): BookingStep {
+  const targetUrl = url || (doc as any)?.location?.href || (typeof window !== 'undefined' ? window.location?.href : '') || '';
+
+  // Srivari Seva specific route and form detection
+  if (detectSrivariSevaInstructions(doc, targetUrl).isCurrentStep) {
+    return 'INSTRUCTIONS_REVIEW';
+  }
+  if (detectSrivariSevaEnrollment(doc, targetUrl).isCurrentStep) {
+    return 'SRIVARI_SEVA_ENROLLMENT';
+  }
+
   // Strategy 1: Check visible step indicators
   const stepIndicators = Array.from(doc.querySelectorAll<HTMLElement>(
     '.step-indicator, .stepper, .wizard-step, mat-step-header, .mat-step-header, .mat-mdc-step-header, [role="tab"], .nav-step, .progress-step'
@@ -38,10 +55,14 @@ export function detectActiveBookingStep(doc: Document = document): BookingStep {
     }
   }
 
-  // Strategy 2: Check visible section headings
+  // Strategy 2: Check visible section headings & titles
   const visibleHeadings = Array.from(doc.querySelectorAll<HTMLElement>(
-    'h1, h2, h3, h4, h5, .section-title, .form-title, .card-title, mat-card-title, .step-title'
-  )).filter(el => isElementVisible(el));
+    'h1, h2, h3, h4, h5, h6, .section-title, .form-title, .card-title, mat-card-title, .step-title, .card-header, legend, [class*="header" i], [class*="title" i], [class*="heading" i], div, p, span, strong, b'
+  )).filter(el => {
+    if (!isElementVisible(el)) return false;
+    const t = (el.textContent || '').trim().toLowerCase();
+    return t.length > 0 && t.length < 60;
+  });
 
   for (const heading of visibleHeadings) {
     const text = (heading.textContent || '').toLowerCase();
@@ -53,7 +74,12 @@ export function detectActiveBookingStep(doc: Document = document): BookingStep {
     }
   }
 
-  // Strategy 3: Detect by visible form field patterns & interactive status
+  // Strategy 3: URL pattern match if page is on pilgrim/darshan path
+  if (targetUrl && (/pilgrim_details|flow=spat|spat.*pilgrim|\/spat\/|\/sed\/.*pilgrim/i.test(targetUrl) || (/pilgrim|devotee/i.test(targetUrl) && !/payment/i.test(targetUrl)))) {
+    return 'PILGRIM_DETAILS';
+  }
+
+  // Strategy 4: Detect by visible form field patterns & interactive status
   const pilgrimFields = countVisiblePilgrimFields(doc);
   const generalFields = countVisibleGeneralFields(doc);
 
@@ -120,11 +146,14 @@ function countVisiblePilgrimFields(doc: Document): FieldDetectionScore {
   let score = 0;
   let hasActiveInput = false;
 
+  const countedElements = new Set<Element>();
+
   const nameInputs = doc.querySelectorAll<HTMLElement>(
     'input[formcontrolname*="name" i], input[name*="pilgrimName" i], input[name*="devoteeName" i], input[placeholder*="name" i]:not([type="email"]):not([placeholder*="city" i]):not([placeholder*="state" i])'
   );
   for (const el of Array.from(nameInputs)) {
-    if (isVisibleFormField(el)) {
+    if (isVisibleFormField(el) && !countedElements.has(el)) {
+      countedElements.add(el);
       score++;
       if (doc.activeElement === el) hasActiveInput = true;
     }
@@ -134,21 +163,55 @@ function countVisiblePilgrimFields(doc: Document): FieldDetectionScore {
     'input[formcontrolname*="age" i], input[name*="age" i], input[type="number"][placeholder*="age" i]'
   );
   for (const el of Array.from(ageInputs)) {
-    if (isVisibleFormField(el)) { score++; }
+    if (isVisibleFormField(el) && !countedElements.has(el)) {
+      countedElements.add(el);
+      score++;
+    }
   }
 
   const genderSelects = doc.querySelectorAll<HTMLElement>(
     'select[formcontrolname*="gender" i], mat-select[formcontrolname*="gender" i], [formcontrolname*="gender" i]'
   );
   for (const el of Array.from(genderSelects)) {
-    if (isVisibleFormField(el)) { score++; }
+    if (isVisibleFormField(el) && !countedElements.has(el)) {
+      countedElements.add(el);
+      score++;
+    }
   }
 
   const idProofSelects = doc.querySelectorAll<HTMLElement>(
     'select[formcontrolname*="proof" i], mat-select[formcontrolname*="proof" i], [formcontrolname*="idtype" i], [formcontrolname*="idproof" i]'
   );
   for (const el of Array.from(idProofSelects)) {
-    if (isVisibleFormField(el)) { score++; }
+    if (isVisibleFormField(el) && !countedElements.has(el)) {
+      countedElements.add(el);
+      score++;
+    }
+  }
+
+  // Also check form controls by their visible associated labels
+  const allControls = doc.querySelectorAll<HTMLElement>('input:not([type="hidden"]):not([type="submit"]):not([type="button"]), select, mat-select, [role="combobox"]');
+  for (const el of Array.from(allControls)) {
+    if (countedElements.has(el) || !isVisibleFormField(el)) continue;
+    const lbl = (findLabelText(el, doc) || '').toLowerCase();
+    if (!lbl) continue;
+    if (lbl.includes('name') && !lbl.includes('user') && !lbl.includes('login') && !lbl.includes('photo') && !lbl.includes('id')) {
+      countedElements.add(el);
+      score++;
+      if (doc.activeElement === el) hasActiveInput = true;
+    } else if (lbl.includes('age') || lbl.includes('years')) {
+      countedElements.add(el);
+      score++;
+    } else if (lbl.includes('gender') || lbl.includes('sex')) {
+      countedElements.add(el);
+      score++;
+    } else if (lbl.includes('id proof') || lbl.includes('photo id proof') || lbl.includes('id type') || lbl.includes('identity proof')) {
+      countedElements.add(el);
+      score++;
+    } else if (lbl.includes('id number') || lbl.includes('photo id number') || lbl.includes('photo id no') || lbl.includes('aadhaar')) {
+      countedElements.add(el);
+      score++;
+    }
   }
 
   return { score, hasActiveInput };
@@ -235,6 +298,8 @@ export {
   detectGeneralDetails,
   detectReviewDetails,
   detectPayment,
+  detectSrivariSevaInstructions,
+  detectSrivariSevaEnrollment,
 };
 
 /**
@@ -247,6 +312,8 @@ export function detectWorkflowStep(
 ): WorkflowStepType {
   if (detectPayment(doc, url).isCurrentStep) return 'PAYMENT';
   if (detectDigitalQueue(doc, url).isCurrentStep) return 'DIGITAL_QUEUE';
+  if (detectSrivariSevaInstructions(doc, url).isCurrentStep) return 'INSTRUCTIONS_REVIEW';
+  if (detectSrivariSevaEnrollment(doc, url).isCurrentStep) return 'SRIVARI_SEVA_ENROLLMENT';
   if (detectReviewDetails(doc, url).isCurrentStep) return 'REVIEW_DETAILS';
   if (detectGeneralDetails(doc, url).isCurrentStep) {
     if (workflow && !workflow.hasGeneralDetailsStep) {
@@ -259,7 +326,9 @@ export function detectWorkflowStep(
   if (detectSlotSelection(doc, url).isCurrentStep) return 'SLOT_SELECTION';
   if (detectAvailability(doc, url).isCurrentStep) return 'AVAILABILITY';
 
-  const basic = detectActiveBookingStep(doc);
+  const basic = detectActiveBookingStep(doc, url);
+  if (basic === 'INSTRUCTIONS_REVIEW') return 'INSTRUCTIONS_REVIEW';
+  if (basic === 'SRIVARI_SEVA_ENROLLMENT') return 'SRIVARI_SEVA_ENROLLMENT';
   if (basic === 'PILGRIM_DETAILS') return 'PILGRIM_DETAILS';
   if (basic === 'GENERAL_DETAILS') return 'GENERAL_DETAILS';
 

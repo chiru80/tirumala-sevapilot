@@ -12,7 +12,7 @@ describe('Phase 5 — Intelligence Dashboard Cards', () => {
   });
 
   describe('ReleaseCountdownCard', () => {
-    it('renders NEXT TTD RELEASE and countdown', () => {
+    it('renders NEXT TTD RELEASE and countdown with release pattern', () => {
       render(
         <ReleaseCountdownCard
           serviceId="special-entry-300"
@@ -21,11 +21,14 @@ describe('Phase 5 — Intelligence Dashboard Cards', () => {
       );
 
       expect(screen.getByRole('region', { name: /NEXT TTD RELEASE/i })).toBeDefined();
-      expect(screen.getByText(/Special Entry Darshan \(₹300\)/i)).toBeDefined();
-      expect(screen.getByText(/Official source verified/i)).toBeDefined();
+      expect(screen.getByText(/Special Entry Darshan.*300/i)).toBeDefined();
+      // Should show release pattern for 3-month advance
+      expect(screen.getByText(/3 MONTHS IN ADVANCE/i)).toBeDefined();
+      // Should show target month
+      expect(screen.getByText(/December 2026/i)).toBeDefined();
     });
 
-    it('handles Open TTD button click', () => {
+    it('handles Open Official Source button click', () => {
       const handleOpen = vi.fn();
       render(
         <ReleaseCountdownCard
@@ -34,9 +37,49 @@ describe('Phase 5 — Intelligence Dashboard Cards', () => {
         />
       );
 
-      const openBtn = screen.getByRole('button', { name: /OPEN TTD/i });
+      const openBtn = screen.getByRole('button', { name: /open official/i });
       fireEvent.click(openBtn);
       expect(handleOpen).toHaveBeenCalledTimes(1);
+    });
+
+    it('renders PREPARE BOOKING button when callback is provided', () => {
+      const handlePrepare = vi.fn();
+      render(
+        <ReleaseCountdownCard
+          serviceId="special-entry-300"
+          onOpenTtd={vi.fn()}
+          onPrepareBooking={handlePrepare}
+        />
+      );
+
+      const prepareBtn = screen.getByRole('button', { name: /PREPARE BOOKING/i });
+      fireEvent.click(prepareBtn);
+      expect(handlePrepare).toHaveBeenCalledTimes(1);
+    });
+
+    it('renders 1 MONTH IN ADVANCE pattern for Sri Srinivasa Divyanugraha Homam', () => {
+      render(
+        <ReleaseCountdownCard
+          serviceId="sri-srinivasa-divyanugraha-homam"
+          onOpenTtd={vi.fn()}
+        />
+      );
+
+      expect(screen.getByText(/1 MONTH IN ADVANCE/i)).toBeDefined();
+      expect(screen.getByText(/Sri Srinivasa Divyanugraha Vishesha Homam/i)).toBeDefined();
+    });
+
+    it('renders "Official release date not yet confirmed." and no fabricated countdown when unconfirmed', () => {
+      render(
+        <ReleaseCountdownCard
+          serviceId="arjitha-sevas"
+          onOpenTtd={vi.fn()}
+        />
+      );
+
+      expect(screen.getAllByText(/Official release date not yet confirmed\./i).length).toBeGreaterThan(0);
+      // No countdown timer text like "d " or "h " or "m " should be rendered
+      expect(screen.queryByText(/COUNTDOWN \(IST\)/i)).toBeNull();
     });
   });
 

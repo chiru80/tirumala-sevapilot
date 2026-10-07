@@ -10,9 +10,9 @@
 
 - **Typecheck (`tsc --noEmit`):** PASS (0 errors)
 - **Tests (`vitest run`):** PASS
-  - **Total Test Files:** 56 passed / 56 total
-  - **Total Tests:** 559 passed / 559 total (0 failed, 0 skipped)
-- **Build (`vite build`):** PASS (Vite production bundle generated in 5.21s)
+  - **Total Test Files:** 59 passed / 59 total
+  - **Total Tests:** 607 passed / 607 total (0 failed, 0 skipped)
+- **Build (`vite build`):** PASS (Vite production bundle generated in 4.70s)
 
 ---
 
@@ -102,8 +102,10 @@
 
 ## 8. REAL-SITE STATUS DISCLOSURE
 
-- **UNIT TESTED:** 559 tests across 56 test files validating all isolated functions, algorithms, and modules.
-- **FIXTURE TESTED:** Validated against real recorded TTD DOM structures (Angular Material tables, reactive form controls, stepper headers, dynamic cards, error banners).
+- **UNIT TESTED:** 607 tests across 59 test files validating all isolated functions, algorithms, and modules.
+- **FIXTURE & LIVE LAYOUT TESTED:** Validated against real recorded TTD DOM structures (Angular Material tables, reactive form controls, stepper headers, dynamic cards, error banners) and live Sri PAT (₹200) darshan layouts.
+- **TEMPORARY LOCK ARCHITECTURE:** Verified dedicated handling of TTD pilgrim/identity temporary lockouts without profile data mutation, providing live countdown and non-destructive alerts.
+- **HOME SCREEN CONSUMER SIMPLIFICATION:** Redesigned Home/Dashboard with Apple-like devotional clarity: live scrolling verified TTD release ticker, single context-aware dominant CTA, simple 3-step 'How It Works', upcoming quota release cards, and progressive disclosure for internal diagnostics (zero percentage clutter on home).
 - **REAL TTD TESTED:** Tested during live observation. Extension operates strictly as a local assistant without automated OTP, payment, or queue bypass.
 - **LIMITATIONS:** Unannounced structural redesigns of live TTD Angular templates will trigger fail-closed uncertain states, safely returning full manual control to the devotee.
 

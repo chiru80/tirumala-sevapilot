@@ -6,6 +6,7 @@
 
 import logger from '@shared/logger';
 import { getFieldContract } from './field-contracts';
+import { findLabelText } from '../form-scanner';
 
 // ─── Types ───
 
@@ -33,7 +34,29 @@ export type PilgrimFieldType = 'name' | 'age' | 'gender' | 'photoIdProof' | 'pho
 
 export type GeneralFieldType = 'gothram' | 'email' | 'mobile' | 'city' | 'state' | 'country' | 'pinCode' | 'pincode';
 
-export type LogicalFieldType = PilgrimFieldType | GeneralFieldType;
+export type SrivariFieldType =
+  | 'idProofType'
+  | 'idProofNumber'
+  | 'photo'
+  | 'fatherSpouseName'
+  | 'dateOfBirth'
+  | 'bloodGroup'
+  | 'mentallyFit'
+  | 'physicallyFit'
+  | 'qualification'
+  | 'profession'
+  | 'areaOfInterest'
+  | 'employeeId'
+  | 'designation'
+  | 'specialisation'
+  | 'placeOfWork'
+  | 'document'
+  | 'district'
+  | 'mandal'
+  | 'street'
+  | 'doorNumber';
+
+export type LogicalFieldType = PilgrimFieldType | GeneralFieldType | SrivariFieldType;
 
 export interface FieldResolution {
   element: HTMLElement;
@@ -108,20 +131,20 @@ const FIELD_SIGNALS: Record<LogicalFieldType, FieldSignalProfile> = {
     placeholders: ['gender', 'select gender'],
   },
   photoIdProof: {
-    positiveLabels: ['photo id proof', 'photo id type', 'id proof', 'identity proof', 'id type', 'proof type', 'document type'],
+    positiveLabels: ['photo id proof', 'photo id type', 'id proof', 'identity proof', 'id type', 'proof type', 'document type', 'id doc type', 'proof of id'],
     negativeLabels: ['number', 'no', 'digit', 'card number', 'id number', 'photo id number'],
     expectedTypes: ['select'],
-    formControlNames: ['photoidproof', 'idproof', 'idtype', 'prooftype', 'identityproof', 'photoidtype'],
+    formControlNames: ['photoidproof', 'idproof', 'idtype', 'prooftype', 'identityproof', 'photoidtype', 'idcard', 'doctype'],
     nameAttrs: ['photoIdProof', 'idProof', 'idType', 'proofType'],
     ariaLabels: ['photo id proof', 'id proof', 'id type', 'identity proof'],
     placeholders: ['select id proof', 'id proof', 'select id type', 'photo id proof'],
   },
   photoIdNumber: {
-    positiveLabels: ['photo id number', 'photo id no', 'id number', 'identity card number', 'aadhaar number', 'aadhar number', 'card number', 'proof number', 'aadhaar', 'aadhar', 'identity number', 'document number'],
+    positiveLabels: ['photo id number', 'photo id no', 'id number', 'identity card number', 'aadhaar number', 'aadhar number', 'card number', 'proof number', 'aadhaar', 'aadhar', 'identity number', 'document number', 'id no', 'photo id', 'proof no'],
     negativeLabels: ['otp', 'login', 'user', 'booking', 'ticket', 'captcha', 'email', 'mobile', 'phone', 'password', 'age', 'pin'],
     expectedTypes: ['text'],
-    formControlNames: ['photoidnumber', 'idnumber', 'proofnumber', 'aadhaarnumber', 'identitynumber', 'cardnumber'],
-    nameAttrs: ['photoIdNumber', 'idNumber', 'proofNumber', 'aadhaarNumber'],
+    formControlNames: ['photoidnumber', 'idnumber', 'proofnumber', 'aadhaarnumber', 'identitynumber', 'cardnumber', 'photoid', 'idproofnumber', 'idproofno', 'proofno'],
+    nameAttrs: ['photoIdNumber', 'idNumber', 'proofNumber', 'aadhaarNumber', 'photoId', 'idProofNumber', 'idNum', 'idProofNo'],
     ariaLabels: ['photo id number', 'id number', 'aadhaar number', 'identity number'],
     placeholders: ['id number', 'enter id number', 'photo id number', 'aadhaar number', 'enter aadhaar'],
   },
@@ -188,6 +211,186 @@ const FIELD_SIGNALS: Record<LogicalFieldType, FieldSignalProfile> = {
     ariaLabels: ['pin code', 'pincode', 'zip code', 'postal code'],
     placeholders: ['pin code', 'pincode', 'zip', 'zip code', 'postal code', 'enter pincode'],
   },
+  idProofType: {
+    positiveLabels: ['photo id proof', 'photo id type', 'id proof type', 'id proof', 'identity proof', 'id type', 'proof type', 'document type'],
+    negativeLabels: ['number', 'no', 'digit', 'card number', 'id number', 'photo id number'],
+    expectedTypes: ['select'],
+    formControlNames: ['idprooftype', 'photoidproof', 'idproof', 'idtype', 'prooftype'],
+    nameAttrs: ['idProofType', 'photoIdProof', 'idProof', 'idType'],
+    ariaLabels: ['id proof type', 'photo id proof', 'id proof'],
+    placeholders: ['select id proof', 'select id proof type', 'id proof'],
+  },
+  idProofNumber: {
+    positiveLabels: ['photo id number', 'id proof number', 'photo id no', 'id number', 'identity card number', 'aadhaar number', 'aadhar number', 'proof number'],
+    negativeLabels: ['otp', 'login', 'user', 'type', 'email', 'mobile', 'phone'],
+    expectedTypes: ['text'],
+    formControlNames: ['idproofnumber', 'photoidnumber', 'idnumber', 'aadhaarnumber', 'proofnumber'],
+    nameAttrs: ['idProofNumber', 'photoIdNumber', 'idNumber'],
+    ariaLabels: ['id proof number', 'photo id number', 'id number'],
+    placeholders: ['enter id proof number', 'id proof number', 'id number', 'aadhaar number'],
+  },
+  photo: {
+    positiveLabels: ['photo upload', 'photo', 'recent photo', 'upload photo', 'devotee photo'],
+    negativeLabels: ['document', 'supporting document', 'certificate', 'id proof type', 'id proof number'],
+    expectedTypes: ['file'],
+    formControlNames: ['photo', 'photoupload', 'recentphoto', 'devoteephoto'],
+    nameAttrs: ['photo', 'photoUpload', 'recentPhoto'],
+    ariaLabels: ['photo upload', 'recent photo', 'photo'],
+    placeholders: ['choose photo', 'upload photo'],
+  },
+  document: {
+    positiveLabels: ['upload document', 'supporting document', 'qualification document', 'document upload', 'document'],
+    negativeLabels: ['recent photo', 'photo upload', 'photo', 'devotee photo'],
+    expectedTypes: ['file'],
+    formControlNames: ['document', 'uploaddocument', 'supportingdocument', 'doc'],
+    nameAttrs: ['document', 'uploadDocument', 'supportingDocument'],
+    ariaLabels: ['upload document', 'supporting document', 'document'],
+    placeholders: ['choose document', 'upload document'],
+  },
+  dateOfBirth: {
+    positiveLabels: ['date of birth', 'dob', 'birth date'],
+    negativeLabels: ['age', 'expiry', 'validity'],
+    expectedTypes: ['text', 'date'],
+    formControlNames: ['dateofbirth', 'dob', 'birthdate'],
+    nameAttrs: ['dateOfBirth', 'dob', 'birthDate'],
+    ariaLabels: ['date of birth', 'dob'],
+    placeholders: ['dd/mm/yyyy', 'date of birth', 'dob'],
+  },
+  fatherSpouseName: {
+    positiveLabels: ['father spouse name', 'father / spouse name', 'father name', 'spouse name', 'husband name', 'guardian name'],
+    negativeLabels: ['full name', 'devotee name', 'pilgrim name', 'your name'],
+    expectedTypes: ['text'],
+    formControlNames: ['fatherspousename', 'fathername', 'spousename'],
+    nameAttrs: ['fatherSpouseName', 'fatherName', 'spouseName'],
+    ariaLabels: ['father spouse name', 'father / spouse name', 'father name'],
+    placeholders: ['father/spouse name', 'father name', 'spouse name'],
+  },
+  bloodGroup: {
+    positiveLabels: ['blood group', 'bloodgroup', 'blood type'],
+    negativeLabels: ['gender', 'name', 'id'],
+    expectedTypes: ['select', 'text'],
+    formControlNames: ['bloodgroup', 'bloodgrp', 'blood'],
+    nameAttrs: ['bloodGroup', 'bloodGrp'],
+    ariaLabels: ['blood group'],
+    placeholders: ['select blood group', 'blood group'],
+  },
+  district: {
+    positiveLabels: ['district', 'dist'],
+    negativeLabels: ['state', 'country', 'city', 'street'],
+    expectedTypes: ['select', 'text'],
+    formControlNames: ['district', 'dist'],
+    nameAttrs: ['district', 'dist'],
+    ariaLabels: ['district'],
+    placeholders: ['select district', 'district'],
+  },
+  mandal: {
+    positiveLabels: ['mandal', 'tehsil', 'taluk'],
+    negativeLabels: ['district', 'city', 'state'],
+    expectedTypes: ['select', 'text'],
+    formControlNames: ['mandal', 'tehsil'],
+    nameAttrs: ['mandal'],
+    ariaLabels: ['mandal'],
+    placeholders: ['select mandal', 'mandal'],
+  },
+  street: {
+    positiveLabels: ['street', 'street name', 'road', 'lane', 'address line 2'],
+    negativeLabels: ['city', 'state', 'door', 'country', 'pin'],
+    expectedTypes: ['text'],
+    formControlNames: ['street', 'streetname', 'road'],
+    nameAttrs: ['street', 'streetName', 'road'],
+    ariaLabels: ['street', 'street name'],
+    placeholders: ['street', 'enter street'],
+  },
+  doorNumber: {
+    positiveLabels: ['door number', 'door no', 'house number', 'house no', 'flat no', 'd no'],
+    negativeLabels: ['mobile', 'phone', 'pin', 'id', 'proof', 'age', 'street'],
+    expectedTypes: ['text'],
+    formControlNames: ['doornumber', 'doorno', 'houseno', 'housenumber', 'flatno', 'dno'],
+    nameAttrs: ['doorNumber', 'doorNo', 'houseNo', 'dNo'],
+    ariaLabels: ['door number', 'door no', 'house no'],
+    placeholders: ['door no', 'house no', 'door number', 'd.no'],
+  },
+  qualification: {
+    positiveLabels: ['qualification', 'highest qualification', 'education'],
+    negativeLabels: ['document'],
+    expectedTypes: ['select', 'text'],
+    formControlNames: ['qualification', 'education'],
+    nameAttrs: ['qualification', 'education'],
+    ariaLabels: ['qualification'],
+    placeholders: ['select qualification', 'qualification'],
+  },
+  profession: {
+    positiveLabels: ['profession', 'occupation'],
+    negativeLabels: ['qualification', 'area of interest'],
+    expectedTypes: ['select', 'text'],
+    formControlNames: ['profession', 'occupation'],
+    nameAttrs: ['profession', 'occupation'],
+    ariaLabels: ['profession'],
+    placeholders: ['select profession', 'profession'],
+  },
+  areaOfInterest: {
+    positiveLabels: ['area of interest', 'interest', 'seva preference'],
+    negativeLabels: [],
+    expectedTypes: ['select', 'text'],
+    formControlNames: ['areaofinterest', 'interest'],
+    nameAttrs: ['areaOfInterest', 'interest'],
+    ariaLabels: ['area of interest'],
+    placeholders: ['select area of interest', 'area of interest'],
+  },
+  employeeId: {
+    positiveLabels: ['employee id', 'emp id', 'staff id', 'employee number'],
+    negativeLabels: ['photo id', 'proof', 'aadhaar'],
+    expectedTypes: ['text'],
+    formControlNames: ['employeeid', 'empid', 'staffid'],
+    nameAttrs: ['employeeId', 'empId'],
+    ariaLabels: ['employee id'],
+    placeholders: ['employee id', 'enter employee id'],
+  },
+  designation: {
+    positiveLabels: ['designation', 'retired as', 'designation / retired as', 'designation/retired as'],
+    negativeLabels: [],
+    expectedTypes: ['text', 'select'],
+    formControlNames: ['designation', 'retiredas'],
+    nameAttrs: ['designation', 'retiredAs'],
+    ariaLabels: ['designation', 'retired as'],
+    placeholders: ['designation', 'retired as'],
+  },
+  specialisation: {
+    positiveLabels: ['specialisation', 'specialization', 'skill', 'specialisation/skill'],
+    negativeLabels: [],
+    expectedTypes: ['text', 'select'],
+    formControlNames: ['specialisation', 'specialization', 'skill'],
+    nameAttrs: ['specialisation', 'specialization', 'skill'],
+    ariaLabels: ['specialisation', 'skill'],
+    placeholders: ['specialisation', 'skill'],
+  },
+  placeOfWork: {
+    positiveLabels: ['place of working', 'place of working/related', 'work location', 'place of work', 'work place'],
+    negativeLabels: [],
+    expectedTypes: ['text'],
+    formControlNames: ['placeofworking', 'placeofwork', 'worklocation'],
+    nameAttrs: ['placeOfWorking', 'placeOfWork', 'workLocation'],
+    ariaLabels: ['place of working', 'place of work'],
+    placeholders: ['place of working', 'work location'],
+  },
+  mentallyFit: {
+    positiveLabels: ['mentally fit', 'mental fitness'],
+    negativeLabels: ['physically fit'],
+    expectedTypes: ['checkbox'],
+    formControlNames: ['mentallyfit', 'mentalfitness'],
+    nameAttrs: ['mentallyFit', 'mentalFitness'],
+    ariaLabels: ['mentally fit'],
+    placeholders: [],
+  },
+  physicallyFit: {
+    positiveLabels: ['physically fit', 'physical fitness'],
+    negativeLabels: ['mentally fit'],
+    expectedTypes: ['checkbox'],
+    formControlNames: ['physicallyfit', 'physicalfitness'],
+    nameAttrs: ['physicallyFit', 'physicalFitness'],
+    ariaLabels: ['physically fit'],
+    placeholders: [],
+  },
 };
 
 // Minimum confidence to consider a resolution valid (below 50 is ambiguous)
@@ -237,13 +440,15 @@ function getElementType(el: HTMLElement): string {
     return el.type || 'text';
   }
   if (el instanceof HTMLTextAreaElement) return 'text';
+  if (el.getAttribute('role') === 'checkbox') return 'checkbox';
+  if (el.tagName?.toLowerCase() === 'mat-checkbox') return 'checkbox';
   return 'unknown';
 }
 
 /**
  * Get the associated label text for an element using multiple strategies.
  */
-function getAssociatedLabelText(el: HTMLElement, container: HTMLElement, doc: Document): string {
+export function getAssociatedLabelText(el: HTMLElement, container: HTMLElement, doc: Document): string {
   // 1. <label for="id">
   if (el.id) {
     const label = container.querySelector(`label[for="${CSS.escape(el.id)}"]`)
@@ -255,25 +460,34 @@ function getAssociatedLabelText(el: HTMLElement, container: HTMLElement, doc: Do
   const parentLabel = el.closest('label');
   if (parentLabel?.textContent) return NORM(parentLabel.textContent);
 
-  // 3. Angular Material form field
-  const matFormField = el.closest('mat-form-field, .mat-form-field, .mat-mdc-form-field, .form-group');
+  // 3. Angular Material form field or field wrappers
+  const matFormField = el.closest('mat-form-field, .mat-form-field, .mat-mdc-form-field, .form-group, .form-field, .field-wrapper, .field');
   if (matFormField) {
-    const matLabel = matFormField.querySelector('mat-label, label, .mat-mdc-floating-label');
+    const matLabel = matFormField.querySelector('mat-label, label, .mat-mdc-floating-label, .field-label, .form-label');
     if (matLabel?.textContent && !matLabel.contains(el)) return NORM(matLabel.textContent);
   }
 
-  // 4. Preceding sibling label/span
+  // 4. Preceding sibling label/span/div/p
   const prev = el.previousElementSibling;
-  if (prev && (prev.tagName === 'LABEL' || prev.tagName === 'SPAN' || prev.tagName === 'B' || prev.tagName === 'STRONG') && prev.textContent) {
-    return NORM(prev.textContent);
+  if (prev && (prev.tagName === 'LABEL' || prev.tagName === 'SPAN' || prev.tagName === 'B' || prev.tagName === 'STRONG' || prev.tagName === 'DIV' || prev.tagName === 'P') && prev.textContent) {
+    const text = prev.textContent.trim();
+    if (text.length > 0 && text.length < 80) return NORM(text);
   }
 
   // 5. Column/group container label
-  const colOrGroup = el.closest('[class*="col"], td, .field-wrap, th');
+  const colOrGroup = el.closest('[class*="col"], td, .field-wrap, th, [class*="input" i]');
   if (colOrGroup && colOrGroup !== container && colOrGroup !== doc.body) {
-    const lbl = colOrGroup.querySelector('mat-label, label, .mat-mdc-floating-label, span, b, strong');
-    if (lbl?.textContent && !lbl.contains(el)) return NORM(lbl.textContent);
+    const lbl = colOrGroup.querySelector('mat-label, label, .mat-mdc-floating-label, span, b, strong, p');
+    if (lbl?.textContent && !lbl.contains(el)) {
+      const text = lbl.textContent.trim();
+      if (text.length > 0 && text.length < 80) return NORM(text);
+    }
   }
+
+  // 6. Comprehensive fallback via findLabelText (excluding element's own placeholder)
+  const fb = findLabelText(el, doc);
+  const ownPlaceholder = (el as HTMLInputElement).placeholder;
+  if (fb && fb !== ownPlaceholder) return NORM(fb);
 
   return '';
 }
@@ -307,6 +521,11 @@ function scoreElement(
   const allText = `${labelText} ${ariaLabel} ${placeholder} ${formControlName} ${nameAttr} ${id}`.toLowerCase();
   for (const neg of signals.negativeLabels) {
     const negClean = CLEAN(neg);
+    // If the label itself directly matches a positive signal for this field, don't disqualify due to incidental attribute text
+    const labelIsPositive = signals.positiveLabels.some(pl => labelText.includes(pl.toLowerCase()));
+    if (labelIsPositive && !labelText.includes(negClean)) {
+      continue;
+    }
     if (negClean.length <= 2) {
       // Short negatives: use word boundary match
       if (new RegExp(`\\b${negClean}\\b`, 'i').test(allText)) {
@@ -497,9 +716,12 @@ export function resolveFieldsInContainer<T extends LogicalFieldType>(
   const assigned = new Set<HTMLElement>();
 
   // Gather all candidate elements
-  const candidates = Array.from(container.querySelectorAll<HTMLElement>(
-    'input:not([type="hidden"]):not([type="submit"]):not([type="button"]):not([type="radio"]):not([type="checkbox"]), select, mat-select, [role="combobox"], [role="listbox"], p-dropdown, ng-select, textarea'
-  )).filter(el => isElementVisible(el));
+  const includesCheckboxes = fieldTypes.some(ft => ft === 'mentallyFit' || ft === 'physicallyFit');
+  const selector = includesCheckboxes
+    ? 'input:not([type="hidden"]):not([type="submit"]):not([type="button"]):not([type="radio"]), select, mat-select, [role="combobox"], [role="listbox"], p-dropdown, ng-select, textarea, [role="checkbox"]'
+    : 'input:not([type="hidden"]):not([type="submit"]):not([type="button"]):not([type="radio"]):not([type="checkbox"]), select, mat-select, [role="combobox"], [role="listbox"], p-dropdown, ng-select, textarea';
+
+  const candidates = Array.from(container.querySelectorAll<HTMLElement>(selector)).filter(el => isElementVisible(el));
 
   // Also find radio button groups (for gender)
   const radioGroups = findRadioGroups(container);
@@ -612,3 +834,281 @@ export function reResolveField(
   }
   return null;
 }
+
+/**
+ * Get raw associated label text without stripping asterisks or punctuation.
+ */
+export function getRawAssociatedLabelText(
+  el: HTMLElement,
+  container?: HTMLElement,
+  doc: Document = document,
+): string {
+  if (!el) return '';
+  const searchContainer = container || el.ownerDocument?.body || doc.body;
+
+  // 1. <label for="id">
+  if (el.id) {
+    const label = searchContainer?.querySelector(`label[for="${CSS.escape(el.id)}"]`)
+      || doc.querySelector(`label[for="${CSS.escape(el.id)}"]`);
+    if (label?.textContent) return label.textContent.trim();
+  }
+
+  // 2. Parent <label>
+  const parentLabel = el.closest('label');
+  if (parentLabel?.textContent) return parentLabel.textContent.trim();
+
+  // 3. Angular Material or form field wrapper
+  const matFormField = el.closest(
+    'mat-form-field, .mat-form-field, .mat-mdc-form-field, .form-group, .form-field, .field-wrapper, .field'
+  );
+  if (matFormField) {
+    const matLabel = matFormField.querySelector(
+      'mat-label, label, .mat-mdc-floating-label, .field-label, .form-label'
+    );
+    if (matLabel?.textContent && !matLabel.contains(el)) return matLabel.textContent.trim();
+  }
+
+  // 4. Preceding sibling
+  const prev = el.previousElementSibling;
+  if (prev && prev.textContent) {
+    const text = prev.textContent.trim();
+    if (text.length > 0 && text.length < 80) return text;
+  }
+
+  // 5. Column/group container
+  const colOrGroup = el.closest('[class*="col"], td, .field-wrap, th, [class*="input" i]');
+  if (colOrGroup && colOrGroup !== searchContainer && colOrGroup !== doc.body) {
+    const lbl = colOrGroup.querySelector('mat-label, label, .mat-mdc-floating-label, span, b, strong, p');
+    if (lbl?.textContent && !lbl.contains(el)) {
+      const text = lbl.textContent.trim();
+      if (text.length > 0 && text.length < 80) return text;
+    }
+  }
+
+  // 6. findLabelText fallback
+  const fb = findLabelText(el, doc);
+  if (fb) return fb.trim();
+
+  return '';
+}
+
+/**
+ * Determines whether a form field element is strictly required on the live page.
+ * Follows conservative safety rules:
+ * 1. native required attribute
+ * 2. aria-required="true"
+ * 3. Angular validation metadata
+ * 4. visible "*" label marker
+ * 5. associated label containing "*"
+ *
+ * If uncertain whether a field is required, returns false so optional fields
+ * never become readiness blockers.
+ */
+export function isRequiredField(
+  el: Element,
+  container?: HTMLElement,
+  doc: Document = document,
+): boolean {
+  if (!el) return false;
+
+  // 1. Native required attribute
+  if ((el as HTMLInputElement).required === true || el.hasAttribute('required')) {
+    return true;
+  }
+
+  // 2. aria-required="true"
+  if (el.getAttribute('aria-required') === 'true') {
+    return true;
+  }
+
+  // 3. Angular validation metadata
+  if (el.getAttribute('ng-reflect-required') === 'true') {
+    return true;
+  }
+
+  const formField = el.closest(
+    'mat-form-field, .mat-form-field, .mat-mdc-form-field, .form-group, .form-field, .field-wrapper, .field'
+  );
+  if (formField) {
+    if (
+      formField.classList.contains('mat-form-field-required') ||
+      formField.classList.contains('mat-mdc-form-field-required') ||
+      formField.querySelector('.mat-placeholder-required, .mat-mdc-form-field-required-marker')
+    ) {
+      return true;
+    }
+  }
+
+  // 4. Check raw associated label text
+  const rawLabel = getRawAssociatedLabelText(el as HTMLElement, container, doc);
+
+  // If label explicitly says "(Optional)" or "Optional", it is NOT required
+  if (/\b(?:optional|\(optional\))\b/i.test(rawLabel)) {
+    return false;
+  }
+
+  // Check if raw label contains '*'
+  if (rawLabel.includes('*')) {
+    return true;
+  }
+
+  // 5. Check if parent wrapper contains an asterisk or required indicator element
+  if (formField) {
+    const starEl = formField.querySelector(
+      '.required, .text-danger, .star, .asterisk, [class*="required" i], [aria-hidden="true"]'
+    );
+    if (starEl && (starEl.textContent || '').includes('*')) {
+      return true;
+    }
+  }
+
+  // Check preceding sibling
+  const prev = el.previousElementSibling;
+  if (prev && (prev.textContent || '').includes('*')) {
+    return true;
+  }
+
+  return false;
+}
+
+export type SrivariSectionName =
+  | 'identityProof'
+  | 'basicDetails'
+  | 'fitness'
+  | 'profession'
+  | 'address';
+
+export interface SrivariSections {
+  identityProof: HTMLElement | null;
+  basicDetails: HTMLElement | null;
+  fitness: HTMLElement | null;
+  profession: HTMLElement | null;
+  address: HTMLElement | null;
+}
+
+/**
+ * Locate section container boundaries on the Srivari Seva enrollment page.
+ * Strictly separates Identity Proof, Basic Details, Fitness, Profession, and Address.
+ */
+export function findSrivariSections(doc: Document = document): SrivariSections {
+  const headings = Array.from(doc.querySelectorAll<HTMLElement>(
+    'h1, h2, h3, h4, h5, h6, .section-title, .form-title, .card-title, mat-card-title, legend, strong, b, div, p'
+  )).filter(el => isElementVisible(el));
+
+  const sections: SrivariSections = {
+    identityProof: null,
+    basicDetails: null,
+    fitness: null,
+    profession: null,
+    address: null,
+  };
+
+  const findContainer = (h: HTMLElement): HTMLElement => {
+    return (
+      (h.closest(
+        'section, mat-card, .mat-card, fieldset, .section-container, .form-section, .card, .panel, form'
+      ) as HTMLElement) ||
+      h.parentElement ||
+      h
+    );
+  };
+
+  for (const h of headings) {
+    const text = (h.textContent || '').trim().toLowerCase();
+    if (!sections.identityProof && (text.includes('identity proof') || text.includes('identity details'))) {
+      sections.identityProof = findContainer(h);
+    } else if (!sections.basicDetails && (text.includes('basic details') || text.includes('personal details'))) {
+      sections.basicDetails = findContainer(h);
+    } else if (!sections.fitness && (text.includes('fitness') || text.includes('medical fitness'))) {
+      sections.fitness = findContainer(h);
+    } else if (!sections.profession && (text.includes('profession & education') || text.includes('profession details') || text.includes('education details') || text === 'profession')) {
+      sections.profession = findContainer(h);
+    } else if (!sections.address && (text.includes('address details') || text.includes('contact details') || text === 'address')) {
+      sections.address = findContainer(h);
+    }
+  }
+
+  return sections;
+}
+
+/**
+ * Resolve all fields on the Srivari Seva enrollment form scoped strictly by section.
+ * Prevents Identity Photo from being confused with Supporting Document,
+ * and Basic Details Name from being confused with other fields.
+ */
+export function resolveSrivariEnrollmentFields(
+  doc: Document = document,
+): Map<LogicalFieldType, FieldResolution> {
+  const sections = findSrivariSections(doc);
+  const result = new Map<LogicalFieldType, FieldResolution>();
+
+  // 1. Identity Proof Section: idProofType, idProofNumber, mobile, photo
+  const identityContainer = sections.identityProof || doc.body || doc.documentElement;
+  const identityFields: LogicalFieldType[] = ['idProofType', 'photoIdProof', 'idProofNumber', 'photoIdNumber', 'mobile', 'photo'];
+  const resolvedIdentity = resolveFieldsInContainer(identityContainer, identityFields, doc);
+  for (const [k, v] of resolvedIdentity) {
+    result.set(k, v);
+  }
+
+  // 2. Basic Details Section: name, fatherSpouseName, dateOfBirth, age, email, bloodGroup, gender
+  const basicContainer = sections.basicDetails || doc.body || doc.documentElement;
+  const basicFields: LogicalFieldType[] = [
+    'name',
+    'fatherSpouseName',
+    'dateOfBirth',
+    'age',
+    'email',
+    'bloodGroup',
+    'gender',
+  ];
+  const resolvedBasic = resolveFieldsInContainer(basicContainer, basicFields, doc);
+  for (const [k, v] of resolvedBasic) {
+    result.set(k, v);
+  }
+
+  // 3. Fitness Section: mentallyFit, physicallyFit
+  const fitnessContainer = sections.fitness || doc.body || doc.documentElement;
+  const fitnessFields: LogicalFieldType[] = ['mentallyFit', 'physicallyFit'];
+  const resolvedFitness = resolveFieldsInContainer(fitnessContainer, fitnessFields, doc);
+  for (const [k, v] of resolvedFitness) {
+    result.set(k, v);
+  }
+
+  // 4. Profession & Education Details Section: qualification, profession, areaOfInterest, employeeId, designation, specialisation, placeOfWork, document
+  const profContainer = sections.profession || doc.body || doc.documentElement;
+  const profFields: LogicalFieldType[] = [
+    'qualification',
+    'profession',
+    'areaOfInterest',
+    'employeeId',
+    'designation',
+    'specialisation',
+    'placeOfWork',
+    'document',
+  ];
+  const resolvedProf = resolveFieldsInContainer(profContainer, profFields, doc);
+  for (const [k, v] of resolvedProf) {
+    result.set(k, v);
+  }
+
+  // 5. Address Details Section: country, pincode, state, district, mandal, city, street, doorNumber
+  const addressContainer = sections.address || doc.body || doc.documentElement;
+  const addressFields: LogicalFieldType[] = [
+    'country',
+    'pincode',
+    'pinCode',
+    'state',
+    'district',
+    'mandal',
+    'city',
+    'street',
+    'doorNumber',
+  ];
+  const resolvedAddress = resolveFieldsInContainer(addressContainer, addressFields, doc);
+  for (const [k, v] of resolvedAddress) {
+    result.set(k, v);
+  }
+
+  return result;
+}
+

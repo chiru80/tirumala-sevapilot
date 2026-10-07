@@ -66,7 +66,7 @@ export function Bookings() {
     }
     await loadProfiles();
     setSaving(false);
-    setStatusMessage('Leader contact and address successfully shared across devotees!');
+    setStatusMessage('Primary pilgrim contact and address shared across all pilgrims.');
     setTimeout(() => setStatusMessage(null), 3500);
   }
 

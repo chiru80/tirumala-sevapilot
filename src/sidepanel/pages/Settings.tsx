@@ -161,11 +161,11 @@ export function Settings({ onSettingsChange }: { onSettingsChange: () => void })
           onChange={e => updateSetting('language', e.target.value as SettingsType['language'])}
           className="sp-input text-base font-serif"
         >
-          <option value="en">English (Official)</option>
-          <option value="te">తెలుగు (Telugu)</option>
-          <option value="hi">हिन्दी (Hindi)</option>
-          <option value="ta">தமிழ் (Tamil)</option>
-          <option value="kn">ಕನ್ನಡ (Kannada)</option>
+          <option value="en">English</option>
+          <option value="te">తెలుగు</option>
+          <option value="hi">हिन्दी</option>
+          <option value="ta">தமிழ்</option>
+          <option value="kn">ಕನ್ನಡ</option>
         </select>
       </div>
 
@@ -262,19 +262,20 @@ export function Settings({ onSettingsChange }: { onSettingsChange: () => void })
       {/* Reset & Version */}
       <div className="sp-card bg-white dark:bg-[#2D1A38] border-gold-500/25 space-y-2.5">
         <div className="flex items-center justify-between text-xs text-[#6B5A70] dark:text-[#A692B4]">
-          <span>{t('settings.extensionVersion')}</span>
-          <span className="font-mono font-bold text-[#5B2A86] dark:text-gold-300">v{EXTENSION_VERSION} (Phase 2.3)</span>
+          <span className="font-bold text-[#5B2A86] dark:text-[#F8EFD8]">{t('settings.extensionVersion')}</span>
+          <span className="font-mono font-medium text-[#6F6477] dark:text-[#D4C3E0]">Version {EXTENSION_VERSION} · Phase 2.3</span>
         </div>
 
         {showClearConfirm ? (
           <div className="p-3 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 space-y-2">
-            <p className="text-xs text-temple-red font-medium">{t('settings.clearConfirm')}</p>
-            <div className="flex gap-2">
-              <button onClick={handleClearAll} className="sp-btn-danger min-h-[44px] text-xs py-1.5 px-3">
-                {t('settings.confirmClear')}
-              </button>
-              <button onClick={() => setShowClearConfirm(false)} className="sp-btn-secondary min-h-[44px] text-xs py-1.5 px-3">
+            <h4 className="text-xs font-bold text-temple-red">{t('settings.clearDataModalTitle')}</h4>
+            <p className="text-xs text-[#6F6477] dark:text-[#D4C3E0] font-medium leading-relaxed">{t('settings.clearConfirm')}</p>
+            <div className="flex gap-2 pt-1">
+              <button onClick={() => setShowClearConfirm(false)} className="sp-btn-secondary flex-1 min-h-[44px] text-xs py-1.5 px-3">
                 {t('common.cancel')}
+              </button>
+              <button onClick={handleClearAll} className="sp-btn-danger flex-1 min-h-[44px] text-xs py-1.5 px-3">
+                {t('settings.confirmClear')}
               </button>
             </div>
           </div>
