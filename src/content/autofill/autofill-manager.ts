@@ -53,6 +53,12 @@ import type {
   AutofillOptions,
   BookingStep,
 } from './types';
+import { PerformanceProfiler, type PerformanceMetrics } from './performance-profiler';
+import { prewarmBookingProfile, type PrewarmedBookingPlan } from './profile-prewarm';
+import { DomSnapshot } from './dom-snapshot';
+import { FieldCache } from './field-cache';
+import { isFieldSatisfied, buildExecutionPlan } from './execution-plan';
+import { AutofillScheduler } from './autofill-scheduler';
 
 export type {
   AutofillProgress,
@@ -207,6 +213,13 @@ export async function executeAutofill(opts: AutofillOptions = {}): Promise<Autof
   sessionStartTime = Date.now();
   bookingSessionManager.startSession(profile.id, (opts as any).serviceId, (opts as any).workflow?.id);
 
+  // Phase 3: Performance Profiler & Profile Prewarming
+  const profiler = new PerformanceProfiler((opts as any).serviceId, (opts as any).workflow?.id);
+  profiler.setContext((opts as any).serviceId, (opts as any).workflow?.id, pilgrims.length);
+  profiler.startPhase('scan');
+
+  const prewarmed = prewarmBookingProfile(profile, pilgrims, (opts as any).serviceId);
+
   const bookingSignal = bookingSessionManager.getAbortSignal();
   if (bookingSignal) {
     bookingSignal.addEventListener('abort', () => {
@@ -328,7 +341,9 @@ export async function executeAutofill(opts: AutofillOptions = {}): Promise<Autof
         : 'unknown';
 
     if (step === 'unknown') {
-      if (detectSrivariSevaInstructions(doc, url).isCurrentStep) {
+      if ((opts as any).step && (opts as any).step !== 'unknown') {
+        step = (opts as any).step;
+      } else if (detectSrivariSevaInstructions(doc, url).isCurrentStep) {
         step = 'srivari_instructions';
       } else if (detectSrivariSevaEnrollment(doc, url).isCurrentStep) {
         step = 'srivari_enrollment';
@@ -353,12 +368,12 @@ export async function executeAutofill(opts: AutofillOptions = {}): Promise<Autof
         progress.temporaryLock = lockOnFail.lockState;
         progress.errors = [lockOnFail.lockState.message];
         emit();
-        return buildResult(progress, step, startedAt, workflow);
+        return buildResult(progress, step, startedAt, workflow, profiler);
       }
       progress.state = 'ERROR';
       progress.errors.push('Pilgrim fields could not be safely identified.');
       emit();
-      return buildResult(progress, step, startedAt, workflow);
+      return buildResult(progress, step, startedAt, workflow, profiler);
     }
 
     // Phase 1 / Phase 3: If service has NO General Details step (e.g. Padmavathi ₹200),
@@ -368,7 +383,7 @@ export async function executeAutofill(opts: AutofillOptions = {}): Promise<Autof
       progress.state = 'COMPLETE';
       progress.percent = 100;
       emit();
-      return buildResult(progress, 'general', startedAt);
+      return buildResult(progress, 'general', startedAt, workflow, profiler);
     }
 
     const adapter: ServiceAdapter = (opts as any).adapter ||
@@ -402,18 +417,18 @@ export async function executeAutofill(opts: AutofillOptions = {}): Promise<Autof
 
     // ─── PILGRIM STEP ───
     if (step === 'pilgrim') {
-      return await executePilgrimStep(pilgrims, doc, progress, emit, startedAt, adapter, workflow);
+      return await executePilgrimStep(pilgrims, doc, progress, emit, startedAt, adapter, workflow, prewarmed, profiler);
     }
 
     // ─── GENERAL STEP ───
     if (step === 'general') {
-      return await executeGeneralStep(profile, doc, progress, emit, startedAt, workflow);
+      return await executeGeneralStep(profile, doc, progress, emit, startedAt, workflow, prewarmed, profiler);
     }
 
     progress.state = 'ERROR';
     progress.errors.push(`Unhandled step: ${step}`);
     emit();
-    return buildResult(progress, step, startedAt);
+    return buildResult(progress, step, startedAt, workflow, profiler);
   } catch (err) {
     logger.error('Autofill manager error:', err);
     const lockInCatch = detectTtdTemporaryLock(doc, url);
@@ -426,11 +441,11 @@ export async function executeAutofill(opts: AutofillOptions = {}): Promise<Autof
       progress.state = 'TTD_TEMPORARY_BOOKING_LOCK';
       progress.temporaryLock = lockInCatch.lockState;
       progress.errors = [lockInCatch.lockState.message];
-      return buildResult(progress, 'unknown', startedAt, workflow);
+      return buildResult(progress, 'unknown', startedAt, workflow, profiler);
     }
     progress.state = 'ERROR';
     progress.errors.push(err instanceof Error ? err.message : 'Unknown error');
-    return buildResult(progress, 'unknown', startedAt, workflow);
+    return buildResult(progress, 'unknown', startedAt, workflow, profiler);
   } finally {
     isRunning = false;
     shouldStop = false;
@@ -450,6 +465,8 @@ async function executePilgrimStep(
   startedAt: number,
   adapter?: ServiceAdapter,
   workflow?: ServiceWorkflow,
+  prewarmed?: PrewarmedBookingPlan,
+  profiler?: PerformanceProfiler,
 ): Promise<AutofillManagerResult> {
   const canonical = workflow?.serviceId ? getCanonicalService(workflow.serviceId) : undefined;
   const maxAllowed = canonical?.maxPilgrims ?? workflow?.maxPilgrims ?? adapter?.maxPilgrims ?? 6;
@@ -460,14 +477,14 @@ async function executePilgrimStep(
     progress.state = 'ERROR';
     progress.errors.push(`${workflow.serviceName} permits exactly ${workflow.exactPilgrims} pilgrims per booking.`);
     emit();
-    return buildResult(progress, 'pilgrim', startedAt);
+    return buildResult(progress, 'pilgrim', startedAt, workflow, profiler);
   }
 
   if (workflow?.maxPilgrims && pilgrims.length > workflow.maxPilgrims) {
     progress.state = 'ERROR';
     progress.errors.push(`${workflow.serviceName} allows a maximum of ${workflow.maxPilgrims} participants.`);
     emit();
-    return buildResult(progress, 'pilgrim', startedAt);
+    return buildResult(progress, 'pilgrim', startedAt, workflow, profiler);
   }
 
   const targetPilgrims = pilgrims.slice(0, maxAllowed);
@@ -480,7 +497,7 @@ async function executePilgrimStep(
       progress.state = 'ERROR';
       progress.errors.push(structVal.reason || 'TTD form structure has changed. Please review before autofill.');
       emit();
-      return buildResult(progress, 'pilgrim', startedAt);
+      return buildResult(progress, 'pilgrim', startedAt, workflow, profiler);
     }
   }
 
@@ -488,8 +505,16 @@ async function executePilgrimStep(
   progress.state = 'LOCK_ROWS';
   emit();
 
+  profiler?.endPhase('scan');
+  profiler?.startPhase('resolve');
   let lockedRows = detectAndLockPilgrimRows(doc, targetPilgrims.length);
   logger.info(`Locked ${lockedRows.length} row(s) for ${targetPilgrims.length} pilgrim(s) (limit: ${maxAllowed})`);
+
+  if (prewarmed && lockedRows.length > 0) {
+    const plan = buildExecutionPlan(lockedRows, prewarmed, doc, workflow?.workflowId);
+    profiler?.recordFieldResolved(plan.totalFieldsCount);
+  }
+  profiler?.endPhase('resolve');
 
   if (lockedRows.length === 0) {
     try {
@@ -630,12 +655,14 @@ async function executePilgrimStep(
     }
 
     // Fill all 5 fields for this pilgrim
-    await fillPilgrimRow(pilgrim, row, i, pp, progress, doc, emit);
+    await fillPilgrimRow(pilgrim, row, i, pp, progress, doc, emit, profiler);
   }
 
   // ─── VERIFYING_PILGRIMS ───
   progress.state = 'VERIFYING_PILGRIMS';
   emit();
+  profiler?.endPhase('fill');
+  profiler?.startPhase('verify');
 
   for (const pp of progress.pilgrimResults) {
     pp.fieldsVerified = pp.results.filter(r => r.status === 'verified').length;
@@ -682,7 +709,8 @@ async function executePilgrimStep(
   // Autofocus captcha (user responsibility)
   autofocusCaptcha(doc);
 
-  return buildResult(progress, 'pilgrim', startedAt);
+  profiler?.endPhase('verify');
+  return buildResult(progress, 'pilgrim', startedAt, workflow, profiler);
 }
 
 async function fillPilgrimRow(
@@ -693,6 +721,7 @@ async function fillPilgrimRow(
   progress: AutofillProgress,
   doc: Document,
   emit: () => void,
+  profiler?: PerformanceProfiler,
 ): Promise<void> {
   if (shouldStop) return;
   const container = row.element;
@@ -733,6 +762,26 @@ async function fillPilgrimRow(
       reasons: ['Your manually entered value was preserved.'],
     });
     bookingSessionManager.emitDiagnostic('FIELD_VERIFIED', { field: 'name', pilgrimIndex });
+  } else if (nameVal && nameRes && isFieldSatisfied(nameRes.element, nameVal, 'name', false)) {
+    bookingSessionManager.emitDiagnostic('FIELD_RESOLVED', { field: 'name', pilgrimIndex, strategy: nameRes.strategy, confidence: nameRes.confidence });
+    excludeElements.add(nameRes.element);
+    bookingSessionManager.emitDiagnostic('FIELD_VERIFIED', { field: 'name', pilgrimIndex });
+    pp.results.push({
+      field: 'name',
+      pilgrimIndex,
+      status: 'verified',
+      attempts: 0,
+      durationMs: 0,
+      maskedValue: nameVal,
+      detected: true,
+      confidence: nameRes.confidence,
+      strategy: nameRes.strategy,
+      filled: false,
+      verified: true,
+      reasons: ['Field value already verified in DOM'],
+    });
+    profiler?.recordFieldSkipped();
+    profiler?.recordFieldVerified();
   } else if (nameVal && nameRes) {
     bookingSessionManager.emitDiagnostic('FIELD_RESOLVED', { field: 'name', pilgrimIndex, strategy: nameRes.strategy, confidence: nameRes.confidence });
     const start = performance.now();
@@ -750,6 +799,9 @@ async function fillPilgrimRow(
     });
     excludeElements.add(retryRes.retriedElement || nameRes.element);
     bookingSessionManager.emitDiagnostic(retryRes.success ? 'FIELD_VERIFIED' : 'FIELD_FAILED', { field: 'name', pilgrimIndex });
+    profiler?.recordFieldFilled();
+    if (retryRes.success) profiler?.recordFieldVerified();
+    if (retryRes.attempts > 1) profiler?.recordRetry(retryRes.attempts - 1);
 
     pp.results.push({
       field: 'name',
@@ -806,6 +858,28 @@ async function fillPilgrimRow(
       reasons: ['Your manually entered value was preserved.'],
     });
     bookingSessionManager.emitDiagnostic('FIELD_VERIFIED', { field: 'age', pilgrimIndex });
+    profiler?.recordFieldSkipped();
+    profiler?.recordFieldVerified();
+  } else if (ageStr && ageRes && isFieldSatisfied(ageRes.element, ageStr, 'age', false)) {
+    bookingSessionManager.emitDiagnostic('FIELD_RESOLVED', { field: 'age', pilgrimIndex, strategy: ageRes.strategy, confidence: ageRes.confidence });
+    excludeElements.add(ageRes.element);
+    bookingSessionManager.emitDiagnostic('FIELD_VERIFIED', { field: 'age', pilgrimIndex });
+    pp.results.push({
+      field: 'age',
+      pilgrimIndex,
+      status: 'verified',
+      attempts: 0,
+      durationMs: 0,
+      maskedValue: ageStr,
+      detected: true,
+      confidence: ageRes.confidence,
+      strategy: ageRes.strategy,
+      filled: false,
+      verified: true,
+      reasons: ['Field value already verified in DOM'],
+    });
+    profiler?.recordFieldSkipped();
+    profiler?.recordFieldVerified();
   } else if (ageStr && ageRes) {
     bookingSessionManager.emitDiagnostic('FIELD_RESOLVED', { field: 'age', pilgrimIndex, strategy: ageRes.strategy, confidence: ageRes.confidence });
     const start = performance.now();
@@ -823,6 +897,9 @@ async function fillPilgrimRow(
     });
     excludeElements.add(retryRes.retriedElement || ageRes.element);
     bookingSessionManager.emitDiagnostic(retryRes.success ? 'FIELD_VERIFIED' : 'FIELD_FAILED', { field: 'age', pilgrimIndex });
+    profiler?.recordFieldFilled();
+    if (retryRes.success) profiler?.recordFieldVerified();
+    if (retryRes.attempts > 1) profiler?.recordRetry(retryRes.attempts - 1);
     pp.results.push({
       field: 'age',
       pilgrimIndex,
@@ -878,37 +955,63 @@ async function fillPilgrimRow(
     });
     bookingSessionManager.emitDiagnostic('FIELD_VERIFIED', { field: 'gender', pilgrimIndex });
   } else if (genderRes) {
-    bookingSessionManager.emitDiagnostic('FIELD_RESOLVED', { field: 'gender', pilgrimIndex, strategy: genderRes.strategy, confidence: genderRes.confidence });
-    const start = performance.now();
-    const retryRes = await retryWithVerification({
-      fieldType: 'gender',
-      element: genderRes.element,
-      expectedValue: genderStr,
-      container,
-      excludeElements,
-      doc,
-      shouldStop: () => shouldStop,
-      fillAction: async (el) => {
-        await performDropdownTransaction(el, genderStr, 'gender', doc);
-      },
-    });
-    excludeElements.add(retryRes.retriedElement || genderRes.element);
-    bookingSessionManager.emitDiagnostic(retryRes.success ? 'FIELD_VERIFIED' : 'FIELD_FAILED', { field: 'gender', pilgrimIndex });
+    const isGenderDropdown = genderRes.element.tagName === 'SELECT' ||
+      genderRes.element.getAttribute('role') === 'combobox' ||
+      genderRes.element.classList.contains('mat-select');
+    if (isFieldSatisfied(genderRes.element, genderStr, 'gender', isGenderDropdown)) {
+      bookingSessionManager.emitDiagnostic('FIELD_VERIFIED', { field: 'gender', pilgrimIndex });
+      pp.results.push({
+        field: 'gender',
+        pilgrimIndex,
+        status: 'verified',
+        attempts: 1,
+        durationMs: 1,
+        maskedValue: genderStr,
+        detected: true,
+        confidence: genderRes.confidence,
+        strategy: 'differentialPreserved',
+        filled: false,
+        verified: true,
+      });
+      profiler?.recordFieldSkipped();
+      profiler?.recordFieldVerified();
+    } else {
+      bookingSessionManager.emitDiagnostic('FIELD_RESOLVED', { field: 'gender', pilgrimIndex, strategy: genderRes.strategy, confidence: genderRes.confidence });
+      const start = performance.now();
+      const retryRes = await retryWithVerification({
+        fieldType: 'gender',
+        element: genderRes.element,
+        expectedValue: genderStr,
+        container,
+        excludeElements,
+        doc,
+        shouldStop: () => shouldStop,
+        fillAction: async (el) => {
+          await performDropdownTransaction(el, genderStr, 'gender', doc);
+        },
+      });
+      excludeElements.add(retryRes.retriedElement || genderRes.element);
+      bookingSessionManager.emitDiagnostic(retryRes.success ? 'FIELD_VERIFIED' : 'FIELD_FAILED', { field: 'gender', pilgrimIndex });
 
-    pp.results.push({
-      field: 'gender',
-      pilgrimIndex,
-      status: retryRes.success ? 'verified' : 'failed',
-      attempts: retryRes.attempts,
-      durationMs: Math.round(performance.now() - start),
-      maskedValue: genderStr,
-      error: retryRes.success ? undefined : (retryRes.error || 'Gender verification failed'),
-      detected: true,
-      confidence: genderRes.confidence,
-      strategy: genderRes.strategy,
-      filled: true,
-      verified: retryRes.success,
-    });
+      pp.results.push({
+        field: 'gender',
+        pilgrimIndex,
+        status: retryRes.success ? 'verified' : 'failed',
+        attempts: retryRes.attempts,
+        durationMs: Math.round(performance.now() - start),
+        maskedValue: genderStr,
+        error: retryRes.success ? undefined : (retryRes.error || 'Gender verification failed'),
+        detected: true,
+        confidence: genderRes.confidence,
+        strategy: genderRes.strategy,
+        filled: true,
+        verified: retryRes.success,
+      });
+      if (retryRes.success) {
+        profiler?.recordFieldFilled();
+        profiler?.recordFieldVerified();
+      }
+    }
   } else {
     // Check for radio buttons in container
     const radios = Array.from(container.querySelectorAll<HTMLInputElement>('input[type="radio"]'));
@@ -942,6 +1045,8 @@ async function fillPilgrimRow(
         filled: true,
         verified: true,
       });
+      profiler?.recordFieldFilled();
+      profiler?.recordFieldVerified();
     } else {
       pp.results.push({
         field: 'gender',
@@ -960,7 +1065,7 @@ async function fillPilgrimRow(
   }
 
   // DOM stabilization pause after Gender
-  await new Promise(r => setTimeout(r, 120));
+  await AutofillScheduler.settleDom();
 
   // Re-resolve affected row after gender dependency change
   resolutions = resolvePilgrimFields(container, doc);
@@ -990,37 +1095,60 @@ async function fillPilgrimRow(
     });
     bookingSessionManager.emitDiagnostic('FIELD_VERIFIED', { field: 'photoIdProof', pilgrimIndex });
   } else if (idProofRes) {
-    bookingSessionManager.emitDiagnostic('FIELD_RESOLVED', { field: 'photoIdProof', pilgrimIndex, strategy: idProofRes.strategy, confidence: idProofRes.confidence });
-    const start = performance.now();
-    const retryRes = await retryWithVerification({
-      fieldType: 'photoIdProof',
-      element: idProofRes.element,
-      expectedValue: idType,
-      container,
-      excludeElements,
-      doc,
-      shouldStop: () => shouldStop,
-      fillAction: async (el) => {
-        await performDropdownTransaction(el, idType, 'photoIdProof', doc);
-      },
-    });
-    excludeElements.add(retryRes.retriedElement || idProofRes.element);
-    bookingSessionManager.emitDiagnostic(retryRes.success ? 'FIELD_VERIFIED' : 'FIELD_FAILED', { field: 'photoIdProof', pilgrimIndex });
+    if (isFieldSatisfied(idProofRes.element, idType, 'photoIdProof', true)) {
+      bookingSessionManager.emitDiagnostic('FIELD_VERIFIED', { field: 'photoIdProof', pilgrimIndex });
+      pp.results.push({
+        field: 'photoIdProof',
+        pilgrimIndex,
+        status: 'verified',
+        attempts: 1,
+        durationMs: 1,
+        maskedValue: idType,
+        detected: true,
+        confidence: idProofRes.confidence,
+        strategy: 'differentialPreserved',
+        filled: false,
+        verified: true,
+      });
+      profiler?.recordFieldSkipped();
+      profiler?.recordFieldVerified();
+    } else {
+      bookingSessionManager.emitDiagnostic('FIELD_RESOLVED', { field: 'photoIdProof', pilgrimIndex, strategy: idProofRes.strategy, confidence: idProofRes.confidence });
+      const start = performance.now();
+      const retryRes = await retryWithVerification({
+        fieldType: 'photoIdProof',
+        element: idProofRes.element,
+        expectedValue: idType,
+        container,
+        excludeElements,
+        doc,
+        shouldStop: () => shouldStop,
+        fillAction: async (el) => {
+          await performDropdownTransaction(el, idType, 'photoIdProof', doc);
+        },
+      });
+      excludeElements.add(retryRes.retriedElement || idProofRes.element);
+      bookingSessionManager.emitDiagnostic(retryRes.success ? 'FIELD_VERIFIED' : 'FIELD_FAILED', { field: 'photoIdProof', pilgrimIndex });
 
-    pp.results.push({
-      field: 'photoIdProof',
-      pilgrimIndex,
-      status: retryRes.success ? 'verified' : 'failed',
-      attempts: retryRes.attempts,
-      durationMs: Math.round(performance.now() - start),
-      maskedValue: idType,
-      error: retryRes.success ? undefined : (retryRes.error || 'Photo ID Proof verification failed'),
-      detected: true,
-      confidence: idProofRes.confidence,
-      strategy: idProofRes.strategy,
-      filled: true,
-      verified: retryRes.success,
-    });
+      pp.results.push({
+        field: 'photoIdProof',
+        pilgrimIndex,
+        status: retryRes.success ? 'verified' : 'failed',
+        attempts: retryRes.attempts,
+        durationMs: Math.round(performance.now() - start),
+        maskedValue: idType,
+        error: retryRes.success ? undefined : (retryRes.error || 'Photo ID Proof verification failed'),
+        detected: true,
+        confidence: idProofRes.confidence,
+        strategy: idProofRes.strategy,
+        filled: true,
+        verified: retryRes.success,
+      });
+      if (retryRes.success) {
+        profiler?.recordFieldFilled();
+        profiler?.recordFieldVerified();
+      }
+    }
   } else {
     // Critical: NEVER fall back to first remaining dropdown in production
     pp.results.push({
@@ -1044,7 +1172,7 @@ async function fillPilgrimRow(
   emit();
 
   // Wait for framework/DOM stabilization after ID Proof selection
-  await new Promise(r => setTimeout(r, 150));
+  await AutofillScheduler.settleDom();
   if (shouldStop) return;
 
   // Re-resolve the current row
@@ -1145,6 +1273,26 @@ async function fillPilgrimRow(
   }
 
   if (idNum) {
+    if (isFieldSatisfied(idNumEl, idNum, 'photoIdNumber', false)) {
+      bookingSessionManager.emitDiagnostic('FIELD_VERIFIED', { field: 'photoIdNumber', pilgrimIndex });
+      pp.results.push({
+        field: 'photoIdNumber',
+        pilgrimIndex,
+        status: 'verified',
+        attempts: 1,
+        durationMs: 1,
+        maskedValue: idNum.length >= 4 ? `••••${idNum.slice(-4)}` : '••••',
+        detected: true,
+        confidence: idNumRes.confidence,
+        strategy: 'differentialPreserved',
+        filled: false,
+        verified: true,
+      });
+      profiler?.recordFieldSkipped();
+      profiler?.recordFieldVerified();
+      return;
+    }
+
     bookingSessionManager.emitDiagnostic('FIELD_RESOLVED', { field: 'photoIdNumber', pilgrimIndex, strategy: idNumRes.strategy, confidence: idNumRes.confidence });
     const start = performance.now();
     const retryRes = await retryWithVerification({
@@ -1165,7 +1313,6 @@ async function fillPilgrimRow(
       field: 'photoIdNumber',
       pilgrimIndex,
       status: retryRes.success ? 'verified' : 'failed',
-
       attempts: retryRes.attempts,
       durationMs: Math.round(performance.now() - start),
       maskedValue: idNum.length >= 4 ? `••••${idNum.slice(-4)}` : '••••',
@@ -1176,6 +1323,10 @@ async function fillPilgrimRow(
       filled: true,
       verified: retryRes.success,
     });
+    if (retryRes.success) {
+      profiler?.recordFieldFilled();
+      profiler?.recordFieldVerified();
+    }
   } else {
     pp.results.push({
       field: 'photoIdNumber',
@@ -1202,6 +1353,8 @@ async function executeGeneralStep(
   emit: () => void,
   startedAt: number,
   workflow?: ServiceWorkflow,
+  prewarmed?: PrewarmedBookingPlan,
+  profiler?: PerformanceProfiler,
 ): Promise<AutofillManagerResult> {
   // Phase 4: Structural Confidence Check
   if (workflow) {
@@ -1210,21 +1363,35 @@ async function executeGeneralStep(
       progress.state = 'ERROR';
       progress.errors.push(structVal.reason || 'TTD form structure has changed. Please review before autofill.');
       emit();
-      return buildResult(progress, 'general', startedAt, workflow);
+      return buildResult(progress, 'general', startedAt, workflow, profiler);
     }
   }
 
   progress.state = 'FILLING_GENERAL';
   emit();
 
-  const general = resolveGeneralDetails(profile);
+  const general = prewarmed?.general ? {
+    gothram: prewarmed.general.gothram,
+    email: prewarmed.general.email,
+    mobile: prewarmed.general.mobile,
+    city: prewarmed.general.city,
+    state: prewarmed.general.state,
+    country: prewarmed.general.country,
+    pinCode: prewarmed.general.pinCode,
+  } : resolveGeneralDetails(profile);
   const results: FieldTransactionResult[] = [];
 
   const generalStep = workflow?.steps?.find(s => s.stepType === 'GENERAL_DETAILS');
   const isHomam = workflow?.serviceId === 'sri-srinivasa-divyanugraha-homam';
 
+  profiler?.startPhase('scan');
   // Semantic resolver is authoritative (NO secondary brittle selector system)
   const semanticFields = resolveGeneralFields(doc);
+  profiler?.endPhase('scan');
+
+  profiler?.startPhase('resolve');
+  profiler?.recordFieldResolved(semanticFields.size);
+  profiler?.endPhase('resolve');
 
   // General field definitions: key, label, value
   // For Homam: Gothram is first and booking-level, mobile is NOT part of Homam workflow.
@@ -1250,6 +1417,7 @@ async function executeGeneralStep(
     return true;
   });
 
+  profiler?.startPhase('fill');
   for (const def of generalFieldDefs) {
     if (shouldStop) break;
 
@@ -1314,6 +1482,29 @@ async function executeGeneralStep(
     }
 
     const isDropdown = def.key === 'state' || def.key === 'country';
+
+    // Differential fill optimization: skip writing if element already holds the desired value
+    if (isFieldSatisfied(semanticRes.element, def.value, def.key, isDropdown)) {
+      bookingSessionManager.emitDiagnostic('FIELD_VERIFIED', { field: def.key });
+      results.push({
+        field: def.key,
+        pilgrimIndex: -1,
+        status: 'verified',
+        attempts: 1,
+        durationMs: 1,
+        maskedValue: def.key === 'mobile' ? `••••••${def.value.slice(-2)}` : (def.key === 'email' ? `${def.value[0]}•••@•••` : def.value),
+        error: undefined,
+        detected: true,
+        confidence: semanticRes.confidence,
+        strategy: 'differentialPreserved',
+        filled: false,
+        verified: true,
+      });
+      profiler?.recordFieldSkipped();
+      profiler?.recordFieldVerified();
+      continue;
+    }
+
     const start = performance.now();
 
     const retryRes = await retryWithVerification({
@@ -1347,13 +1538,19 @@ async function executeGeneralStep(
       filled: true,
       verified: retryRes.success,
     });
+    if (retryRes.success) {
+      profiler?.recordFieldFilled();
+      profiler?.recordFieldVerified();
+    }
   }
+  profiler?.endPhase('fill');
 
   progress.generalResults = results;
 
   // ─── VERIFYING_GENERAL ───
   progress.state = 'VERIFYING_GENERAL';
   emit();
+  profiler?.startPhase('verify');
 
   progress.state = 'COMPLETE';
   progress.percent = 100;
@@ -1361,8 +1558,9 @@ async function executeGeneralStep(
 
   // Autofocus captcha
   autofocusCaptcha(doc);
+  profiler?.endPhase('verify');
 
-  return buildResult(progress, 'general', startedAt, workflow);
+  return buildResult(progress, 'general', startedAt, workflow, profiler);
 }
 
 // ─── Captcha Autofocus ───
@@ -2176,6 +2374,7 @@ function buildResult(
   step: 'pilgrim' | 'general' | 'unknown' | 'srivari_instructions' | 'srivari_enrollment',
   startedAt: number,
   workflow?: ServiceWorkflow,
+  profiler?: PerformanceProfiler,
 ): AutofillManagerResult {
   const allPilgrimResults = progress.pilgrimResults.flatMap(p => p.results);
   const allResults = [...allPilgrimResults, ...progress.generalResults];
@@ -2243,10 +2442,11 @@ function buildResult(
     return progress.generalResults.some(r => r.field === reqKey && (r.status === 'failed' || r.status === 'skipped'));
   });
 
+  const canonical = workflow?.serviceId ? getCanonicalService(workflow.serviceId) : undefined;
+  const hasNoGeneralDetailsStep = (workflow && !workflow.hasGeneralDetailsStep) || (canonical && !canonical.hasGeneralDetailsStep);
+
   const isGeneralSuccess = progress.state === 'COMPLETE' &&
-    allRequiredGeneralVerified &&
-    !hasFailedOrSkippedRequiredGeneral &&
-    totalFailed === 0;
+    (hasNoGeneralDetailsStep || (allRequiredGeneralVerified && !hasFailedOrSkippedRequiredGeneral && totalFailed === 0));
 
   const isSuccess = step === 'pilgrim'
     ? (progress.state === 'COMPLETE' && allPilgrimsFullyVerified && totalFailed === 0)
@@ -2280,6 +2480,8 @@ function buildResult(
     ? 'TTD_TEMPORARY_BOOKING_LOCK'
     : (isPartial ? 'PARTIAL_SUCCESS' : progress.state);
 
+  const perfMetrics = profiler ? profiler.finish(isSuccess) : undefined;
+
   return {
     success: isSuccess,
     state: finalState,
@@ -2294,5 +2496,7 @@ function buildResult(
     needsAttention: !isSuccess && (totalFailed > 0 || progress.state === 'TTD_TEMPORARY_BOOKING_LOCK'),
     failedItems,
     temporaryLock: progress.temporaryLock,
+    performanceMetrics: perfMetrics,
+    metrics: perfMetrics,
   };
 }

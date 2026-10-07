@@ -8,7 +8,7 @@
 
 import { dispatchAngularCompatibleEvents, triggerSelectChange } from '../dom-events';
 import { waitForCondition } from '../smart-wait';
-import { verifyField } from './verification';
+import { verifyField, verifyDropdownSelection } from './verification';
 import type { VerificationResult } from './verification';
 import logger from '@shared/logger';
 
@@ -71,6 +71,11 @@ export async function performTextTransaction(
     }
   }
 
+  // Differential check: if value is already identical and valid, skip re-typing
+  if (element.value === chosenValue && !(element instanceof HTMLInputElement && element.validity?.patternMismatch)) {
+    return;
+  }
+
   dispatchAngularCompatibleEvents(element, chosenValue);
 
   // If there is still a native pattern mismatch and we haven't tested casing adaptations:
@@ -116,6 +121,16 @@ export async function performDropdownTransaction(
   fieldKey: string,
   doc: Document = document,
 ): Promise<void> {
+  // Differential check: if dropdown is already verified to targetValue, skip opening and selecting
+  try {
+    const currentVerification = verifyDropdownSelection(control, targetValue, fieldKey, doc);
+    if (currentVerification.status === 'verified') {
+      return;
+    }
+  } catch (e) {
+    logger.debug(`Differential check failed for ${fieldKey}, proceeding with fill:`, e);
+  }
+
   // Dismiss any lingering CDK overlay backdrop first
   const lingeringBackdrop = doc.querySelector('.cdk-overlay-backdrop');
   if (lingeringBackdrop) {

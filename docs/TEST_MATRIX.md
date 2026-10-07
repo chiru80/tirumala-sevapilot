@@ -14,12 +14,14 @@ Result in Phase 0:
 
 ## Service matrix
 
+Automated suite: [`tests/services/service-matrix.test.ts`](file:///tests/services/service-matrix.test.ts) (54/54 tests passing)
+
 | Service | 1 | 2 | 3 | 4 | 5 | 6 | Notes |
 |---|---:|---:|---:|---:|---:|---:|---|
-| ₹300 Special Entry Darshan | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | General Details expected |
-| ₹200 Padmavathi / Sri PAT | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | No General Details step |
-| ₹1600 Divyanugraha Homam | ☐ | ☐ | N/A | N/A | N/A | N/A | Exact 2 required |
-| Srivari Seva | ☐ | N/A | N/A | N/A | N/A | N/A | Dedicated enrollment |
+| ₹300 Special Entry Darshan | ☑ | ☑ | ☑ | ☑ | ☑ | ☑ | General Details expected (1–6 valid) |
+| ₹200 Padmavathi / Sri PAT | ☑ | ☑ | ☑ | ☑ | ☑ | ☑ | No General Details step (1–6 valid) |
+| ₹1600 Divyanugraha Homam | ☒ | ☑ | N/A | N/A | N/A | N/A | Exact 2 required + Gothram mandatory |
+| Srivari Seva | ☑ | N/A | N/A | N/A | N/A | N/A | Dedicated enrollment (exact 1 slot) |
 
 ## Workflow tests
 

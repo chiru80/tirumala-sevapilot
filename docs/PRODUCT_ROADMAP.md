@@ -15,6 +15,7 @@ Status: COMPLETE
 - Define service-aware field requirements.
 
 ## Phase 2 — Home / Booking Cockpit
+Status: COMPLETE
 - First-time Home: CREATE PROFILE.
 - Existing profile: PREPARE BOOKING.
 - TTD detected: service + readiness + FILL & VERIFY.
@@ -23,11 +24,13 @@ Status: COMPLETE
 - Move technical diagnostics to Settings.
 
 ## Phase 3 — Service intelligence
+Status: COMPLETE
 - Centralize rules for ₹300 SED.
 - Centralize rules for ₹200 Padmavathi/Sri PAT.
 - Centralize rules for ₹1600 Homam.
 - Centralize Srivari enrollment rules.
 - Enforce exact service limits.
+- Service × Pilgrim-Count matrix fully tested.
 
 ## Phase 4 — Ultra-fast autofill
 - Profile/service/workflow prewarming.
