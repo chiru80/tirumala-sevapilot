@@ -84,10 +84,10 @@ export const ReleaseTicker: React.FC<ReleaseTickerProps> = ({ onOpenSource }) =>
         aria-label="TTD Release Announcements"
       >
         <span className="font-bold text-[10px] tracking-wider uppercase text-[#8D6E18] dark:text-[#D4A72C]">
-          TTD RELEASES
+          TTD RELEASE UPDATE
         </span>
         <span className="text-[#6F6477] dark:text-[#C5B4D4] truncate font-medium">
-          TTD release date not announced yet
+          Release date not announced yet · Official release information will appear here when verified.
         </span>
       </div>
     );

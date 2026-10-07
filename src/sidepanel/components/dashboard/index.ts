@@ -13,3 +13,5 @@ export * from './TemporaryLockCard';
 export * from './ReleaseTicker';
 export * from './HowItWorksCard';
 export * from './UpcomingReleasesCard';
+export * from './BookingCockpit';
+export * from './WhatShouldIDoNow';

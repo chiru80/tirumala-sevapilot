@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { getSettings } from '@storage/repository';
 import type { PreFlightReport } from '@shared/types';
 import { t } from '@i18n/index';
@@ -11,6 +11,7 @@ import {
   useDashboardDialogs,
   useDashboardShortcuts,
   useSessionHistory,
+  useBookingContext,
 } from '../hooks';
 
 import { getWorkflowById } from '../../services/workflows/registry';
@@ -27,7 +28,9 @@ import {
   ReleaseTicker,
   HowItWorksCard,
   UpcomingReleasesCard,
-  type DashboardContextState,
+  TemporaryLockCard,
+  BookingCockpit,
+  WhatShouldIDoNow,
 } from '../components/dashboard';
 
 import { PreFlightModal } from '../components/PreFlightModal';
@@ -46,7 +49,6 @@ export function Dashboard({ onNavigate }: DashboardProps = {}) {
     serviceName,
     serviceType,
     serviceId,
-    workflowId,
     scanResult,
     scanPage,
     openTtdWebsite,
@@ -96,7 +98,6 @@ export function Dashboard({ onNavigate }: DashboardProps = {}) {
     clearTemporaryLock: clearSessionLock,
   } = useAutofillSession();
 
-
   const effectiveLock = sessionLock || ttdLock;
 
   const handleCheckBookingHistory = async () => {
@@ -111,7 +112,6 @@ export function Dashboard({ onNavigate }: DashboardProps = {}) {
     setFillStatus(null);
     const updatedScan = await scanPage();
     if (updatedScan?.temporaryLock?.status === 'temporary-lock') {
-      // Re-scan still reports lock from TTD: retain TEMPORARY_TTD_LOCK state
       return;
     }
     clearSessionLock();
@@ -129,7 +129,7 @@ export function Dashboard({ onNavigate }: DashboardProps = {}) {
 
   // ─── Primary Fill & Verify Action Handler ───
   const handlePrimaryAction = async () => {
-    if (isFilling) return; // Lock: prevent duplicate execution
+    if (isFilling) return;
 
     if (!activeProfile) {
       onNavigate?.('profiles');
@@ -141,13 +141,12 @@ export function Dashboard({ onNavigate }: DashboardProps = {}) {
       return;
     }
 
-    // If blocker is General Details mobile, navigate devotee to Profiles tab to complete it
     if (!readiness.hasValidGeneralContact && readiness.allPilgrimsReady) {
       onNavigate?.('profiles');
       return;
     }
 
-    // If repair mode is active
+    // Repair mode for failed fields
     if (fillStage.stage === 'complete' && pilgrimReports.some(p => !p.allValidated)) {
       const failedIndices = pilgrimReports.filter(p => !p.allValidated).map(p => p.pilgrimIndex);
       const pilgrimsToRepair = selectedPilgrims.filter((_, idx) => failedIndices.includes(idx));
@@ -179,7 +178,7 @@ export function Dashboard({ onNavigate }: DashboardProps = {}) {
   };
 
   const executeFillAutofill = async () => {
-    if (isFilling) return; // Lock: prevent duplicate execution
+    if (isFilling) return;
     dialogs.closePreFlight();
     if (!activeProfile) return;
 
@@ -210,6 +209,29 @@ export function Dashboard({ onNavigate }: DashboardProps = {}) {
     );
   };
 
+  // ─── Phase 2 Booking Cockpit UI Adapter Hook ───
+  const cockpit = useBookingContext({
+    activeProfile,
+    selectedPilgrims,
+    serviceType,
+    serviceId: effectiveServiceId,
+    pageDetected,
+    scanResult,
+    workflowId: activeWorkflow?.workflowId,
+    readiness,
+    isFilling,
+    fillStage,
+    pilgrimReports,
+    temporaryLock: effectiveLock,
+    onNavigate,
+    openTtdWebsite,
+    handlePrimaryAction,
+    handleEmergencyStop,
+    handleRetryAfterLock,
+    handleCheckBookingHistory,
+    selectAllPilgrims: (id) => selectAllPilgrims(id || effectiveServiceId || (serviceType ? String(serviceType) : 'special-entry-darshan-300')),
+  });
+
   // Keyboard Shortcuts Hook
   useDashboardShortcuts({
     onToggleCommandCenter: dialogs.toggleCommandCenter,
@@ -217,89 +239,6 @@ export function Dashboard({ onNavigate }: DashboardProps = {}) {
     canTriggerFill: Boolean(readiness.isReady && !isFilling),
     onToggleDiagnostics: dialogs.toggleDiagnostics,
   });
-
-  const allVerified = pilgrimReports.length > 0 && pilgrimReports.every(p => p.allValidated);
-  const isComplete = fillStage.stage === 'complete' && pilgrimReports.length > 0;
-
-  // ─── State-Driven Contextual CTA Determination ───
-  let contextState: DashboardContextState = 'TTD_PAGE_READY';
-  let actionLabel: string | undefined = undefined;
-  let supportingText: string | undefined = undefined;
-  let secondaryAction: { label: string; onClick: () => void } | undefined = undefined;
-  let onPrimaryClick: () => void | Promise<void> = handlePrimaryAction;
-
-  if (effectiveLock) {
-    contextState = 'TEMPORARY_TTD_LOCK';
-    actionLabel = t('home.checkBookingHistory') || 'CHECK BOOKING HISTORY';
-    supportingText = t('home.temporaryLockDesc') || 'Your previous booking attempt is still active. TTD usually releases the lock after a few minutes.';
-    onPrimaryClick = handleCheckBookingHistory;
-    secondaryAction = {
-      label: t('home.tryAgain') || 'TRY AGAIN',
-      onClick: handleRetryAfterLock,
-    };
-  } else if (!activeProfile || (activeProfile.pilgrims?.length === 0)) {
-    contextState = 'FIRST_TIME_USER';
-    actionLabel = t('home.createProfile') || 'CREATE PROFILE';
-    supportingText = t('home.welcomeHeroSubtitle') || 'Save your pilgrim details once and prepare your booking faster.';
-    onPrimaryClick = () => onNavigate?.('profiles');
-    secondaryAction = {
-      label: t('home.learnHowItWorks') || 'Learn how it works',
-      onClick: () => {
-        const el = document.getElementById('sp-how-it-works-section');
-        el?.scrollIntoView({ behavior: 'smooth' });
-      },
-    };
-  } else if (isFilling) {
-    contextState = 'FILLING';
-    actionLabel = t('dashboard.fillingAndVerifying') || 'FILLING…';
-  } else if (isComplete && allVerified) {
-    contextState = 'READY_FOR_REVIEW';
-    actionLabel = t('home.readyForReview') || '✓ READY FOR REVIEW';
-    supportingText = t('home.readyForReviewDesc') || 'Your details have been filled and verified. Review before you submit.';
-  } else if (isComplete && !allVerified) {
-    contextState = 'ACTION_REQUIRED';
-    actionLabel = t('dashboard.repairMissingFields') || 'REPAIR MISSING FIELDS';
-    supportingText = t('dashboard.detailsNeedAttention') || 'Some fields could not be verified automatically.';
-  } else if (pageDetected) {
-    // TTD Page is detected
-    if (selectedPilgrims.length === 0) {
-      contextState = 'ACTION_REQUIRED';
-      actionLabel = t('dashboard.selectPilgrims') || 'SELECT PILGRIMS';
-      supportingText = t('home.selectPilgrimsPrompt') || 'Select at least one pilgrim.';
-      onPrimaryClick = () => {
-        if (activeProfile?.pilgrims && activeProfile.pilgrims.length > 0) {
-          selectAllPilgrims(effectiveServiceId || serviceType);
-        } else {
-          onNavigate?.('profiles');
-        }
-      };
-    } else if (!readiness.allPilgrimsReady) {
-      contextState = 'ACTION_REQUIRED';
-      actionLabel = t('dashboard.fixProfile') || 'FIX PROFILE';
-      supportingText = t('home.completeIdPrompt') || "Complete your pilgrim's ID details.";
-      onPrimaryClick = () => onNavigate?.('profiles');
-    } else if (!readiness.hasValidGeneralContact) {
-      contextState = 'ACTION_REQUIRED';
-      actionLabel = t('dashboard.completeGeneralDetails') || 'COMPLETE GENERAL DETAILS';
-      supportingText = t('home.completeGeneralPrompt') || 'Complete general contact details.';
-      onPrimaryClick = () => onNavigate?.('profiles');
-    } else {
-      contextState = 'TTD_PAGE_READY';
-      actionLabel = t('dashboard.fillAndVerify') || '⚡ FILL & VERIFY';
-      supportingText = t('home.readySupporting') || 'Your selected pilgrim details are ready.';
-      onPrimaryClick = handlePrimaryAction;
-    }
-  } else {
-    // No TTD Page detected
-    contextState = 'NO_TTD_PAGE';
-    actionLabel = t('home.openTtd') || 'OPEN TTD BOOKING ↗';
-    supportingText = t('home.openTtdSubtitle') || 'Open a supported TTD booking page to start.';
-    onPrimaryClick = openTtdWebsite;
-    secondaryAction = {
-      label: t('home.prepareBooking') || 'PREPARE BOOKING',
-      onClick: () => onNavigate?.('profiles'),
-    };
-  }
 
   const generatePreFlightReport = (): PreFlightReport => ({
     ready: readiness.isReady,
@@ -316,12 +255,36 @@ export function Dashboard({ onNavigate }: DashboardProps = {}) {
 
   return (
     <div className="space-y-3 pb-4">
-      {/* 1. TOP RELEASE TICKER / SCROLLING ANNOUNCEMENT */}
+      {/* 1. TOP VERIFIED RELEASE TICKER */}
       <ReleaseTicker />
 
       <div className="px-4 space-y-3">
-        {/* 2. TTD PAGE DETECTED CONTEXTUAL BANNER */}
-        {pageDetected && (
+        {/* 2. TEMPORARY LOCK ALERT BANNER (SERVER-SIDE HOLD) */}
+        {cockpit.isLocked && effectiveLock && (
+          <div
+            className="rounded-2xl border-2 border-amber-400 bg-amber-50/90 dark:bg-amber-950/40 p-3 shadow-xs space-y-1.5"
+            role="alert"
+            aria-live="assertive"
+          >
+            <div className="flex items-center justify-between border-b border-amber-200/80 dark:border-amber-800/60 pb-1.5">
+              <div className="flex items-center gap-2">
+                <span className="text-base text-amber-600 dark:text-amber-400 font-bold">⚠</span>
+                <span className="text-xs font-bold uppercase tracking-wider text-amber-900 dark:text-amber-200">
+                  BOOKING STATUS: Temporary TTD lock
+                </span>
+              </div>
+              <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-200/70 dark:bg-amber-900/70 text-amber-900 dark:text-amber-100">
+                Server-side hold
+              </span>
+            </div>
+            <p className="text-xs text-amber-900 dark:text-amber-100 font-medium">
+              Your previous booking attempt is still active. TTD holds the slot temporarily before releasing.
+            </p>
+          </div>
+        )}
+
+        {/* 3. TTD PAGE DETECTED CONTEXTUAL COCKPIT BANNER */}
+        {pageDetected && !cockpit.isLocked && (
           <div
             className="rounded-2xl border border-[#2F8F68]/30 bg-[#F2FBF6] dark:bg-[#1B3E2B]/30 p-3 shadow-2xs flex items-center justify-between gap-2 transition-all"
             role="status"
@@ -333,9 +296,14 @@ export function Dashboard({ onNavigate }: DashboardProps = {}) {
                   <span className="text-[10px] font-bold uppercase tracking-wider text-[#2F8F68] dark:text-[#4ADE80]">
                     {t('home.ttdPageReady') || 'TTD PAGE READY'}
                   </span>
+                  {cockpit.serviceInfo.ticketPrice && (
+                    <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-sm bg-[#2F8F68]/15 text-[#1B5E20] dark:text-[#A5D6A7]">
+                      ₹{cockpit.serviceInfo.ticketPrice}
+                    </span>
+                  )}
                 </div>
                 <p className="text-xs font-bold text-[#30213A] dark:text-[#F8EFD8] truncate">
-                  {serviceName || 'Supported TTD Booking'}
+                  {cockpit.serviceInfo.displayName || serviceName || 'Supported TTD Booking'}
                 </p>
               </div>
             </div>
@@ -354,28 +322,88 @@ export function Dashboard({ onNavigate }: DashboardProps = {}) {
           </div>
         )}
 
+        {/* FIRST-TIME DEVOTEE WELCOME HERO */}
+        {cockpit.isFirstTime && (
+          <div className="rounded-2xl border border-[rgba(84,37,138,0.15)] bg-gradient-to-b from-white to-[#FAF7F2] dark:from-[#2A1733] dark:to-[#211526] p-4 text-center space-y-2 shadow-2xs">
+            <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-gold-500/15 border border-gold-500/30 text-gold-600 dark:text-gold-400 text-lg mx-auto">
+              ✦
+            </div>
+            <div>
+              <h2 className="text-sm font-bold font-serif uppercase tracking-wider text-[#54258A] dark:text-[#F8EFD8]">
+                WELCOME TO SEVAPILOT
+              </h2>
+              <p className="text-xs font-semibold text-[#D4A72C] mt-0.5">
+                Your TTD booking assistant
+              </p>
+            </div>
+            <p className="text-xs text-[#6F6477] dark:text-[#C5B4D4] leading-relaxed max-w-xs mx-auto font-medium">
+              Create your pilgrim profile once. SevaPilot will help prepare your booking faster and safer.
+            </p>
+          </div>
+        )}
+
         {/* 3. DOMINANT PRIMARY CTA (STICKY) */}
         <div className="sticky top-0 z-20 bg-background/95 backdrop-blur pt-1 pb-1">
           <PrimaryAction
-            contextState={contextState}
-            actionLabel={actionLabel}
-            supportingText={supportingText}
-            secondaryAction={secondaryAction}
+            contextState={cockpit.contextState}
+            actionLabel={cockpit.primaryAction.label}
+            supportingText={cockpit.primaryAction.supportingText}
+            secondaryAction={cockpit.primaryAction.secondary}
             isReady={readiness.isReady}
             isFilling={isFilling}
-            isComplete={isComplete}
-            allVerified={allVerified}
-            isTemporaryLock={Boolean(effectiveLock)}
-            onClick={onPrimaryClick}
+            isComplete={cockpit.isComplete}
+            allVerified={cockpit.allVerified}
+            isTemporaryLock={cockpit.isLocked}
+            onClick={cockpit.primaryAction.onClick}
             onStop={handleEmergencyStop}
-            disabledReason={supportingText}
+            disabledReason={cockpit.primaryAction.supportingText}
           />
         </div>
 
-        {/* 4. SIMPLE "HOW IT WORKS" (COMPACT 3-STEP CARD) */}
+        {/* 4. SIMPLE "HOW IT WORKS" (COMPACT 4-STEP CARD) */}
         <div id="sp-how-it-works-section">
           <HowItWorksCard />
         </div>
+
+        {/* 4b. WHAT SHOULD I DO NOW? CONTEXTUAL GUIDANCE */}
+        <WhatShouldIDoNow
+          stage={
+            !activeProfile || (activeProfile.pilgrims || []).length === 0
+              ? 'NO_PROFILE'
+              : effectiveLock
+              ? 'TEMPORARY_LOCK'
+              : cockpit.isComplete && cockpit.allVerified
+              ? 'REVIEW_AND_PAYMENT'
+              : pageDetected
+              ? 'TTD_PAGE_OPEN'
+              : 'PROFILE_READY'
+          }
+          onActionClick={
+            !activeProfile || (activeProfile.pilgrims || []).length === 0
+              ? () => onNavigate?.('profiles')
+              : pageDetected
+              ? cockpit.primaryAction.onClick
+              : openTtdWebsite
+          }
+        />
+
+        {/* 4c. HERO BOOKING COCKPIT (WHEN TTD PAGE DETECTED) */}
+        {pageDetected && !effectiveLock && (
+          <BookingCockpit
+            serviceName={serviceName || 'Supported TTD Booking'}
+            serviceType={serviceType}
+            selectedPilgrims={selectedPilgrims}
+            maxPilgrims={cockpit.serviceInfo.maxPilgrims || 6}
+            isReady={readiness.isReady}
+            isFilling={isFilling}
+            isComplete={cockpit.isComplete}
+            allVerified={cockpit.allVerified}
+            onFillClick={cockpit.primaryAction.onClick}
+            onStopClick={handleEmergencyStop}
+            onNavigateProfiles={() => onNavigate?.('profiles')}
+            pilgrimReports={pilgrimReports}
+          />
+        )}
 
         {/* 5. UPCOMING TTD RELEASES CARD */}
         <UpcomingReleasesCard />
@@ -398,12 +426,12 @@ export function Dashboard({ onNavigate }: DashboardProps = {}) {
             onSelectAll={() => selectAllPilgrims(effectiveServiceId || serviceType)}
             onDeselectAll={() => deselectAllPilgrims(effectiveServiceId || serviceType)}
             onEditPilgrim={() => onNavigate?.('profiles')}
-            maxAllowed={activeWorkflow?.maxPilgrims}
-            exactCount={activeWorkflow?.exactPilgrims}
+            maxAllowed={cockpit.serviceInfo.maxPilgrims}
+            exactCount={cockpit.serviceInfo.exactPilgrims}
           />
         )}
 
-        {/* 8. LIVE AUTOFILL PROGRESS & STATUS NOTICE */}
+        {/* 7. LIVE AUTOFILL PROGRESS & STATUS NOTICE */}
         {isFilling && (
           <AutofillProgress
             currentPilgrim={currentProgressPilgrim}
@@ -453,15 +481,15 @@ export function Dashboard({ onNavigate }: DashboardProps = {}) {
           </div>
         )}
 
-        {/* 9. AUTOFILL VERIFICATION RESULT & REPAIR PANEL */}
-        {isComplete && !isFilling && (
+        {/* 8. AUTOFILL VERIFICATION RESULT & REPAIR PANEL */}
+        {cockpit.isComplete && !isFilling && (
           <AutofillResult
             pilgrimReports={pilgrimReports}
             onRepair={handlePrimaryAction}
           />
         )}
 
-        {isComplete && !isFilling && !allVerified && (
+        {cockpit.isComplete && !isFilling && !cockpit.allVerified && (
           <RepairPanel
             pilgrimReports={pilgrimReports}
             onRetryField={async (pilgrimIndex, fieldType) => {
@@ -474,7 +502,7 @@ export function Dashboard({ onNavigate }: DashboardProps = {}) {
           />
         )}
 
-        {/* 10. BOOKING READINESS (CLEAN CONSUMER-LEVEL STATUS) */}
+        {/* 9. BOOKING READINESS (CLEAN CONSUMER-LEVEL STATUS — ZERO PERCENTAGES) */}
         <div
           className="pt-1 flex items-center justify-between text-xs text-[#6F6477] dark:text-[#A692B4]"
           role="region"
@@ -495,14 +523,14 @@ export function Dashboard({ onNavigate }: DashboardProps = {}) {
           </div>
         </div>
 
-        {/* 11. QUICK ACTIONS (PILGRIMS, PROFILES, BOOKING HISTORY, SETTINGS) */}
+        {/* 10. QUICK ACTIONS */}
         <QuickActions
           onNavigate={(page) => onNavigate?.(page)}
           onOpenBookingHistory={handleCheckBookingHistory}
           onOpenPrivacy={() => dialogs.openSessionHistory()}
         />
 
-        {/* 12. PRIVACY BADGE & FOOTER SHORTCUT HINT */}
+        {/* 11. PRIVACY BADGE & FOOTER SHORTCUT HINT */}
         <div className="flex items-center justify-between pt-1">
           <PrivacyBadge />
           <span className="text-xs text-[#6F6477] dark:text-[#A692B4] font-medium">
@@ -520,7 +548,7 @@ export function Dashboard({ onNavigate }: DashboardProps = {}) {
           dialogs.closePreFlight();
           onNavigate?.('profiles');
         }}
-        serviceName={serviceName}
+        serviceName={cockpit.serviceInfo.displayName}
         activeProfile={activeProfile}
         report={generatePreFlightReport()}
         fieldCount={scanResult?.mappedFields?.length || selectedPilgrims.length * 5}
@@ -557,8 +585,8 @@ export function Dashboard({ onNavigate }: DashboardProps = {}) {
         onClose={dialogs.toggleDiagnostics}
         data={{
           ttdDetected: pageDetected,
-          serviceId: activeWorkflow?.serviceId || (serviceType ? String(serviceType) : undefined),
-          serviceName: activeWorkflow?.serviceName || serviceName,
+          serviceId: cockpit.serviceInfo.serviceId,
+          serviceName: cockpit.serviceInfo.displayName,
           workflowVersion: activeWorkflow?.workflowVersion || '1.0.0',
           currentStep: fillStage.stage.toUpperCase(),
           rowsDetected: scanResult?.pilgrimCardCount || selectedPilgrims.length,

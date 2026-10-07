@@ -56,7 +56,7 @@ export const ActiveProfileCard: React.FC<ActiveProfileCardProps> = ({
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
             <span className="text-[11px] font-bold uppercase tracking-wider text-[#6F6477] dark:text-[#A692B4]">
-              PROFILE
+              {t('home.welcomeBack') || 'WELCOME BACK'}
             </span>
           </div>
 
@@ -66,7 +66,7 @@ export const ActiveProfileCard: React.FC<ActiveProfileCardProps> = ({
 
           <div className="flex items-center gap-2 mt-1">
             <span className="text-xs font-semibold text-[#54258A] dark:text-[#F0CC63] bg-[#54258A]/8 dark:bg-[#D4A72C]/15 px-2 py-0.5 rounded-md">
-              {profile.pilgrims?.length || 0} {pilgrimPlural}
+              {profile.pilgrims?.length || 0} {pilgrimPlural} ready
             </span>
             {selectedCount > 0 && selectedCount !== profile.pilgrims?.length && (
               <span className="text-[11px] text-[#6F6477] dark:text-[#C5B4D4] font-medium">
