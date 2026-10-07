@@ -1,12 +1,15 @@
 import { ServiceType } from '@shared/types';
 import type { ServiceAdapter } from '../types';
+import { getCanonicalService } from '../canonical-service-registry';
+
+const canonicalSed = getCanonicalService('special-entry-darshan-300')!;
 
 export const darshanAdapter: ServiceAdapter = {
   id: 'darshan-special-entry',
   name: 'Special Entry Darshan (SED ₹300 / Sri PAT)',
   serviceType: ServiceType.DARSHAN,
   description: 'Special Entry Darshan (Seeghra Darshanam / Sri PAT) booking form adapter for TTD portal.',
-  maxPilgrims: 6,
+  maxPilgrims: canonicalSed.maxPilgrims,
   urlPatterns: [
     /sed|darshan|special.*entry|spat|slot-booking|pilgrim-details/i,
     /home\/dashboard/i,
