@@ -18,11 +18,57 @@ const migrations: Record<number, MigrationFn> = {
   // },
 };
 
+/** Safe storage helpers with retry and lastError suppression for SW lifecycle transitions */
+async function safeStorageGet(keys: string | string[] | null): Promise<Record<string, unknown>> {
+  if (typeof chrome === 'undefined' || !chrome.storage?.local) {
+    return {};
+  }
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      const res = await chrome.storage.local.get(keys);
+      if (chrome.runtime?.lastError) {
+        void chrome.runtime.lastError;
+      }
+      return res || {};
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if ((msg.includes('No SW') || msg.includes('context invalidated')) && attempt < 3) {
+        await new Promise((resolve) => setTimeout(resolve, 150 * attempt));
+        continue;
+      }
+      throw err;
+    }
+  }
+  return {};
+}
+
+async function safeStorageSet(items: Record<string, unknown>): Promise<void> {
+  if (typeof chrome === 'undefined' || !chrome.storage?.local) {
+    return;
+  }
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      await chrome.storage.local.set(items);
+      if (chrome.runtime?.lastError) {
+        void chrome.runtime.lastError;
+      }
+      return;
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if ((msg.includes('No SW') || msg.includes('context invalidated')) && attempt < 3) {
+        await new Promise((resolve) => setTimeout(resolve, 150 * attempt));
+        continue;
+      }
+      throw err;
+    }
+  }
+}
+
 /**
  * Detect the current schema version in storage.
  */
 export async function detectSchemaVersion(): Promise<number> {
-  const result = await chrome.storage.local.get(STORAGE_KEYS.SCHEMA_VERSION);
+  const result = await safeStorageGet(STORAGE_KEYS.SCHEMA_VERSION);
   return (result[STORAGE_KEYS.SCHEMA_VERSION] as number | undefined) ?? 1;
 }
 
@@ -40,9 +86,9 @@ export async function runMigrations(): Promise<void> {
   logger.info(`Migrating schema from v${currentVersion} to v${CURRENT_SCHEMA_VERSION}`);
 
   // Create backup before migration
-  const allData = await chrome.storage.local.get(null);
+  const allData = await safeStorageGet(null);
   const backupKey = `sp_migration_backup_v${currentVersion}_${Date.now()}`;
-  await chrome.storage.local.set({ [backupKey]: allData });
+  await safeStorageSet({ [backupKey]: allData });
   logger.info(`Migration backup created: ${backupKey}`);
 
   let data = { ...allData };
@@ -62,14 +108,21 @@ export async function runMigrations(): Promise<void> {
   }
 
   // Save migrated data and update version
-  await chrome.storage.local.set({
+  await safeStorageSet({
     ...data,
     [STORAGE_KEYS.SCHEMA_VERSION]: CURRENT_SCHEMA_VERSION,
   });
 
   // Phase 2.3: Remove temporary migration backup on success to prevent permanent plaintext PII copies
-  await chrome.storage.local.remove(backupKey);
-  logger.info(`Temporary migration backup cleaned up: ${backupKey}`);
+  if (typeof chrome !== 'undefined' && chrome.storage?.local?.remove) {
+    try {
+      await chrome.storage.local.remove(backupKey);
+      if (chrome.runtime?.lastError) void chrome.runtime.lastError;
+      logger.info(`Temporary migration backup cleaned up: ${backupKey}`);
+    } catch {
+      // Non-critical
+    }
+  }
 
   logger.info(`Schema migration complete. Now at v${CURRENT_SCHEMA_VERSION}`);
 }

@@ -12,27 +12,36 @@ import { isSupportedDomain } from '@shared/utils';
 
 // ─── Extension Lifecycle ───
 
-chrome.runtime.onInstalled.addListener(async (details) => {
+chrome.runtime.onInstalled.addListener((details) => {
+  // Clear any pending runtime.lastError
+  if (chrome.runtime?.lastError) {
+    void chrome.runtime.lastError;
+  }
+
+  // Configure side panel behavior safely within onInstalled
+  if (typeof chrome !== 'undefined' && chrome.sidePanel?.setPanelBehavior) {
+    chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch(() => {
+      if (chrome.runtime?.lastError) void chrome.runtime.lastError;
+    });
+  }
+
+  // Setup contextual menu
+  setupContextMenu();
+
   if (details.reason === 'install') {
     logger.info('SevaPilot installed for the first time');
-
-    // Set default side panel behavior
-    await chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
-
   } else if (details.reason === 'update') {
-    logger.info(`SevaPilot updated from ${details.previousVersion}`);
-    // Run data migrations
-    try {
-      await runMigrations();
-    } catch (error) {
-      logger.error('Migration failed during update', error);
-    }
+    logger.info(`SevaPilot updated from ${details.previousVersion || 'previous version'}`);
+    // Run data migrations asynchronously with graceful error boundary
+    runMigrations().catch((error: unknown) => {
+      const msg = error instanceof Error ? error.message : String(error);
+      if (msg.includes('No SW') || msg.includes('context invalidated')) {
+        logger.warn('Service worker lifecycle transitioning during update; migration deferred');
+      } else {
+        logger.error('Migration failed during update', error);
+      }
+    });
   }
-});
-
-// ─── Side Panel Behavior ───
-chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch(() => {
-  // May fail if called before ready
 });
 
 import { isValidExtensionMessage } from '@shared/message-security';
@@ -112,23 +121,30 @@ chrome.commands.onCommand.addListener(async (command) => {
 
 // ─── Context Menu (optional side panel opener) ───
 
-chrome.runtime.onInstalled.addListener(() => {
+function setupContextMenu(): void {
+  if (typeof chrome === 'undefined' || !chrome.contextMenus) return;
   try {
-    chrome.contextMenus?.removeAll(() => {
-      chrome.contextMenus?.create({
-        id: 'open-sevapilot',
-        title: 'Open SevaPilot',
-        contexts: ['page'],
-        documentUrlPatterns: [
-          'https://ttdevasthanams.ap.gov.in/*',
-          'https://tirupatibalaji.ap.gov.in/*',
-        ],
-      });
+    chrome.contextMenus.removeAll(() => {
+      if (chrome.runtime?.lastError) void chrome.runtime.lastError;
+      chrome.contextMenus.create(
+        {
+          id: 'open-sevapilot',
+          title: 'Open SevaPilot',
+          contexts: ['page'],
+          documentUrlPatterns: [
+            'https://ttdevasthanams.ap.gov.in/*',
+            'https://tirupatibalaji.ap.gov.in/*',
+          ],
+        },
+        () => {
+          if (chrome.runtime?.lastError) void chrome.runtime.lastError;
+        }
+      );
     });
   } catch {
     // Harmless if context menu already exists or not supported
   }
-});
+}
 
 chrome.contextMenus?.onClicked.addListener(async (info, tab) => {
   if (info.menuItemId === 'open-sevapilot' && tab?.id) {
