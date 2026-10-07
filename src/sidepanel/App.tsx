@@ -81,14 +81,13 @@ export default function App() {
       <header className="relative bg-[#FFFDF7] dark:bg-[#2C1A35] border-b border-[rgba(84,37,138,0.08)] px-4 py-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            {/* Temple Emblem */}
-            <div className="flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-br from-[#54258A] to-[#3E1B68] shadow-sm">
-              <svg className="w-4 h-4 text-[#D4A72C]" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 2C12 2 10.5 5 10.5 8C10.5 9.5 11.2 10.5 12 11C12.8 10.5 13.5 9.5 13.5 8C13.5 5 12 2 12 2Z" fill="#D4A72C" />
-                <path d="M7 6C7 6 8.5 8.5 8.5 11C8.5 13 7.5 14.5 6 15C5 13 5.5 10 7 6Z" fill="#D4A72C" opacity="0.7" />
-                <path d="M17 6C17 6 15.5 8.5 15.5 11C15.5 13 16.5 14.5 18 15C19 13 18.5 10 17 6Z" fill="#D4A72C" opacity="0.7" />
-                <path d="M11 12H13V22H11V12Z" fill="#D4A72C" opacity="0.5" />
-              </svg>
+            {/* Temple Emblem / Logo */}
+            <div className="relative flex items-center justify-center w-9 h-9 rounded-full bg-gradient-to-br from-[#D4A72C] via-[#FFD700] to-[#8D6E18] p-[1.5px] shadow-sm shrink-0">
+              <img
+                src="/icons/icon48.png"
+                alt="Tirumala SevaPilot Logo"
+                className="w-full h-full rounded-full object-cover"
+              />
             </div>
 
             <div>
