@@ -5,7 +5,7 @@
 // ─────────────────────────────────────────────────
 
 import logger from '@shared/logger';
-import { getFieldContract } from './field-contracts';
+import { getFieldContract, SRIVARI_SEVA_CONTRACTS } from './field-contracts';
 import { findLabelText } from '../form-scanner';
 
 // ─── Types ───
@@ -37,9 +37,14 @@ export type GeneralFieldType = 'gothram' | 'email' | 'mobile' | 'city' | 'state'
 export type SrivariFieldType =
   | 'idProofType'
   | 'idProofNumber'
+  | 'mobile'
   | 'photo'
+  | 'name'
   | 'fatherSpouseName'
   | 'dateOfBirth'
+  | 'age'
+  | 'gender'
+  | 'email'
   | 'bloodGroup'
   | 'mentallyFit'
   | 'physicallyFit'
@@ -51,8 +56,12 @@ export type SrivariFieldType =
   | 'specialisation'
   | 'placeOfWork'
   | 'document'
+  | 'country'
+  | 'pincode'
+  | 'state'
   | 'district'
   | 'mandal'
+  | 'city'
   | 'street'
   | 'doorNumber';
 
@@ -1031,6 +1040,12 @@ export function findSrivariSections(doc: Document = document): SrivariSections {
   return sections;
 }
 
+export interface SrivariEnrollmentResolution {
+  sections: SrivariSections;
+  fields: Map<LogicalFieldType, FieldResolution>;
+  requiredMap: Map<LogicalFieldType, boolean>;
+}
+
 /**
  * Resolve all fields on the Srivari Seva enrollment form scoped strictly by section.
  * Prevents Identity Photo from being confused with Supporting Document,
@@ -1038,16 +1053,16 @@ export function findSrivariSections(doc: Document = document): SrivariSections {
  */
 export function resolveSrivariEnrollmentFields(
   doc: Document = document,
-): Map<LogicalFieldType, FieldResolution> {
+): SrivariEnrollmentResolution {
   const sections = findSrivariSections(doc);
-  const result = new Map<LogicalFieldType, FieldResolution>();
+  const fields = new Map<LogicalFieldType, FieldResolution>();
 
   // 1. Identity Proof Section: idProofType, idProofNumber, mobile, photo
   const identityContainer = sections.identityProof || doc.body || doc.documentElement;
   const identityFields: LogicalFieldType[] = ['idProofType', 'photoIdProof', 'idProofNumber', 'photoIdNumber', 'mobile', 'photo'];
   const resolvedIdentity = resolveFieldsInContainer(identityContainer, identityFields, doc);
   for (const [k, v] of resolvedIdentity) {
-    result.set(k, v);
+    fields.set(k, v);
   }
 
   // 2. Basic Details Section: name, fatherSpouseName, dateOfBirth, age, email, bloodGroup, gender
@@ -1063,7 +1078,7 @@ export function resolveSrivariEnrollmentFields(
   ];
   const resolvedBasic = resolveFieldsInContainer(basicContainer, basicFields, doc);
   for (const [k, v] of resolvedBasic) {
-    result.set(k, v);
+    fields.set(k, v);
   }
 
   // 3. Fitness Section: mentallyFit, physicallyFit
@@ -1071,7 +1086,7 @@ export function resolveSrivariEnrollmentFields(
   const fitnessFields: LogicalFieldType[] = ['mentallyFit', 'physicallyFit'];
   const resolvedFitness = resolveFieldsInContainer(fitnessContainer, fitnessFields, doc);
   for (const [k, v] of resolvedFitness) {
-    result.set(k, v);
+    fields.set(k, v);
   }
 
   // 4. Profession & Education Details Section: qualification, profession, areaOfInterest, employeeId, designation, specialisation, placeOfWork, document
@@ -1088,7 +1103,7 @@ export function resolveSrivariEnrollmentFields(
   ];
   const resolvedProf = resolveFieldsInContainer(profContainer, profFields, doc);
   for (const [k, v] of resolvedProf) {
-    result.set(k, v);
+    fields.set(k, v);
   }
 
   // 5. Address Details Section: country, pincode, state, district, mandal, city, street, doorNumber
@@ -1106,9 +1121,16 @@ export function resolveSrivariEnrollmentFields(
   ];
   const resolvedAddress = resolveFieldsInContainer(addressContainer, addressFields, doc);
   for (const [k, v] of resolvedAddress) {
-    result.set(k, v);
+    fields.set(k, v);
   }
 
-  return result;
+  const requiredMap = new Map<LogicalFieldType, boolean>();
+  for (const [k, v] of fields.entries()) {
+    const isLiveReq = isRequiredField(v.element, undefined, doc);
+    const contract = SRIVARI_SEVA_CONTRACTS[k as string];
+    requiredMap.set(k, isLiveReq || Boolean(contract?.required));
+  }
+
+  return { sections, fields, requiredMap };
 }
 

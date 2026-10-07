@@ -376,6 +376,51 @@ async function handleMessage(
           break;
         }
 
+        if (managerResult.step === 'srivari_instructions') {
+          sendResponse({
+            success: managerResult.success,
+            data: [],
+            managerResult,
+            actionRequired: managerResult.actionRequired,
+            actionMessage: managerResult.actionMessage,
+            instructionsState: managerResult.instructionsState,
+            error: managerResult.success ? undefined : (managerResult.errors.join('; ') || 'Srivari Seva instructions review needed'),
+          });
+          break;
+        }
+
+        if (managerResult.step === 'srivari_enrollment') {
+          const fillResults: any[] = [];
+          for (const gr of managerResult.generalResults) {
+            fillResults.push({
+              field: {
+                fieldId: `srivari_${gr.field}`,
+                scannedField: {
+                  label: gr.field,
+                  type: gr.field === 'state' || gr.field === 'country' || gr.field === 'idProofType' || gr.field === 'gender' ? 'select' : 'text',
+                },
+                pilgrimKey: gr.field,
+                confidence: gr.confidence ? (gr.confidence / 100) : 1,
+              },
+              status: gr.status === 'verified' ? 'filled' : (gr.status === 'skipped' ? 'skipped' : 'failed'),
+              newValue: gr.maskedValue || '',
+              isAngularValid: gr.status === 'verified',
+              error: gr.error,
+            });
+          }
+          sendResponse({
+            success: managerResult.success,
+            data: fillResults,
+            managerResult,
+            actionRequired: managerResult.actionRequired,
+            actionMessage: managerResult.actionMessage,
+            optionalFieldsSkipped: managerResult.optionalFieldsSkipped,
+            optionalFieldsFilled: managerResult.optionalFieldsFilled,
+            error: managerResult.success ? undefined : (managerResult.errors.join('; ') || 'Some required fields could not be verified'),
+          });
+          break;
+        }
+
         if (managerResult.temporaryLock || managerResult.state === 'TTD_TEMPORARY_BOOKING_LOCK') {
           sendResponse({
             success: false,

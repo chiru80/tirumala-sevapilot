@@ -37,7 +37,7 @@ export const BookingFlowTracker: React.FC<BookingFlowTrackerProps> = ({
     <div className="bg-[#FFFDF7] dark:bg-[#2A1733] border border-[rgba(212,167,44,0.3)] rounded-xl p-3 shadow-xs">
       <div className="flex items-center justify-between mb-2">
         <span className="text-[11px] font-bold uppercase tracking-wider text-[#5B2A86] dark:text-[#D4A72C]">
-          BOOKING FLOW
+          BOOKING / ENROLLMENT FLOW
         </span>
         <span className="text-[10px] text-[#6B5A70] dark:text-[#A898B0]">
           User-controlled submission

@@ -11,6 +11,12 @@ import { validateMobile } from '../validation/mobile';
 import { checkGeneralHealth } from './profile-health';
 import { getWorkflowById } from './workflows/registry';
 import { getServiceConfig, type TtdServiceConfig } from './ttd-information/ttd-service-rules';
+import {
+  detectDeclarationCheckbox,
+  detectSrivariSevaInstructions,
+  detectSrivariSevaEnrollment,
+} from './workflows/step-detectors';
+import { resolveSrivariEnrollmentFields } from '../content/autofill/field-resolver';
 
 export interface ReadinessCheckItem {
   id: string;
@@ -30,6 +36,17 @@ export interface WhyNotReadyExplanation {
   headline: string;
   items: WhyNotReadyExplanationItem[];
   recommendedActions: string[];
+}
+
+export interface DomReadinessEvaluation {
+  isReady: boolean;
+  step: 'INSTRUCTIONS_REVIEW' | 'SRIVARI_SEVA_ENROLLMENT' | 'UNKNOWN';
+  actionRequired: boolean;
+  actionMessage?: string;
+  missingRequiredFields: string[];
+  satisfiedRequiredFields: string[];
+  optionalFieldsSkipped: string[];
+  optionalFieldsAvailable: string[];
 }
 
 export interface ReadinessEvaluation {
@@ -294,9 +311,21 @@ export class ReadinessEngine {
         missingFields.push(`${pilgrimName}: Valid ID Number`);
       }
 
-      // 6. Optional Mobile format check:
-      // In Phase 5, mobile is OPTIONAL for pilgrims and must NOT make readiness fail if omitted!
-      if (pilgrim.mobile && String(pilgrim.mobile).trim()) {
+      // 6. Mobile check: Required for Srivari Seva, optional for standard Darshan/Padmavathi/Homam
+      const isSrivariSeva = resolvedServiceId === 'srivari-seva' || serviceType === ServiceType.SRIVARI_SEVA;
+      if (isSrivariSeva) {
+        const mob = String(pilgrim.mobile || '').replace(/\D/g, '');
+        if (mob.length !== 10) {
+          allPilgrimsValid = false;
+          pilgrimErrors.push('Missing 10-digit Mobile');
+          missingFields.push(`${pilgrimName}: Mobile (10 digits)`);
+        }
+        if (!pilgrim.photo) {
+          allPilgrimsValid = false;
+          pilgrimErrors.push('Missing Photo');
+          missingFields.push(`${pilgrimName}: Photo`);
+        }
+      } else if (pilgrim.mobile && String(pilgrim.mobile).trim()) {
         const mobile = String(pilgrim.mobile).trim();
         const mobileVal = validateMobile(mobile);
         if (!mobileVal.valid) {
@@ -418,6 +447,7 @@ export class ReadinessEngine {
     let requiresMobile = false; // Phase 5 rule: Mobile is OPTIONAL unless explicitly required
     let requiresGothram = false;
     let requiresEmail = false;
+    const isSrivariSeva = serviceConfig?.serviceId === 'srivari-seva' || workflow?.serviceId === 'srivari-seva';
 
     if (serviceConfig) {
       requiresGeneralDetails = serviceConfig.requiredGeneralFields.length > 0;
@@ -516,69 +546,118 @@ export class ReadinessEngine {
         }
       }
 
-      // Address fields (city, state, country, pinCode)
-      const missingAddrFields: string[] = [];
-      if (requiredGeneralFields.includes('city') && !effectiveGeneral.city?.trim()) missingAddrFields.push('City');
-      if (requiredGeneralFields.includes('state') && !effectiveGeneral.state?.trim()) missingAddrFields.push('State');
-      if (requiredGeneralFields.includes('country') && !effectiveGeneral.country?.trim()) missingAddrFields.push('Country');
-      if (requiredGeneralFields.includes('pinCode')) {
-        const pin = (effectiveGeneral.pinCode || '').replace(/\D/g, '');
-        if (pin.length !== 6) missingAddrFields.push('6-digit PIN code');
-      }
+      if (isSrivariSeva) {
+        const pilgrim = targetPilgrims[0];
+        const effectiveCity = pilgrim?.city?.trim() || effectiveGeneral.city?.trim();
+        const effectiveState = pilgrim?.state?.trim() || effectiveGeneral.state?.trim();
+        const effectiveCountry = pilgrim?.country?.trim() || effectiveGeneral.country?.trim() || 'India';
+        const effectivePin = (pilgrim?.pinCode || effectiveGeneral.pinCode || '').replace(/\D/g, '');
+        const effectiveDistrict = pilgrim?.district?.trim();
+        const effectiveStreet = pilgrim?.srivariSeva?.street?.trim() || pilgrim?.address?.trim();
+        const effectiveDoor = pilgrim?.srivariSeva?.doorNumber?.trim();
 
-      if (missingAddrFields.length > 0) {
-        isBookingGeneralReady = false;
-        explanationItems.push({
-          type: 'fail',
-          text: `Booking address missing: ${missingAddrFields.join(', ')}`,
-        });
-        recommendations.push(`Complete booking address: ${missingAddrFields.join(', ')}.`);
-      } else if (requiredGeneralFields.some(f => ['city', 'state', 'country', 'pinCode'].includes(f))) {
-        explanationItems.push({
-          type: 'pass',
-          text: 'Booking address ready',
-        });
-      }
+        const missingSrivariAddr: string[] = [];
+        if (!effectiveCountry) missingSrivariAddr.push('Country');
+        if (effectivePin.length !== 6) missingSrivariAddr.push('6-digit PIN code');
+        if (!effectiveState) missingSrivariAddr.push('State');
+        if (!effectiveDistrict) missingSrivariAddr.push('District');
+        if (!effectiveCity) missingSrivariAddr.push('City');
+        if (!effectiveStreet) missingSrivariAddr.push('Street');
+        if (!effectiveDoor) missingSrivariAddr.push('Door Number');
 
-      // Combine general health
-      const generalHealth = checkGeneralHealth(effectiveGeneral, requiresEmail, requiresGothram, requiresMobile);
-      if (!generalHealth.isReady) {
-        isBookingGeneralReady = false;
-        const missingLabels = generalHealth.missingFields.map(f => {
-          switch (f) {
-            case 'gothram': return 'Gothram';
-            case 'email': return 'Email Address';
-            case 'mobile': return 'Mobile (10 digits)';
-            case 'city': return 'City';
-            case 'state': return 'State';
-            case 'country': return 'Country';
-            case 'pinCode': return 'PIN Code (6 digits)';
-            default: return f;
-          }
-        });
-        if (generalHealth.missingFields.includes('mobile')) {
-          missingFields.push('General Details: Mobile number required');
+        if (missingSrivariAddr.length > 0) {
+          isBookingGeneralReady = false;
+          explanationItems.push({
+            type: 'fail',
+            text: `Address details missing: ${missingSrivariAddr.join(', ')}`,
+          });
+          missingFields.push(`Address Details: ${missingSrivariAddr.join(', ')} required`);
+          checks.push({
+            id: 'srivari_address',
+            label: 'Address Details',
+            status: 'warning',
+            message: `Missing required address fields: ${missingSrivariAddr.join(', ')}`,
+            detail: 'Complete address details before Srivari Seva enrollment.',
+          });
+          recommendations.push(`Complete required address fields: ${missingSrivariAddr.join(', ')}.`);
+        } else {
+          explanationItems.push({
+            type: 'pass',
+            text: 'Address details ready',
+          });
+          checks.push({
+            id: 'srivari_address',
+            label: 'Address Details',
+            status: 'ready',
+            message: 'All required address details verified',
+            detail: `${effectiveDoor}, ${effectiveStreet}, ${effectiveCity}, ${effectiveDistrict}, ${effectiveState} - ${effectivePin}`,
+          });
         }
-        if (generalHealth.missingFields.includes('gothram')) {
-          missingFields.push('General Details: Gothram required');
-        }
-        missingFields.push(`Booking Details: ${missingLabels.join(', ')} required`);
-
-        checks.push({
-          id: 'general_details',
-          label: 'Booking Details',
-          status: 'warning',
-          message: `Missing required booking fields: ${missingLabels.join(', ')}`,
-          detail: 'Booking details required before proceeding to payment.',
-        });
       } else {
-        checks.push({
-          id: 'general_details',
-          label: 'Booking Details',
-          status: 'ready',
-          message: 'All booking contact & address details verified',
-          detail: `Booking details: ${effectiveGeneral.gothram ? `Gothram: ${effectiveGeneral.gothram} • ` : ''}${effectiveGeneral.email ? `${effectiveGeneral.email} • ` : ''}${effectiveGeneral.city}, ${effectiveGeneral.state}`,
-        });
+        // Address fields (city, state, country, pinCode)
+        const missingAddrFields: string[] = [];
+        if (requiredGeneralFields.includes('city') && !effectiveGeneral.city?.trim()) missingAddrFields.push('City');
+        if (requiredGeneralFields.includes('state') && !effectiveGeneral.state?.trim()) missingAddrFields.push('State');
+        if (requiredGeneralFields.includes('country') && !effectiveGeneral.country?.trim()) missingAddrFields.push('Country');
+        if (requiredGeneralFields.includes('pinCode')) {
+          const pin = (effectiveGeneral.pinCode || '').replace(/\D/g, '');
+          if (pin.length !== 6) missingAddrFields.push('6-digit PIN code');
+        }
+
+        if (missingAddrFields.length > 0) {
+          isBookingGeneralReady = false;
+          explanationItems.push({
+            type: 'fail',
+            text: `Booking address missing: ${missingAddrFields.join(', ')}`,
+          });
+          recommendations.push(`Complete booking address: ${missingAddrFields.join(', ')}.`);
+        } else if (requiredGeneralFields.some(f => ['city', 'state', 'country', 'pinCode'].includes(f))) {
+          explanationItems.push({
+            type: 'pass',
+            text: 'Booking address ready',
+          });
+        }
+
+        // Combine general health
+        const generalHealth = checkGeneralHealth(effectiveGeneral, requiresEmail, requiresGothram, requiresMobile);
+        if (!generalHealth.isReady) {
+          isBookingGeneralReady = false;
+          const missingLabels = generalHealth.missingFields.map(f => {
+            switch (f) {
+              case 'gothram': return 'Gothram';
+              case 'email': return 'Email Address';
+              case 'mobile': return 'Mobile (10 digits)';
+              case 'city': return 'City';
+              case 'state': return 'State';
+              case 'country': return 'Country';
+              case 'pinCode': return 'PIN Code (6 digits)';
+              default: return f;
+            }
+          });
+          if (generalHealth.missingFields.includes('mobile')) {
+            missingFields.push('General Details: Mobile number required');
+          }
+          if (generalHealth.missingFields.includes('gothram')) {
+            missingFields.push('General Details: Gothram required');
+          }
+          missingFields.push(`Booking Details: ${missingLabels.join(', ')} required`);
+
+          checks.push({
+            id: 'general_details',
+            label: 'Booking Details',
+            status: 'warning',
+            message: `Missing required booking fields: ${missingLabels.join(', ')}`,
+            detail: 'Booking details required before proceeding to payment.',
+          });
+        } else {
+          checks.push({
+            id: 'general_details',
+            label: 'Booking Details',
+            status: 'ready',
+            message: 'All booking contact & address details verified',
+            detail: `Booking details: ${effectiveGeneral.gothram ? `Gothram: ${effectiveGeneral.gothram} • ` : ''}${effectiveGeneral.email ? `${effectiveGeneral.email} • ` : ''}${effectiveGeneral.city}, ${effectiveGeneral.state}`,
+          });
+        }
       }
     }
 
@@ -609,6 +688,141 @@ export class ReadinessEngine {
       missingFields,
       recommendations: whyNotReady.recommendedActions,
       whyNotReady,
+    };
+  }
+
+  /**
+   * Evaluate readiness against live DOM for Srivari Seva pages.
+   * Inspects actual required markers (*) on the active form.
+   */
+  public static evaluateDomReadiness(
+    doc: Document,
+    profile: Profile | null | undefined,
+    serviceId: string = 'srivari-seva',
+  ): DomReadinessEvaluation {
+    const isInstructions = detectSrivariSevaInstructions(doc).isCurrentStep;
+    if (isInstructions) {
+      const decl = detectDeclarationCheckbox(doc);
+      if (decl.detected && decl.checked) {
+        return {
+          isReady: true,
+          step: 'INSTRUCTIONS_REVIEW',
+          actionRequired: false,
+          actionMessage: 'Declaration confirmed. You can proceed to continue.',
+          missingRequiredFields: [],
+          satisfiedRequiredFields: ['declarationConfirmed'],
+          optionalFieldsSkipped: [],
+          optionalFieldsAvailable: [],
+        };
+      }
+      return {
+        isReady: false,
+        step: 'INSTRUCTIONS_REVIEW',
+        actionRequired: true,
+        actionMessage: 'Please review Srivari Seva instructions and confirm the declaration checkbox to continue.',
+        missingRequiredFields: ['declarationConfirmed'],
+        satisfiedRequiredFields: [],
+        optionalFieldsSkipped: [],
+        optionalFieldsAvailable: [],
+      };
+    }
+
+    const isEnrollment = detectSrivariSevaEnrollment(doc).isCurrentStep;
+    if (isEnrollment) {
+      const { fields, requiredMap } = resolveSrivariEnrollmentFields(doc);
+      const pilgrim = profile?.pilgrims?.[0];
+
+      const missingRequired: string[] = [];
+      const satisfiedRequired: string[] = [];
+      const optionalSkipped: string[] = [];
+      const optionalAvail: string[] = [];
+
+      let actionRequired = false;
+      let actionMessage: string | undefined;
+
+      // Check fitness checkboxes
+      const mentallyFitRes = fields.get('mentallyFit');
+      const physicallyFitRes = fields.get('physicallyFit');
+      if (mentallyFitRes || physicallyFitRes) {
+        const mCb = mentallyFitRes?.element as HTMLInputElement | undefined;
+        const pCb = physicallyFitRes?.element as HTMLInputElement | undefined;
+        if ((mCb && !mCb.checked) || (pCb && !pCb.checked)) {
+          actionRequired = true;
+          actionMessage = 'Please review and confirm Mentally Fit and Physically Fit checkboxes.';
+        }
+      }
+
+      fields.forEach((res, fieldKey) => {
+        const isReq = requiredMap.get(fieldKey) ?? false;
+        let hasVal = false;
+        if (pilgrim) {
+          switch (fieldKey) {
+            case 'idProofType': hasVal = Boolean(pilgrim.idType); break;
+            case 'idProofNumber': hasVal = Boolean(pilgrim.idNumber); break;
+            case 'mobile': hasVal = Boolean(pilgrim.mobile || profile?.general?.mobile); break;
+            case 'photo': hasVal = Boolean(pilgrim.photo); break;
+            case 'name': hasVal = Boolean(pilgrim.fullName || pilgrim.firstName); break;
+            case 'dateOfBirth': hasVal = Boolean(pilgrim.dateOfBirth); break;
+            case 'age': hasVal = Boolean(pilgrim.age); break;
+            case 'gender': hasVal = Boolean(pilgrim.gender); break;
+            case 'country': hasVal = Boolean(pilgrim.country || profile?.general?.country); break;
+            case 'pincode': hasVal = Boolean(pilgrim.pinCode || profile?.general?.pinCode); break;
+            case 'state': hasVal = Boolean(pilgrim.state || profile?.general?.state); break;
+            case 'district': hasVal = Boolean(pilgrim.district); break;
+            case 'city': hasVal = Boolean(pilgrim.city || profile?.general?.city); break;
+            case 'street': hasVal = Boolean(pilgrim.srivariSeva?.street || pilgrim.address); break;
+            case 'doorNumber': hasVal = Boolean(pilgrim.srivariSeva?.doorNumber); break;
+            case 'fatherSpouseName': hasVal = Boolean(pilgrim.srivariSeva?.fatherSpouseName); break;
+            case 'email': hasVal = Boolean(pilgrim.email || profile?.general?.email); break;
+            case 'bloodGroup': hasVal = Boolean(pilgrim.srivariSeva?.bloodGroup); break;
+            case 'qualification': hasVal = Boolean(pilgrim.srivariSeva?.qualification); break;
+            case 'profession': hasVal = Boolean(pilgrim.srivariSeva?.profession); break;
+            case 'areaOfInterest': hasVal = Boolean(pilgrim.srivariSeva?.areaOfInterest); break;
+            case 'employeeId': hasVal = Boolean(pilgrim.srivariSeva?.employeeId); break;
+            case 'designation': hasVal = Boolean(pilgrim.srivariSeva?.designation); break;
+            case 'specialisation': hasVal = Boolean(pilgrim.srivariSeva?.specialisation); break;
+            case 'placeOfWork': hasVal = Boolean(pilgrim.srivariSeva?.placeOfWork); break;
+            case 'document': hasVal = Boolean(pilgrim.srivariSeva?.document); break;
+            case 'mandal': hasVal = Boolean(pilgrim.srivariSeva?.mandal); break;
+          }
+        }
+
+        if (isReq) {
+          if (hasVal) {
+            satisfiedRequired.push(fieldKey);
+          } else {
+            missingRequired.push(fieldKey);
+          }
+        } else {
+          if (hasVal) {
+            optionalAvail.push(fieldKey);
+          } else {
+            optionalSkipped.push(fieldKey);
+          }
+        }
+      });
+
+      const isReady = missingRequired.length === 0 && Boolean(pilgrim);
+      return {
+        isReady,
+        step: 'SRIVARI_SEVA_ENROLLMENT',
+        actionRequired,
+        actionMessage,
+        missingRequiredFields: missingRequired,
+        satisfiedRequiredFields: satisfiedRequired,
+        optionalFieldsSkipped: optionalSkipped,
+        optionalFieldsAvailable: optionalAvail,
+      };
+    }
+
+    return {
+      isReady: false,
+      step: 'UNKNOWN',
+      actionRequired: false,
+      missingRequiredFields: [],
+      satisfiedRequiredFields: [],
+      optionalFieldsSkipped: [],
+      optionalFieldsAvailable: [],
     };
   }
 }

@@ -75,16 +75,26 @@ export function useReadiness(
       message: hasPilgrims ? `Pilgrim selected (${pilgrimCount})` : 'Select pilgrims',
     });
 
-    // Detail completeness checks (only 5 core identity fields required for devotees)
+    // Detail completeness checks
     let hasInvalidAadhaar = false;
     let hasInvalidMobile = false;
+    let hasMissingPhoto = false;
+
+    const isSrivariSeva = effectiveServiceId === 'srivari-seva' || serviceType === ServiceType.SRIVARI_SEVA;
 
     for (const p of selectedPilgrims) {
       if (p.idType === 'Aadhaar' && p.idNumber && p.idNumber.replace(/\D/g, '').length !== 12) {
         hasInvalidAadhaar = true;
       }
-      // Individual devotee mobile is OPTIONAL, but if provided, validate 10 digits format
-      if (p.mobile && p.mobile.trim()) {
+      if (isSrivariSeva) {
+        const mob = (p.mobile || '').replace(/\D/g, '');
+        if (mob.length !== 10) {
+          hasInvalidMobile = true;
+        }
+        if (!p.photo) {
+          hasMissingPhoto = true;
+        }
+      } else if (p.mobile && p.mobile.trim()) {
         const mob = p.mobile.replace(/\D/g, '');
         if (mob.length !== 10) {
           hasInvalidMobile = true;
@@ -92,7 +102,7 @@ export function useReadiness(
       }
     }
 
-    const allPilgrimsReady = hasPilgrims && health.ready === pilgrimCount;
+    const allPilgrimsReady = hasPilgrims && health.ready === pilgrimCount && !hasMissingPhoto && !hasInvalidMobile;
     checks.push({
       id: 'required-details',
       label: 'Required Pilgrim Details',
@@ -100,10 +110,11 @@ export function useReadiness(
       severity: 'error',
       message: allPilgrimsReady
         ? 'Required pilgrim details verified'
-        : `${health.incomplete} pilgrim(s) need attention`,
+        : `${health.incomplete + (hasMissingPhoto ? 1 : 0) + (hasInvalidMobile ? 1 : 0)} detail(s) need attention`,
     });
 
     // General Details / Booking Contact check — service-aware
+    // For Srivari Seva: address details (door, street, city, district, state, country, pincode)
     // For Homam: gothram + email + address are required, mobile is NOT part of Homam workflow
     // For SED-300: address + mobile
     // For Padmavathi: no General Details at all
@@ -126,6 +137,24 @@ export function useReadiness(
 
     if (!requiresGeneralContact) {
       // Service has no General Details step — automatically satisfied
+    } else if (isSrivariSeva) {
+      // Srivari Seva Address Details check
+      const p = selectedPilgrims[0];
+      const door = p?.srivariSeva?.doorNumber?.trim();
+      const street = p?.srivariSeva?.street?.trim() || p?.address?.trim();
+      const city = p?.city?.trim() || activeProfile?.general?.city?.trim();
+      const dist = p?.district?.trim();
+      const st = p?.state?.trim() || activeProfile?.general?.state?.trim();
+      const country = p?.country?.trim() || activeProfile?.general?.country?.trim() || 'India';
+      const pin = (p?.pinCode || activeProfile?.general?.pinCode || '').replace(/\D/g, '');
+
+      if (!door) { generalReady = false; generalMissing.push('doorNumber'); }
+      if (!street) { generalReady = false; generalMissing.push('street'); }
+      if (!dist) { generalReady = false; generalMissing.push('district'); }
+      if (!city) { generalReady = false; generalMissing.push('city'); }
+      if (!st) { generalReady = false; generalMissing.push('state'); }
+      if (!country) { generalReady = false; generalMissing.push('country'); }
+      if (pin.length !== 6) { generalReady = false; generalMissing.push('pincode'); }
     } else {
       // Mobile check — only if explicitly required by the workflow/step!
       if (requiresMobile) {

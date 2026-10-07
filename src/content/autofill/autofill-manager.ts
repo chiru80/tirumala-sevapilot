@@ -18,7 +18,20 @@ import { retryWithVerification, waitForElementInContainer } from './retry-engine
 import { verifyField } from './verification';
 import { detectActiveBookingStep, detectWorkflowStep } from './page-workflow';
 import { getWorkflowById, detectActiveWorkflow, resolveWorkflowWithConfidence } from '../../services/workflows/registry';
-import { detectPageTicketLimit, detectDigitalQueue, detectPayment, detectReviewDetails, detectPilgrimDetails } from '../../services/workflows/step-detectors';
+import {
+  detectPageTicketLimit,
+  detectDigitalQueue,
+  detectPayment,
+  detectReviewDetails,
+  detectPilgrimDetails,
+  detectDeclarationCheckbox,
+  detectSrivariSevaInstructions,
+  detectSrivariSevaEnrollment,
+} from '../../services/workflows/step-detectors';
+import {
+  resolveSrivariEnrollmentFields,
+  type SrivariFieldType,
+} from './field-resolver';
 import { detectTtdTemporaryLock, logSafeTtdLockDetected } from '../../services/ttd-information/ttd-lock-detector';
 import { scanForm } from '../form-scanner';
 import { FieldMappingEngine } from '../field-mapping-engine';
@@ -57,15 +70,35 @@ export function getFieldLabel(field: string): string {
     case 'name': return 'Name';
     case 'age': return 'Age';
     case 'gender': return 'Gender';
-    case 'photoIdProof': return 'Photo ID Proof';
-    case 'photoIdNumber': return 'Photo ID Number';
+    case 'photoIdProof':
+    case 'idProofType': return 'ID Proof Type';
+    case 'photoIdNumber':
+    case 'idProofNumber': return 'ID Proof Number';
     case 'email': return 'Email';
     case 'mobile': return 'Mobile';
-    case 'city': return 'City';
-    case 'state': return 'State';
+    case 'photo': return 'Photo';
+    case 'fatherSpouseName': return 'Father/Spouse Name';
+    case 'dateOfBirth': return 'Date of Birth';
+    case 'bloodGroup': return 'Blood Group';
+    case 'mentallyFit': return 'Mentally Fit';
+    case 'physicallyFit': return 'Physically Fit';
+    case 'qualification': return 'Qualification';
+    case 'profession': return 'Profession';
+    case 'areaOfInterest': return 'Area of Interest';
+    case 'employeeId': return 'Employee ID';
+    case 'designation': return 'Designation';
+    case 'specialisation': return 'Specialisation';
+    case 'placeOfWork': return 'Place of Work';
+    case 'document': return 'Document';
     case 'country': return 'Country';
     case 'pincode':
     case 'pinCode': return 'PIN Code';
+    case 'state': return 'State';
+    case 'district': return 'District';
+    case 'mandal': return 'Mandal';
+    case 'city': return 'City';
+    case 'street': return 'Street';
+    case 'doorNumber': return 'Door Number';
     default: return field;
   }
 }
@@ -281,13 +314,19 @@ export async function executeAutofill(opts: AutofillOptions = {}): Promise<Autof
     }
 
     const bookingStep = detectActiveBookingStep(doc, url);
-    let step: 'pilgrim' | 'general' | 'unknown' =
+    let step: 'pilgrim' | 'general' | 'unknown' | 'srivari_instructions' | 'srivari_enrollment' =
       bookingStep === 'PILGRIM_DETAILS' ? 'pilgrim'
         : bookingStep === 'GENERAL_DETAILS' ? 'general'
-          : 'unknown';
+        : bookingStep === 'INSTRUCTIONS_REVIEW' ? 'srivari_instructions'
+        : bookingStep === 'SRIVARI_SEVA_ENROLLMENT' ? 'srivari_enrollment'
+        : 'unknown';
 
     if (step === 'unknown') {
-      if (detectPilgrimDetails(doc, url).isCurrentStep) {
+      if (detectSrivariSevaInstructions(doc, url).isCurrentStep) {
+        step = 'srivari_instructions';
+      } else if (detectSrivariSevaEnrollment(doc, url).isCurrentStep) {
+        step = 'srivari_enrollment';
+      } else if (detectPilgrimDetails(doc, url).isCurrentStep) {
         step = 'pilgrim';
       } else if (workflow && detectWorkflowStep(doc, url, workflow) === 'PILGRIM_DETAILS') {
         step = 'pilgrim';
@@ -342,6 +381,16 @@ export async function executeAutofill(opts: AutofillOptions = {}): Promise<Autof
         emit();
         return buildResult(progress, step, startedAt);
       }
+    }
+
+    // ─── SRIVARI INSTRUCTIONS STEP ───
+    if (step === 'srivari_instructions') {
+      return await executeSrivariInstructionsStep(doc, progress, emit, startedAt, workflow);
+    }
+
+    // ─── SRIVARI ENROLLMENT STEP ───
+    if (step === 'srivari_enrollment') {
+      return await executeSrivariEnrollmentStep(pilgrims, profile, doc, progress, emit, startedAt, workflow);
     }
 
     // ─── PILGRIM STEP ───
@@ -1330,6 +1379,434 @@ function autofocusCaptcha(doc: Document): void {
   }
 }
 
+// ─── Srivari Seva Step Pipelines ───
+
+/**
+ * Execute Srivari Seva Instructions review step.
+ * Strictly adheres to safety rules: NEVER auto-checks declaration.
+ */
+async function executeSrivariInstructionsStep(
+  doc: Document,
+  progress: AutofillProgress,
+  emit: () => void,
+  startedAt: number,
+  workflow?: ServiceWorkflow,
+): Promise<AutofillManagerResult> {
+  progress.state = 'SRIVARI_INSTRUCTIONS';
+  emit();
+
+  const declaration = detectDeclarationCheckbox(doc);
+
+  if (declaration.detected && declaration.element) {
+    try {
+      declaration.element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      declaration.element.focus();
+      declaration.element.style.outline = '2px solid #ff9800';
+    } catch {}
+
+    if (declaration.checked) {
+      progress.state = 'COMPLETE';
+      progress.percent = 100;
+      emit();
+      const res = buildResult(progress, 'srivari_instructions', startedAt, workflow);
+      res.instructionsState = 'USER_CONFIRMED';
+      res.actionRequired = false;
+      res.actionMessage = 'Declaration confirmed by user. You may proceed to click Continue.';
+      return res;
+    } else {
+      progress.state = 'PARTIAL_SUCCESS';
+      progress.percent = 50;
+      emit();
+      const res = buildResult(progress, 'srivari_instructions', startedAt, workflow);
+      res.instructionsState = 'READY_FOR_USER_CONFIRMATION';
+      res.actionRequired = true;
+      res.actionMessage = 'Please review the Srivari Seva instructions and confirm the declaration checkbox to continue.';
+      return res;
+    }
+  }
+
+  progress.state = 'PARTIAL_SUCCESS';
+  progress.percent = 50;
+  emit();
+  const res = buildResult(progress, 'srivari_instructions', startedAt, workflow);
+  res.instructionsState = 'NOT_REVIEWED';
+  res.actionRequired = true;
+  res.actionMessage = 'Please review the Srivari Seva instructions.';
+  return res;
+}
+
+/**
+ * Execute Srivari Seva Enrollment Step (Unified Profile).
+ * Only fields with '*' in live DOM are required.
+ * Optional fields (qualification, profession, mandal, etc.) never cause failure.
+ * Fitness checkboxes are never auto-checked.
+ */
+async function executeSrivariEnrollmentStep(
+  pilgrims: Pilgrim[],
+  profile: Profile,
+  doc: Document,
+  progress: AutofillProgress,
+  emit: () => void,
+  startedAt: number,
+  workflow?: ServiceWorkflow,
+): Promise<AutofillManagerResult> {
+  if (pilgrims.length === 0) {
+    progress.state = 'ERROR';
+    progress.errors.push('No devotee profile selected for Srivari Seva enrollment.');
+    emit();
+    return buildResult(progress, 'srivari_enrollment', startedAt, workflow);
+  }
+
+  const pilgrim = pilgrims[0];
+  progress.state = 'SRIVARI_ENROLLMENT';
+  progress.totalPilgrims = 1;
+  progress.currentPilgrimIndex = 0;
+  emit();
+
+  const { sections, fields, requiredMap } = resolveSrivariEnrollmentFields(doc);
+
+  const optionalFieldsSkipped: string[] = [];
+  const optionalFieldsFilled: string[] = [];
+  const results: FieldTransactionResult[] = [];
+  let actionRequired = false;
+  let actionMessage: string | undefined;
+
+  // 1. Fitness section check: highlight controls, require user interaction, NEVER auto-check
+  const mentallyFitRes = fields.get('mentallyFit');
+  const physicallyFitRes = fields.get('physicallyFit');
+  if (mentallyFitRes || physicallyFitRes) {
+    let fitnessIncomplete = false;
+    if (mentallyFitRes?.element) {
+      const cb = mentallyFitRes.element as HTMLInputElement;
+      if (!cb.checked) {
+        fitnessIncomplete = true;
+        try { cb.style.outline = '2px solid #ff9800'; } catch {}
+      }
+    }
+    if (physicallyFitRes?.element) {
+      const cb = physicallyFitRes.element as HTMLInputElement;
+      if (!cb.checked) {
+        fitnessIncomplete = true;
+        try { cb.style.outline = '2px solid #ff9800'; } catch {}
+      }
+    }
+    if (fitnessIncomplete) {
+      actionRequired = true;
+      actionMessage = 'Please affirm your fitness by reviewing and checking the Mentally Fit and Physically Fit checkboxes.';
+    }
+  }
+
+  // Field values mapped from devotee & profile
+  const fieldValues: Record<SrivariFieldType, string> = {
+    idProofType: pilgrim.idType || 'Aadhaar',
+    idProofNumber: pilgrim.idNumber || '',
+    mobile: pilgrim.mobile || profile.general?.mobile || '',
+    photo: pilgrim.photo || '',
+    name: (pilgrim.fullName || `${pilgrim.firstName || ''} ${pilgrim.lastName || ''}`).trim(),
+    fatherSpouseName: pilgrim.srivariSeva?.fatherSpouseName || '',
+    dateOfBirth: pilgrim.dateOfBirth || '',
+    age: pilgrim.age ? String(pilgrim.age) : (getEffectiveAge(pilgrim) ? String(getEffectiveAge(pilgrim)) : ''),
+    gender: pilgrim.gender || 'Male',
+    email: pilgrim.email || profile.general?.email || '',
+    bloodGroup: pilgrim.srivariSeva?.bloodGroup || '',
+    mentallyFit: '',
+    physicallyFit: '',
+    qualification: pilgrim.srivariSeva?.qualification || '',
+    profession: pilgrim.srivariSeva?.profession || '',
+    areaOfInterest: pilgrim.srivariSeva?.areaOfInterest || '',
+    employeeId: pilgrim.srivariSeva?.employeeId || '',
+    designation: pilgrim.srivariSeva?.designation || '',
+    specialisation: pilgrim.srivariSeva?.specialisation || '',
+    placeOfWork: pilgrim.srivariSeva?.placeOfWork || '',
+    document: pilgrim.srivariSeva?.document || '',
+    country: pilgrim.country || profile.general?.country || 'India',
+    pincode: pilgrim.pinCode || profile.general?.pinCode || '',
+    state: pilgrim.state || profile.general?.state || '',
+    district: pilgrim.district || '',
+    mandal: pilgrim.srivariSeva?.mandal || '',
+    city: pilgrim.city || profile.general?.city || '',
+    street: pilgrim.srivariSeva?.street || pilgrim.address || '',
+    doorNumber: pilgrim.srivariSeva?.doorNumber || '',
+  };
+
+  const orderedFields: SrivariFieldType[] = [
+    'idProofType',
+    'idProofNumber',
+    'mobile',
+    'photo',
+    'name',
+    'fatherSpouseName',
+    'dateOfBirth',
+    'age',
+    'gender',
+    'email',
+    'bloodGroup',
+    'qualification',
+    'profession',
+    'areaOfInterest',
+    'employeeId',
+    'designation',
+    'specialisation',
+    'placeOfWork',
+    'document',
+    'country',
+    'pincode',
+    'state',
+    'district',
+    'mandal',
+    'city',
+    'street',
+    'doorNumber',
+  ];
+
+  for (const fieldKey of orderedFields) {
+    if (shouldStop) break;
+
+    const label = getFieldLabel(fieldKey);
+    progress.currentField = label;
+    emit();
+
+    const isRequired = requiredMap.get(fieldKey) ?? false;
+    const res = fields.get(fieldKey);
+    const value = fieldValues[fieldKey];
+
+    if (bookingSessionManager.isUserModified(fieldKey, 0)) {
+      results.push({
+        field: fieldKey,
+        pilgrimIndex: 0,
+        status: 'verified',
+        attempts: 0,
+        durationMs: 0,
+        maskedValue: value,
+        detected: true,
+        confidence: 100,
+        strategy: 'userPreserved',
+        filled: false,
+        verified: true,
+        reasons: ['Your manually entered value was preserved.'],
+      });
+      continue;
+    }
+
+    if (!res || !doc.contains(res.element)) {
+      if (isRequired) {
+        results.push({
+          field: fieldKey,
+          pilgrimIndex: 0,
+          status: 'failed',
+          attempts: 0,
+          durationMs: 0,
+          error: `${label} is required (*) but could not be detected on page`,
+          detected: false,
+          confidence: 0,
+          strategy: 'none',
+          filled: false,
+          verified: false,
+        });
+      } else {
+        optionalFieldsSkipped.push(fieldKey);
+        results.push({
+          field: fieldKey,
+          pilgrimIndex: 0,
+          status: 'skipped',
+          attempts: 0,
+          durationMs: 0,
+          error: `${label} is optional and not present`,
+          detected: false,
+          confidence: 0,
+          strategy: 'none',
+          filled: false,
+          verified: false,
+        });
+      }
+      continue;
+    }
+
+    if (!value) {
+      if (isRequired) {
+        results.push({
+          field: fieldKey,
+          pilgrimIndex: 0,
+          status: 'failed',
+          attempts: 0,
+          durationMs: 0,
+          error: `${label} is required (*) but empty in profile`,
+          detected: true,
+          confidence: res.confidence,
+          strategy: res.strategy,
+          filled: false,
+          verified: false,
+        });
+      } else {
+        optionalFieldsSkipped.push(fieldKey);
+        results.push({
+          field: fieldKey,
+          pilgrimIndex: 0,
+          status: 'skipped',
+          attempts: 0,
+          durationMs: 0,
+          error: `${label} is optional and empty in profile`,
+          detected: true,
+          confidence: res.confidence,
+          strategy: res.strategy,
+          filled: false,
+          verified: false,
+        });
+      }
+      continue;
+    }
+
+    // Handle photo & document file upload elements
+    if (fieldKey === 'photo' || fieldKey === 'document') {
+      const el = res.element as HTMLInputElement;
+      let fileAttached = false;
+      if (el.tagName === 'INPUT' && el.type === 'file' && value.startsWith('data:')) {
+        try {
+          const mime = value.split(';')[0].split(':')[1] || (fieldKey === 'photo' ? 'image/jpeg' : 'application/pdf');
+          const bstr = atob(value.split(',')[1]);
+          let n = bstr.length;
+          const u8arr = new Uint8Array(n);
+          while (n--) u8arr[n] = bstr.charCodeAt(n);
+          const file = new File([u8arr], fieldKey === 'photo' ? 'photo.jpg' : 'document.pdf', { type: mime });
+          const dt = new DataTransfer();
+          dt.items.add(file);
+          el.files = dt.files;
+          el.dispatchEvent(new Event('change', { bubbles: true }));
+          fileAttached = el.files && el.files.length > 0;
+        } catch {}
+      }
+
+      if (fileAttached || (el.files && el.files.length > 0)) {
+        if (!isRequired) optionalFieldsFilled.push(fieldKey);
+        results.push({
+          field: fieldKey,
+          pilgrimIndex: 0,
+          status: 'verified',
+          attempts: 1,
+          durationMs: 30,
+          maskedValue: 'Attached',
+          detected: true,
+          confidence: res.confidence,
+          strategy: 'fileAttachment',
+          filled: true,
+          verified: true,
+        });
+      } else {
+        // Highlighting for user action
+        try { el.style.outline = '2px solid #ff9800'; } catch {}
+        if (isRequired) {
+          actionRequired = true;
+          actionMessage = actionMessage || `Please select your ${label} file to upload.`;
+          results.push({
+            field: fieldKey,
+            pilgrimIndex: 0,
+            status: 'failed',
+            attempts: 0,
+            durationMs: 0,
+            error: `${label} upload requires manual file selection`,
+            detected: true,
+            confidence: res.confidence,
+            strategy: res.strategy,
+            filled: false,
+            verified: false,
+          });
+        } else {
+          optionalFieldsSkipped.push(fieldKey);
+          results.push({
+            field: fieldKey,
+            pilgrimIndex: 0,
+            status: 'skipped',
+            attempts: 0,
+            durationMs: 0,
+            error: `${label} upload skipped`,
+            detected: true,
+            confidence: res.confidence,
+            strategy: res.strategy,
+            filled: false,
+            verified: false,
+          });
+        }
+      }
+      continue;
+    }
+
+    // Normal text or dropdown field
+    const isDropdown =
+      fieldKey === 'idProofType' ||
+      fieldKey === 'gender' ||
+      fieldKey === 'state' ||
+      fieldKey === 'country' ||
+      res.element.tagName === 'SELECT' ||
+      res.element.tagName === 'MAT-SELECT' ||
+      res.element.getAttribute('role') === 'combobox';
+
+    const start = performance.now();
+    const retryRes = await retryWithVerification({
+      fieldType: fieldKey,
+      element: res.element,
+      expectedValue: value,
+      container: doc.body || doc.documentElement,
+      excludeElements: new Set(),
+      doc,
+      shouldStop: () => shouldStop,
+      fillAction: async (el) => {
+        if (isDropdown) {
+          await performDropdownTransaction(el, value, fieldKey, doc);
+        } else {
+          await performTextTransaction(el as HTMLInputElement, value);
+        }
+      },
+    });
+
+    const isVerified = retryRes.success;
+    if (isVerified) {
+      if (!isRequired) optionalFieldsFilled.push(fieldKey);
+    } else {
+      if (!isRequired) optionalFieldsSkipped.push(fieldKey);
+    }
+
+    results.push({
+      field: fieldKey,
+      pilgrimIndex: 0,
+      status: isVerified ? 'verified' : (isRequired ? 'failed' : 'skipped'),
+      attempts: retryRes.attempts,
+      durationMs: Math.round(performance.now() - start),
+      maskedValue: fieldKey === 'mobile' ? `••••••${value.slice(-2)}` : (fieldKey === 'idProofNumber' ? `••••••••${value.slice(-4)}` : value),
+      error: isVerified ? undefined : (isRequired ? (retryRes.error || `${label} verification failed`) : undefined),
+      detected: true,
+      confidence: res.confidence,
+      strategy: res.strategy,
+      filled: true,
+      verified: isVerified,
+    });
+  }
+
+  const pilgrimProgress: PilgrimProgress = {
+    pilgrimIndex: 0,
+    pilgrimName: pilgrim.fullName || `${pilgrim.firstName || ''} ${pilgrim.lastName || ''}`.trim() || 'Devotee',
+    fieldsTotal: results.length,
+    fieldsVerified: results.filter(r => r.status === 'verified').length,
+    fieldsFailed: results.filter(r => r.status === 'failed').length,
+    results,
+    status: results.filter(r => r.status === 'failed').length === 0 ? 'verified' : 'partial',
+  };
+
+  progress.pilgrimResults = [pilgrimProgress];
+  progress.generalResults = results;
+  progress.state = 'COMPLETE';
+  progress.percent = 100;
+  emit();
+
+  const finalRes = buildResult(progress, 'srivari_enrollment', startedAt, workflow);
+  finalRes.optionalFieldsSkipped = optionalFieldsSkipped;
+  finalRes.optionalFieldsFilled = optionalFieldsFilled;
+  if (actionRequired) {
+    finalRes.actionRequired = true;
+    finalRes.actionMessage = actionMessage;
+  }
+  return finalRes;
+}
+
 // ─── Repair Operations ───
 
 async function repairSinglePilgrimField(
@@ -1675,7 +2152,7 @@ export const REQUIRED_GENERAL_FIELDS: GeneralFieldType[] = [
 
 function buildResult(
   progress: AutofillProgress,
-  step: 'pilgrim' | 'general' | 'unknown',
+  step: 'pilgrim' | 'general' | 'unknown' | 'srivari_instructions' | 'srivari_enrollment',
   startedAt: number,
   workflow?: ServiceWorkflow,
 ): AutofillManagerResult {
@@ -1684,6 +2161,49 @@ function buildResult(
 
   const totalVerified = allResults.filter(r => r.status === 'verified').length;
   const totalFailed = allResults.filter(r => r.status === 'failed').length;
+
+  if (step === 'srivari_instructions') {
+    return {
+      success: progress.state === 'COMPLETE' || progress.state === 'PARTIAL_SUCCESS',
+      state: progress.state,
+      step: 'srivari_instructions',
+      pilgrimResults: progress.pilgrimResults,
+      generalResults: progress.generalResults,
+      totalVerified,
+      totalFailed: 0,
+      totalFields: 1,
+      durationMs: Math.round(performance.now() - startedAt),
+      errors: progress.errors,
+      needsAttention: false,
+      failedItems: [],
+    };
+  }
+
+  if (step === 'srivari_enrollment') {
+    const failedRequired = allResults.filter(r => r.status === 'failed');
+    const isEnrollmentSuccess = failedRequired.length === 0;
+    return {
+      success: isEnrollmentSuccess,
+      state: isEnrollmentSuccess ? 'COMPLETE' : 'PARTIAL_SUCCESS',
+      step: 'srivari_enrollment',
+      pilgrimResults: progress.pilgrimResults,
+      generalResults: progress.generalResults,
+      totalVerified,
+      totalFailed: failedRequired.length,
+      totalFields: allResults.length,
+      durationMs: Math.round(performance.now() - startedAt),
+      errors: failedRequired.map(f => f.error || `${f.field} failed to verify`),
+      needsAttention: !isEnrollmentSuccess,
+      failedItems: failedRequired.map(r => ({
+        pilgrimIndex: r.pilgrimIndex,
+        pilgrimName: r.pilgrimIndex !== undefined ? progress.pilgrimResults[r.pilgrimIndex]?.pilgrimName : undefined,
+        field: r.field,
+        fieldLabel: getFieldLabel(r.field),
+        error: r.error || 'Could not verify',
+      })),
+      temporaryLock: progress.temporaryLock,
+    };
+  }
 
   const allPilgrimsFullyVerified = progress.pilgrimResults.length > 0 &&
     progress.pilgrimResults.every(p => p.status === 'verified');

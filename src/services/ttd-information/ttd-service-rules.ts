@@ -171,6 +171,7 @@ export const SRIVARI_SEVA_CONFIG: TtdServiceConfig = {
   workflowVersion: '1.0.0',
   minPilgrims: 1,
   maxPilgrims: 1,
+  exactPilgrims: 1,
   requiresPilgrims: true,
   requiredPilgrimFields: ['fullName', 'dateOfBirth', 'age', 'gender', 'idType', 'idNumber', 'mobile', 'country'],
   optionalPilgrimFields: ['email'],
