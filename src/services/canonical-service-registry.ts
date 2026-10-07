@@ -404,13 +404,20 @@ export const CANONICAL_SRIVARI_SEVA: CanonicalServiceDefinition = {
       score += 40;
     }
 
-    const pageText = (doc.body?.innerText || doc.body?.textContent || '').toLowerCase();
-    if (pageText.includes('srivari seva') || pageText.includes('voluntary service') || pageText.includes('parakamani seva')) {
+    const headings = Array.from(doc.querySelectorAll('h1, h2, h3, .page-title, .header-title'))
+      .map(h => (h.textContent || '').toLowerCase())
+      .join(' ');
+    if (headings.includes('srivari seva') || headings.includes('parakamani seva')) {
       score += 45;
+    } else {
+      const marker = doc.querySelector('#srivariSevaForm, [data-service*="srivari" i], #volunteerForm');
+      if (marker) {
+        score += 40;
+      }
     }
 
     const confidence = Math.min(100, score);
-    return { matches: confidence >= 40, confidence };
+    return { matches: confidence >= 50, confidence };
   },
 };
 

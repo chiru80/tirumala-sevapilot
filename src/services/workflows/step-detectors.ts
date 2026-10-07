@@ -525,6 +525,33 @@ export function detectDeclarationCheckbox(doc: Document = document): {
     'input[type="checkbox"], mat-checkbox input, [role="checkbox"] input'
   ));
 
+  // 1. Prioritize explicit legal declaration / terms / undertaking checkbox
+  for (const cb of checkboxes) {
+    const name = (cb.getAttribute('name') || '').toLowerCase();
+    const id = (cb.id || '').toLowerCase();
+    const fcn = (cb.getAttribute('formcontrolname') || '').toLowerCase();
+    const label = cb.closest('label, mat-checkbox, .checkbox, .form-check, [class*="declaration" i]') ||
+      (cb.id ? doc.querySelector(`label[for="${CSS.escape(cb.id)}"]`) : null) ||
+      cb.parentElement;
+    const text = (label?.textContent || '').toLowerCase();
+
+    const isExplicit = name.includes('declare') || name.includes('declaration') ||
+      id.includes('declare') || id.includes('declaration') ||
+      fcn.includes('declare') || fcn.includes('declaration') ||
+      text.includes('hereby declare') || text.includes('terms and conditions') || text.includes('terms & conditions');
+
+    if (isExplicit) {
+      return {
+        detected: true,
+        element: cb,
+        checked: cb.checked,
+        requiresUserAction: !cb.checked,
+        autoCheck: false,
+      };
+    }
+  }
+
+  // 2. Fallback: check any user declaration or fitness checkbox
   for (const cb of checkboxes) {
     if (isUserDeclarationCheckbox(cb, doc)) {
       return {

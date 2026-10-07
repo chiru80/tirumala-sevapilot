@@ -38,8 +38,18 @@ export interface WhyNotReadyExplanation {
   recommendedActions: string[];
 }
 
+import { getEffectiveAge } from '@shared/utils';
+
+export type DomReadinessStatus =
+  | 'READY'
+  | 'PARTIALLY_READY'
+  | 'USER_ACTION_REQUIRED'
+  | 'BLOCKED'
+  | 'UNKNOWN';
+
 export interface DomReadinessEvaluation {
   isReady: boolean;
+  status: DomReadinessStatus;
   step: 'INSTRUCTIONS_REVIEW' | 'SRIVARI_SEVA_ENROLLMENT' | 'UNKNOWN';
   actionRequired: boolean;
   actionMessage?: string;
@@ -459,7 +469,14 @@ export class ReadinessEngine {
         const hasValidAge = Boolean(pilgrim.age && pilgrim.age > 0);
         const hasValidDob = Boolean(pilgrim.dateOfBirth && pilgrim.dateOfBirth.trim());
         if (hasValidAge && hasValidDob) {
-          pilgrimPoints += 1;
+          const calcAge = getEffectiveAge({ dateOfBirth: pilgrim.dateOfBirth });
+          if (calcAge !== undefined && Math.abs(Number(pilgrim.age) - calcAge) > 10) {
+            allPilgrimsValid = false;
+            pilgrimErrors.push('Inconsistent Age and Date of Birth');
+            missingFields.push(`${pilgrimName}: Consistent Age and Date of Birth`);
+          } else {
+            pilgrimPoints += 1;
+          }
         } else {
           allPilgrimsValid = false;
           if (!hasValidAge) {
@@ -764,7 +781,7 @@ export class ReadinessEngine {
         const pilgrim = targetPilgrims[0];
         const effectiveCity = pilgrim?.city?.trim() || effectiveGeneral.city?.trim();
         const effectiveState = pilgrim?.state?.trim() || effectiveGeneral.state?.trim();
-        const effectiveCountry = pilgrim?.country?.trim() || effectiveGeneral.country?.trim() || 'India';
+        const effectiveCountry = pilgrim?.country?.trim() || effectiveGeneral.country?.trim() || '';
         const effectivePin = (pilgrim?.pinCode || effectiveGeneral.pinCode || '').replace(/\D/g, '');
         const effectiveDistrict = pilgrim?.district?.trim();
         const effectiveStreet = pilgrim?.srivariSeva?.street?.trim() || (pilgrim as any)?.street?.trim() || pilgrim?.address?.trim();
@@ -914,33 +931,6 @@ export class ReadinessEngine {
     profile: Profile | null | undefined,
     serviceId: string = 'srivari-seva',
   ): DomReadinessEvaluation {
-    const isInstructions = detectSrivariSevaInstructions(doc).isCurrentStep;
-    if (isInstructions) {
-      const decl = detectDeclarationCheckbox(doc);
-      if (decl.detected && decl.checked) {
-        return {
-          isReady: true,
-          step: 'INSTRUCTIONS_REVIEW',
-          actionRequired: false,
-          actionMessage: 'Declaration confirmed. You can proceed to continue.',
-          missingRequiredFields: [],
-          satisfiedRequiredFields: ['declarationConfirmed'],
-          optionalFieldsSkipped: [],
-          optionalFieldsAvailable: [],
-        };
-      }
-      return {
-        isReady: false,
-        step: 'INSTRUCTIONS_REVIEW',
-        actionRequired: true,
-        actionMessage: 'Please review Srivari Seva instructions and confirm the declaration checkbox to continue.',
-        missingRequiredFields: ['declarationConfirmed'],
-        satisfiedRequiredFields: [],
-        optionalFieldsSkipped: [],
-        optionalFieldsAvailable: [],
-      };
-    }
-
     const isEnrollment = detectSrivariSevaEnrollment(doc).isCurrentStep;
     if (isEnrollment) {
       const { fields, requiredMap } = resolveSrivariEnrollmentFields(doc);
@@ -954,16 +944,27 @@ export class ReadinessEngine {
       let actionRequired = false;
       let actionMessage: string | undefined;
 
-      // Check fitness checkboxes
+      // 1. Fitness section check: never auto-check, user must manually confirm
       const mentallyFitRes = fields.get('mentallyFit');
       const physicallyFitRes = fields.get('physicallyFit');
+      let fitnessUnresolved = false;
       if (mentallyFitRes || physicallyFitRes) {
         const mCb = mentallyFitRes?.element as HTMLInputElement | undefined;
         const pCb = physicallyFitRes?.element as HTMLInputElement | undefined;
         if ((mCb && !mCb.checked) || (pCb && !pCb.checked)) {
+          fitnessUnresolved = true;
           actionRequired = true;
           actionMessage = 'Please review and confirm Mentally Fit and Physically Fit checkboxes.';
         }
+      }
+
+      // 2. Declaration check if present on enrollment form
+      const decl = detectDeclarationCheckbox(doc);
+      let declarationUnresolved = false;
+      if (decl.detected && !decl.checked) {
+        declarationUnresolved = true;
+        actionRequired = true;
+        actionMessage = actionMessage || 'Please review and confirm the declaration checkbox.';
       }
 
       for (const [fieldKey, res] of fields.entries()) {
@@ -1026,9 +1027,46 @@ export class ReadinessEngine {
         }
       }
 
-      const isReady = missingRequired.length === 0 && Boolean(pilgrim);
+      // Check required photo missing
+      if (requiredMap.get('photo') && !pilgrim?.photo) {
+        actionRequired = true;
+        actionMessage = actionMessage || 'Pilgrim photo is required for Srivari Seva.';
+      }
+
+      // Check required fields missing
+      if (missingRequired.length > 0) {
+        actionRequired = true;
+        actionMessage = actionMessage || `Required fields missing: ${missingRequired.join(', ')}`;
+      }
+
+      // Party size check: strictly 1 devotee for Srivari Seva
+      const pilgrimCount = profile?.pilgrims ? profile.pilgrims.length : (pilgrim ? 1 : 0);
+      const isExactOne = pilgrimCount === 1;
+      if (pilgrimCount > 1) {
+        actionRequired = true;
+        actionMessage = 'Srivari Seva allows exactly 1 devotee per booking slot.';
+      } else if (pilgrimCount === 0) {
+        actionRequired = true;
+        actionMessage = 'No devotee profile selected for Srivari Seva.';
+      }
+
+      // Live readiness contract: isReady is strictly false if any user action or required field is unresolved
+      const isReady = missingRequired.length === 0 && !actionRequired && !fitnessUnresolved && !declarationUnresolved && Boolean(pilgrim) && isExactOne;
+
+      let status: DomReadinessStatus = 'UNKNOWN';
+      if (!pilgrim || !isExactOne) {
+        status = 'BLOCKED';
+      } else if (actionRequired || fitnessUnresolved || declarationUnresolved) {
+        status = 'USER_ACTION_REQUIRED';
+      } else if (missingRequired.length > 0) {
+        status = 'PARTIALLY_READY';
+      } else if (isReady) {
+        status = 'READY';
+      }
+
       return {
         isReady,
+        status,
         step: 'SRIVARI_SEVA_ENROLLMENT',
         actionRequired,
         actionMessage,
@@ -1039,8 +1077,38 @@ export class ReadinessEngine {
       };
     }
 
+    const isInstructions = detectSrivariSevaInstructions(doc).isCurrentStep;
+    if (isInstructions) {
+      const decl = detectDeclarationCheckbox(doc);
+      if (decl.detected && decl.checked) {
+        return {
+          isReady: true,
+          status: 'READY',
+          step: 'INSTRUCTIONS_REVIEW',
+          actionRequired: false,
+          actionMessage: 'Declaration confirmed. You can proceed to continue.',
+          missingRequiredFields: [],
+          satisfiedRequiredFields: ['declarationConfirmed'],
+          optionalFieldsSkipped: [],
+          optionalFieldsAvailable: [],
+        };
+      }
+      return {
+        isReady: false,
+        status: 'USER_ACTION_REQUIRED',
+        step: 'INSTRUCTIONS_REVIEW',
+        actionRequired: true,
+        actionMessage: 'Please review Srivari Seva instructions and confirm the declaration checkbox to continue.',
+        missingRequiredFields: ['declarationConfirmed'],
+        satisfiedRequiredFields: [],
+        optionalFieldsSkipped: [],
+        optionalFieldsAvailable: [],
+      };
+    }
+
     return {
       isReady: false,
+      status: 'UNKNOWN',
       step: 'UNKNOWN',
       actionRequired: false,
       missingRequiredFields: [],
@@ -1177,6 +1245,34 @@ export class ServiceReadinessEngine {
       };
     }
 
+    if (currentPageState?.dom && (serviceId === 'srivari-seva' || serviceId?.includes('srivari'))) {
+      const domEval = ReadinessEngine.evaluateDomReadiness(currentPageState.dom, profile, serviceId);
+      if (domEval.actionRequired) {
+        return {
+          status: 'ACTION_REQUIRED',
+          headline: domEval.actionMessage || 'User action required on enrollment page',
+          userActionMessage: domEval.actionMessage || 'Complete required actions',
+          diagnostics,
+        };
+      }
+      if (!domEval.isReady) {
+        return {
+          status: 'ACTION_REQUIRED',
+          headline: domEval.actionMessage || 'Complete required fields on page',
+          userActionMessage: 'Complete required fields',
+          diagnostics,
+        };
+      }
+      if (domEval.isReady && baseEval.isBookingReady) {
+        return {
+          status: 'READY',
+          headline: 'Details verified and ready to fill',
+          userActionMessage: 'Fill & Verify',
+          diagnostics,
+        };
+      }
+    }
+
     if (pageDetected && baseEval.isBookingReady) {
       return {
         status: 'READY',
@@ -1200,5 +1296,16 @@ export class ServiceReadinessEngine {
       headline: 'Checking readiness…',
       diagnostics,
     };
+  }
+
+  /**
+   * Authoritative DOM readiness evaluator for Srivari Seva pages.
+   */
+  public static evaluateDomReadiness(
+    doc: Document,
+    profile: Profile | null | undefined,
+    serviceId: string = 'srivari-seva',
+  ): DomReadinessEvaluation {
+    return ReadinessEngine.evaluateDomReadiness(doc, profile, serviceId);
   }
 }

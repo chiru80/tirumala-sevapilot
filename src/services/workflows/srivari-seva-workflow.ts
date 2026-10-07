@@ -206,14 +206,21 @@ export const SRIVARI_SEVA_WORKFLOW: ServiceWorkflow = {
       score += 50;
     }
 
-    const text = (doc.body?.innerText || doc.body?.textContent || '').toLowerCase();
-    if (text.includes('srivari seva')) {
+    const headings = Array.from(doc.querySelectorAll('h1, h2, h3, .page-title, .header-title'))
+      .map(h => (h.textContent || '').toLowerCase())
+      .join(' ');
+    if (headings.includes('srivari seva')) {
       score += 45;
+    } else {
+      const formOrCard = doc.querySelector('#srivariSevaForm, [data-service*="srivari" i], #volunteerForm, .instructions-container');
+      if (formOrCard) {
+        score += 40;
+      }
     }
 
     const confidence = Math.min(100, score);
     return {
-      matches: confidence >= 40,
+      matches: confidence >= 50,
       confidence,
     };
   },
