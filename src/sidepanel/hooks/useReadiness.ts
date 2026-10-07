@@ -1,7 +1,13 @@
 import { useMemo } from 'react';
 import { ServiceType } from '@shared/types';
 import type { Profile, Pilgrim, ScanResult } from '@shared/types';
-import { ReadinessEngine } from '../../services/readiness-engine';
+import {
+  ReadinessEngine,
+  type BookingReadiness,
+  type BookingReadinessStatus,
+} from '../../services/readiness-engine';
+
+export type { BookingReadiness, BookingReadinessStatus };
 
 export interface ReadinessCheck {
   id: string;
@@ -12,6 +18,14 @@ export interface ReadinessCheck {
 }
 
 export interface UseReadinessResult {
+  // Canonical Phase 1 readiness contract
+  bookingReadiness?: BookingReadiness;
+  status?: BookingReadinessStatus;
+  headline?: string;
+  userAction?: string;
+  canFill?: boolean;
+
+  // Backwards compatibility properties
   score: number;
   isReady: boolean;
   allPilgrimsReady?: boolean;
@@ -26,10 +40,9 @@ export interface UseReadinessResult {
 }
 
 /**
- * Unified Readiness Hook.
- * Delegates directly to the authoritative ServiceReadinessEngine
- * ensuring SED, SPAT, Homam, and Srivari Seva enforce exactly identical
- * requirements across Home, Profiles, and Autofill.
+ * Unified Readiness Hook (Phase 1 Canonical Contract).
+ * Delegates directly to the authoritative ReadinessEngine, producing
+ * ONE authoritative answer for booking readiness across all surfaces.
  */
 export function useReadiness(
   activeProfile: Profile | null,
@@ -38,6 +51,7 @@ export function useReadiness(
   pageDetected: boolean = false,
   scanResult: ScanResult | null = null,
   serviceId?: string,
+  _activeWorkflow?: unknown,
 ): UseReadinessResult {
   return useMemo(() => {
     const checks: ReadinessCheck[] = [];
@@ -48,15 +62,23 @@ export function useReadiness(
         ? serviceType
         : undefined);
 
-    // Evaluate against the authoritative ServiceReadinessEngine
-    const evaluation = ReadinessEngine.evaluate(
+    // 1. Evaluate against the authoritative Canonical BookingReadiness engine
+    const bookingReadiness = ReadinessEngine.evaluateBookingReadiness(
+      activeProfile,
+      serviceType,
+      effectiveServiceId,
+      selectedPilgrims,
+      pageDetected,
+    );
+
+    const evaluation = bookingReadiness.diagnostics?.evaluation ?? ReadinessEngine.evaluate(
       activeProfile,
       serviceType,
       effectiveServiceId,
       selectedPilgrims,
     );
 
-    // 1. TTD Connection check
+    // 2. TTD Connection check
     checks.push({
       id: 'ttd-page',
       label: 'TTD Portal Connection',
@@ -67,7 +89,7 @@ export function useReadiness(
         : 'Open the official TTD booking page',
     });
 
-    // 2. Profile selection check
+    // 3. Profile selection check
     const hasProfile = Boolean(activeProfile);
     checks.push({
       id: 'profile-selected',
@@ -79,7 +101,7 @@ export function useReadiness(
         : 'Profile needs attention',
     });
 
-    // 3. Pilgrim selection check
+    // 4. Pilgrim selection check
     const pilgrimCount = selectedPilgrims.length;
     const hasPilgrims = pilgrimCount > 0;
     checks.push({
@@ -92,7 +114,7 @@ export function useReadiness(
         : 'Select pilgrims',
     });
 
-    // 4. Required Pilgrim Details check (from engine)
+    // 5. Required Pilgrim Details check
     const allPilgrimsReady = evaluation.isProfileReady;
     checks.push({
       id: 'required-details',
@@ -104,7 +126,7 @@ export function useReadiness(
         : `${evaluation.pilgrimCount - evaluation.readyPilgrimsCount} detail(s) need attention`,
     });
 
-    // 5. General Details / Address check
+    // 6. General Details / Address check
     const generalOrAddrCheck = evaluation.checks.find(
       c => c.id === 'general_details' || c.id === 'srivari_address',
     );
@@ -122,7 +144,7 @@ export function useReadiness(
       });
     }
 
-    // 6. Form scan status
+    // 7. Form scan status
     const formMapped = Boolean(
       scanResult && scanResult.mappedFields && scanResult.mappedFields.length > 0,
     );
@@ -150,6 +172,12 @@ export function useReadiness(
       evaluation.isBookingReady;
 
     return {
+      bookingReadiness,
+      status: bookingReadiness.status,
+      headline: bookingReadiness.headline,
+      userAction: bookingReadiness.userAction,
+      canFill: bookingReadiness.canFill,
+
       score: evaluation.score,
       isReady,
       allPilgrimsReady,
