@@ -18,13 +18,14 @@ import { isSupportedDomain } from '../../src/shared/utils';
 
 describe('Phase 9: Real-TTD Workflow QA & Production Certification', () => {
   describe('9.1 Service Matrix Compliance', () => {
-    it('registers all three authoritative production services', () => {
+    it('registers all authoritative production services including Srivari Seva', () => {
       const workflows = getAllWorkflows();
-      expect(workflows.length).toBe(3);
+      expect(workflows.length).toBe(4);
       expect(workflows.map((w) => w.serviceId)).toEqual([
         'special-entry-darshan-300',
         'padmavathi-supadham-entry-200',
         'sri-srinivasa-divyanugraha-homam',
+        'srivari-seva',
       ]);
     });
   });

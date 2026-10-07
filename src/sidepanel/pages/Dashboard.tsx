@@ -96,7 +96,6 @@ export function Dashboard({ onNavigate }: DashboardProps = {}) {
     clearTemporaryLock: clearSessionLock,
   } = useAutofillSession();
 
-  const [showAdvancedDetails, setShowAdvancedDetails] = useState(false);
 
   const effectiveLock = sessionLock || ttdLock;
 
@@ -109,13 +108,14 @@ export function Dashboard({ onNavigate }: DashboardProps = {}) {
   };
 
   const handleRetryAfterLock = async () => {
-    clearSessionLock();
-    clearTtdLock();
     setFillStatus(null);
     const updatedScan = await scanPage();
-    if (updatedScan?.temporaryLock) {
-      setFillStatus(updatedScan.temporaryLock.message);
+    if (updatedScan?.temporaryLock?.status === 'temporary-lock') {
+      // Re-scan still reports lock from TTD: retain TEMPORARY_TTD_LOCK state
+      return;
     }
+    clearSessionLock();
+    clearTtdLock();
   };
 
   const dialogs = useDashboardDialogs();
@@ -474,7 +474,7 @@ export function Dashboard({ onNavigate }: DashboardProps = {}) {
           />
         )}
 
-        {/* 10. PROGRESSIVE DISCLOSURE: BOOKING READINESS DETAILS (EXPANDABLE) */}
+        {/* 10. BOOKING READINESS (CLEAN CONSUMER-LEVEL STATUS) */}
         <div
           className="pt-1 flex items-center justify-between text-xs text-[#6F6477] dark:text-[#A692B4]"
           role="region"
@@ -495,33 +495,13 @@ export function Dashboard({ onNavigate }: DashboardProps = {}) {
           </div>
 
           <button
-            id="sp-toggle-readiness-details-btn"
-            onClick={() => setShowAdvancedDetails(!showAdvancedDetails)}
+            onClick={dialogs.toggleDiagnostics}
             className="text-[11px] font-semibold text-[#54258A] dark:text-[#D4A72C] hover:underline cursor-pointer"
-            aria-expanded={showAdvancedDetails}
-            aria-label="Toggle system verification details"
+            aria-label="Open system diagnostics modal"
           >
-            {showAdvancedDetails ? (t('home.hideDiagnostics') || 'Hide details') : (t('home.viewFullDiagnostics') || 'View details')}
+            Diagnostics ↗
           </button>
         </div>
-
-        {/* Expandable detailed status for advanced inspection */}
-        {showAdvancedDetails && (
-          <div className="p-3 rounded-xl bg-[#FAF8F5] dark:bg-[#22132A] border border-[rgba(84,37,138,0.1)] text-xs space-y-2 transition-all">
-            <div className="flex items-center justify-between font-bold text-[#30213A] dark:text-[#F8EFD8] pb-1 border-b border-[rgba(84,37,138,0.08)]">
-              <span>System Verification State</span>
-              <span>{readiness.checks.filter(c => c.passed).length}/{readiness.checks.length} verified</span>
-            </div>
-            {readiness.checks.map(c => (
-              <div key={c.id} className="flex items-center justify-between py-0.5">
-                <span className="text-[#6F6477] dark:text-[#C5B4D4]">{c.label}</span>
-                <span className={c.passed ? 'text-[#1B5E20] dark:text-[#A5D6A7] font-semibold' : 'text-amber-700 dark:text-amber-300 font-semibold'}>
-                  {c.passed ? '✓ Valid' : '⚠ Required'}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
 
         {/* 11. QUICK ACTIONS (PILGRIMS, PROFILES, BOOKING HISTORY, SETTINGS) */}
         <QuickActions

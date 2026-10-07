@@ -39,9 +39,10 @@ export interface ProfileHealth {
  * 
  * NOTE: Mobile is NOT required here as mobile belongs to General Details.
  */
-export function checkPilgrimHealth(pilgrim: Pilgrim): PilgrimHealthItem {
+export function checkPilgrimHealth(pilgrim: Pilgrim, serviceId?: string): PilgrimHealthItem {
   const missingFields: string[] = [];
   const name = (pilgrim.fullName || `${pilgrim.firstName || ''} ${pilgrim.lastName || ''}`).trim();
+  const isSrivari = serviceId === 'srivari-seva' || (serviceId && serviceId.toLowerCase().includes('srivari'));
 
   // 1. Name check
   if (!name) {
@@ -56,8 +57,30 @@ export function checkPilgrimHealth(pilgrim: Pilgrim): PilgrimHealthItem {
   // 3. Age / DOB check
   const hasValidAge = typeof pilgrim.age === 'number' && pilgrim.age > 0 && pilgrim.age < 125;
   const hasValidDob = Boolean(pilgrim.dateOfBirth && !isNaN(Date.parse(pilgrim.dateOfBirth)));
-  if (!hasValidAge && !hasValidDob) {
-    missingFields.push('age');
+
+  if (isSrivari) {
+    // Srivari Seva strictly requires BOTH Age AND Date of Birth
+    if (!hasValidAge) missingFields.push('age');
+    if (!hasValidDob) missingFields.push('dateOfBirth');
+
+    // Srivari Seva requires Photo & 10-digit mobile on the pilgrim profile
+    if (!pilgrim.photo) missingFields.push('photo');
+    const mobileDigits = (pilgrim.mobile || '').replace(/\D/g, '');
+    if (mobileDigits.length !== 10) missingFields.push('mobile');
+
+    // Srivari Address fields
+    if (!pilgrim.srivariSeva?.doorNumber?.trim()) missingFields.push('doorNumber');
+    if (!(pilgrim.srivariSeva?.street?.trim() || pilgrim.address?.trim())) missingFields.push('street');
+    if (!pilgrim.district?.trim()) missingFields.push('district');
+    if (!pilgrim.city?.trim()) missingFields.push('city');
+    if (!pilgrim.state?.trim()) missingFields.push('state');
+    const pin = (pilgrim.pinCode || '').replace(/\D/g, '');
+    if (pin.length !== 6) missingFields.push('pinCode');
+  } else {
+    // Standard Darshan: Age OR DOB is sufficient
+    if (!hasValidAge && !hasValidDob) {
+      missingFields.push('age');
+    }
   }
 
   // 4. ID Type check
@@ -77,7 +100,6 @@ export function checkPilgrimHealth(pilgrim: Pilgrim): PilgrimHealthItem {
   } else if (idNum.length < 4) {
     missingFields.push('idNumber');
   }
-
 
   return {
     pilgrimId: pilgrim.id,
@@ -175,6 +197,7 @@ export function checkGeneralHealth(
 export function calculateProfileHealth(
   profileOrPilgrims: Profile | Pilgrim[] | null | undefined,
   requireEmail: boolean = false,
+  serviceId?: string,
 ): ProfileHealth {
   if (!profileOrPilgrims) {
     return {
@@ -213,7 +236,7 @@ export function calculateProfileHealth(
   let ready = 0;
 
   for (const pilgrim of pilgrims) {
-    const health = checkPilgrimHealth(pilgrim);
+    const health = checkPilgrimHealth(pilgrim, serviceId);
     pilgrimHealth.push(health);
 
     if (health.isReady) {

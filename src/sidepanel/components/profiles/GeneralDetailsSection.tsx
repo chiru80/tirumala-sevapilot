@@ -22,11 +22,13 @@ function maskPhoneDisplay(val?: string): string {
 export interface GeneralDetailsSectionProps {
   profile: Profile;
   onUpdate: () => void;
+  activeServiceId?: string;
 }
 
 export function GeneralDetailsSection({
   profile,
   onUpdate,
+  activeServiceId,
 }: GeneralDetailsSectionProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [gothram, setGothram] = useState(profile.general?.gothram || '');
@@ -76,6 +78,31 @@ export function GeneralDetailsSection({
 
   const cleanMobile = mobile.replace(/\D/g, '');
   const hasValidMobile = cleanMobile.length === 10;
+  const isPadmavathi = activeServiceId === 'padmavathi-supadham-entry-200' || (activeServiceId && activeServiceId.includes('padmavathi'));
+  const isHomam = activeServiceId === 'sri-srinivasa-divyanugraha-homam' || (activeServiceId && activeServiceId.includes('homam'));
+  const isSrivari = activeServiceId === 'srivari-seva' || (activeServiceId && activeServiceId.includes('srivari'));
+
+  let badgeText = 'Optional';
+  let badgeClass = 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300';
+
+  if (isPadmavathi) {
+    badgeText = 'Not needed for ₹200';
+    badgeClass = 'bg-[#FAF5FF] text-[#54258A] dark:bg-[#3E1B68]/30 dark:text-[#E1BEE7]';
+  } else if (isHomam) {
+    const homamReady = Boolean(gothram.trim() && city.trim() && pinCode.trim().length === 6);
+    badgeText = homamReady ? '✓ Gothram Ready' : '⚠ Gothram Required';
+    badgeClass = homamReady
+      ? 'bg-[#E8F5E9] text-[#1B5E20] dark:bg-[#1B3E2B] dark:text-[#A5D6A7]'
+      : 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300';
+  } else if (isSrivari) {
+    badgeText = 'Managed in Pilgrim Profile';
+    badgeClass = 'bg-[#FAF5FF] text-[#54258A] dark:bg-[#3E1B68]/30 dark:text-[#E1BEE7]';
+  } else {
+    badgeText = hasValidMobile ? '✓ Mobile Ready' : '○ Mobile (Optional)';
+    badgeClass = hasValidMobile
+      ? 'bg-[#E8F5E9] text-[#1B5E20] dark:bg-[#1B3E2B] dark:text-[#A5D6A7]'
+      : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300';
+  }
 
   return (
     <div className="rounded-xl border border-gold-500/25 bg-gradient-to-br from-amber-50/40 via-white to-purple-50/20 dark:from-[#2A1733] dark:to-[#1F1226] p-3 space-y-2.5">
@@ -92,17 +119,19 @@ export function GeneralDetailsSection({
               <span className="text-sm font-bold font-serif text-[#321B3F] dark:text-[#F8EFD8]">
                 General Details (Step 2 Booking Details)
               </span>
-              <span className={`text-xs font-bold px-2 py-0.5 rounded ${
-                hasValidMobile
-                  ? 'bg-[#E8F5E9] text-[#1B5E20] dark:bg-[#1B3E2B] dark:text-[#A5D6A7]'
-                  : 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
-              }`}>
-                {hasValidMobile ? '✓ Mobile Ready' : '⚠ Mobile Required'}
+              <span className={`text-xs font-bold px-2 py-0.5 rounded ${badgeClass}`}>
+                {badgeText}
               </span>
             </div>
             <p className="text-xs text-[#6B5A70] dark:text-[#A692B4] mt-0.5">
-              {mobile ? `📱 ${maskPhoneDisplay(mobile)}` : 'Booking mobile number required for TTD OTP'}
-              {city && pinCode ? ` • ${city}, ${state} (${pinCode})` : ''}
+              {isPadmavathi
+                ? 'Padmavathi / SPAT does not have a General Details step.'
+                : isHomam
+                ? (gothram ? `Gothram: ${gothram} • ${city}, ${state}` : 'Gothram, Email & Address required for Homam (Mobile optional)')
+                : isSrivari
+                ? 'Address is entered directly on the Srivari Seva enrollment form.'
+                : (mobile ? `📱 ${maskPhoneDisplay(mobile)}` : 'Booking contact details (saved for TTD booking steps)')}
+              {!isPadmavathi && !isHomam && !isSrivari && city && pinCode ? ` • ${city}, ${state} (${pinCode})` : ''}
             </p>
           </div>
         </div>
@@ -137,7 +166,7 @@ export function GeneralDetailsSection({
 
           <div>
             <label className="sp-label text-sm mb-1">
-              Booking Mobile (10 digits) *
+              Booking Mobile (10 digits) <span className="text-xs text-[#6B5A70] dark:text-[#A692B4]">(Optional for Darshan/Homam)</span>
             </label>
             <input
               type="tel"
@@ -145,32 +174,27 @@ export function GeneralDetailsSection({
               maxLength={10}
               value={mobile}
               onChange={e => setMobile(e.target.value.replace(/\D/g, '').slice(0, 10))}
-              placeholder="10-digit mobile number for OTP confirmation"
+              placeholder="10-digit mobile number"
               className="sp-input text-base font-mono"
             />
-            {mobile.length > 0 && !hasValidMobile && (
-              <p className="text-xs text-rose-500 mt-1">Mobile number must be exactly 10 digits</p>
-            )}
           </div>
 
           <div>
             <label className="sp-label text-sm mb-1">
-              Email ID
+              Booking Email <span className="text-xs text-[#6B5A70] dark:text-[#A692B4]">(Required for Homam)</span>
             </label>
             <input
               type="email"
               value={email}
               onChange={e => setEmail(e.target.value)}
-              placeholder="e.g. pilgrim@gmail.com"
+              placeholder="devotee@example.com"
               className="sp-input text-base"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-2.5">
             <div>
-              <label className="sp-label text-sm mb-1">
-                Enter City *
-              </label>
+              <label className="sp-label text-sm mb-1">{t('pilgrim.city')} *</label>
               <input
                 type="text"
                 value={city}
@@ -180,9 +204,22 @@ export function GeneralDetailsSection({
               />
             </div>
             <div>
-              <label className="sp-label text-sm mb-1">
-                State *
-              </label>
+              <label className="sp-label text-sm mb-1">{t('pilgrim.pinCode')} *</label>
+              <input
+                type="text"
+                inputMode="numeric"
+                maxLength={6}
+                value={pinCode}
+                onChange={e => setPinCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                placeholder="6 digits"
+                className="sp-input text-base font-mono"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2.5">
+            <div>
+              <label className="sp-label text-sm mb-1">{t('pilgrim.state')} *</label>
               <select
                 value={state}
                 onChange={e => setState(e.target.value)}
@@ -193,13 +230,8 @@ export function GeneralDetailsSection({
                 ))}
               </select>
             </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2.5">
             <div>
-              <label className="sp-label text-sm mb-1">
-                Country *
-              </label>
+              <label className="sp-label text-sm mb-1">{t('pilgrim.country')}</label>
               <input
                 type="text"
                 value={country}
@@ -208,38 +240,24 @@ export function GeneralDetailsSection({
                 className="sp-input text-base"
               />
             </div>
-            <div>
-              <label className="sp-label text-sm mb-1">
-                Enter pincode *
-              </label>
-              <input
-                type="text"
-                inputMode="numeric"
-                maxLength={6}
-                value={pinCode}
-                onChange={e => setPinCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                placeholder="e.g. 517501"
-                className="sp-input text-base font-mono"
-              />
-            </div>
           </div>
 
           <div className="flex items-center justify-between pt-1">
-            {(profile?.pilgrims?.length || 0) > 0 && (
+            {profile.pilgrims.length > 0 && (
               <button
                 type="button"
                 onClick={handleCopyFromPrimary}
-                className="text-xs text-[#54258A] dark:text-gold-400 font-semibold hover:underline min-h-[44px] flex items-center"
+                className="text-xs text-[#54258A] dark:text-[#D4A72C] font-semibold hover:underline cursor-pointer"
               >
-                Copy from {profile?.pilgrims?.[0]?.fullName || 'First Pilgrim'}
+                Copy from Primary Devotee
               </button>
             )}
             <button
               type="button"
               onClick={handleSaveGeneral}
-              className="sp-btn-primary ml-auto min-h-[44px] text-sm py-2 px-4"
+              className="sp-btn-primary min-h-[38px] text-xs px-4 ml-auto"
             >
-              {t('profiles.saveGeneral')}
+              Save General Details
             </button>
           </div>
         </div>

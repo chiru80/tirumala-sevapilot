@@ -6,6 +6,9 @@ import { Dashboard } from '../../src/sidepanel/pages/Dashboard';
 import * as releaseCal from '../../src/services/ttd-information/ttd-release-calendar';
 import { Gender, IdType } from '../../src/shared/types';
 import type { Profile } from '../../src/shared/types';
+import { generateVerhoeffChecksum } from '../../src/validation/aadhaar';
+
+const validMockAadhaar = '23456789012' + generateVerhoeffChecksum('23456789012');
 
 const storageMap = new Map<string, any>();
 
@@ -68,7 +71,7 @@ const sampleProfile: Profile = {
       gender: Gender.MALE,
       age: 40,
       idType: IdType.AADHAAR,
-      idNumber: '123456789012',
+      idNumber: validMockAadhaar,
       mobile: '9876543210',
       country: 'India',
       createdAt: new Date().toISOString(),
@@ -224,24 +227,22 @@ describe('Dashboard Component — Redesign & Consumer Experience', () => {
     spy.mockRestore();
   });
 
-  it('H. Backend readiness: internal checks operate silently without dumping 6-check checklist', async () => {
+  it('H. Backend readiness: internal checks operate silently without exposing checklist on Home', async () => {
     render(<Dashboard onNavigate={vi.fn()} />);
 
     await waitFor(() => {
       expect(screen.getByText('Family')).toBeTruthy();
     });
 
-    // Detailed checks are not visible by default
+    // Detailed checks are not visible on Home
     expect(screen.queryByText(/Profile selected & complete/i)).toBeNull();
     expect(screen.queryByText(/Required special details complete/i)).toBeNull();
+    expect(screen.queryByText(/System Verification State/i)).toBeNull();
 
-    // But progressive disclosure toggle is available
-    const viewDetailsBtn = document.getElementById('sp-toggle-readiness-details-btn');
-    expect(viewDetailsBtn).not.toBeNull();
-
-    // Clicking reveals progressive disclosure details
-    fireEvent.click(viewDetailsBtn!);
-    expect(screen.getByText(/System Verification State/i)).toBeTruthy();
+    // Home shows clean consumer status with modal diagnostics trigger
+    expect(screen.getByText(/Booking Readiness/i)).toBeTruthy();
+    const diagBtn = screen.getByRole('button', { name: /Open system diagnostics modal/i });
+    expect(diagBtn).toBeTruthy();
   });
 
   it('E. Temporary lock: renders CHECK BOOKING HISTORY and TRY AGAIN without showing Fill failed', async () => {

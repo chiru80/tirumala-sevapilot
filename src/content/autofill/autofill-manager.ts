@@ -1793,8 +1793,13 @@ async function executeSrivariEnrollmentStep(
 
   progress.pilgrimResults = [pilgrimProgress];
   progress.generalResults = results;
-  progress.state = 'COMPLETE';
-  progress.percent = 100;
+  if (actionRequired) {
+    progress.state = 'USER_ACTION_REQUIRED';
+    progress.percent = 95;
+  } else {
+    progress.state = 'COMPLETE';
+    progress.percent = 100;
+  }
   emit();
 
   const finalRes = buildResult(progress, 'srivari_enrollment', startedAt, workflow);
@@ -1803,6 +1808,9 @@ async function executeSrivariEnrollmentStep(
   if (actionRequired) {
     finalRes.actionRequired = true;
     finalRes.actionMessage = actionMessage;
+    finalRes.success = false;
+    finalRes.state = 'USER_ACTION_REQUIRED';
+    finalRes.needsAttention = true;
   }
   return finalRes;
 }
@@ -2181,10 +2189,10 @@ function buildResult(
 
   if (step === 'srivari_enrollment') {
     const failedRequired = allResults.filter(r => r.status === 'failed');
-    const isEnrollmentSuccess = failedRequired.length === 0;
+    const isEnrollmentSuccess = failedRequired.length === 0 && progress.state !== 'USER_ACTION_REQUIRED';
     return {
       success: isEnrollmentSuccess,
-      state: isEnrollmentSuccess ? 'COMPLETE' : 'PARTIAL_SUCCESS',
+      state: progress.state === 'USER_ACTION_REQUIRED' ? 'USER_ACTION_REQUIRED' : (isEnrollmentSuccess ? 'COMPLETE' : 'PARTIAL_SUCCESS'),
       step: 'srivari_enrollment',
       pilgrimResults: progress.pilgrimResults,
       generalResults: progress.generalResults,

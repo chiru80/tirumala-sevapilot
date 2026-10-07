@@ -211,18 +211,6 @@ export function Settings({ onSettingsChange }: { onSettingsChange: () => void })
           </button>
         </div>
         <ToggleRow
-          label={t('settings.autoFillOnDetect')}
-          description={t('settings.autoFillOnDetectDesc')}
-          checked={settings.autoFillOnDetect ?? false}
-          onChange={v => updateSetting('autoFillOnDetect', v)}
-        />
-        <ToggleRow
-          label={t('settings.autoScan')}
-          description={t('settings.autoScanDesc')}
-          checked={settings.autoScanEnabled}
-          onChange={v => updateSetting('autoScanEnabled', v)}
-        />
-        <ToggleRow
           label={t('settings.maskSensitive')}
           description={t('settings.maskSensitiveDesc')}
           checked={settings.sensitivePreviewMasking}
@@ -263,7 +251,7 @@ export function Settings({ onSettingsChange }: { onSettingsChange: () => void })
       <div className="sp-card bg-white dark:bg-[#2D1A38] border-gold-500/25 space-y-2.5">
         <div className="flex items-center justify-between text-xs text-[#6B5A70] dark:text-[#A692B4]">
           <span className="font-bold text-[#5B2A86] dark:text-[#F8EFD8]">{t('settings.extensionVersion')}</span>
-          <span className="font-mono font-medium text-[#6F6477] dark:text-[#D4C3E0]">Version {EXTENSION_VERSION} · Phase 2.3</span>
+          <span className="font-mono font-medium text-[#6F6477] dark:text-[#D4C3E0]">Version {EXTENSION_VERSION}</span>
         </div>
 
         {showClearConfirm ? (

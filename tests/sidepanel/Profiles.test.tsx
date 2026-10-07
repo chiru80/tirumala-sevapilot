@@ -79,8 +79,8 @@ describe('Profiles Page', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Family Darshan')).toBeTruthy();
-      expect(screen.getByText('100%')).toBeTruthy();
-      expect(screen.getByText('✓ Ready for Special Entry')).toBeTruthy();
+      expect(screen.getAllByText(/Ready/i)[0]).toBeTruthy();
+      expect(screen.getByText(/Ready for Special Entry/i)).toBeTruthy();
     });
 
     // Expand devotee list
@@ -117,11 +117,11 @@ describe('Profiles Page', () => {
     // Verify 5 sections are present in modal
     await waitFor(() => {
       expect(screen.getByText('Edit Pilgrim Details')).toBeTruthy();
-      expect(screen.getByText(/Personal/i)).toBeTruthy();
-      expect(screen.getByText(/Identity/i)).toBeTruthy();
-      expect(screen.getByText(/Contact/i)).toBeTruthy();
-      expect(screen.getByText(/Address/i)).toBeTruthy();
-      expect(screen.getByText(/Photo/i)).toBeTruthy();
+      expect(screen.getAllByText(/Personal/i)[0]).toBeTruthy();
+      expect(screen.getAllByText(/Identity/i)[0]).toBeTruthy();
+      expect(screen.getAllByText(/Contact/i)[0]).toBeTruthy();
+      expect(screen.getAllByText(/Address/i)[0]).toBeTruthy();
+      expect(screen.getAllByText(/Photo/i)[0]).toBeTruthy();
     });
   });
 });

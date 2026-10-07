@@ -6,16 +6,36 @@ import { t } from '@i18n/index';
 export interface QuickPilgrimFormProps {
   onSave: (pilgrim: Omit<Pilgrim, 'id' | 'createdAt' | 'updatedAt'>) => void;
   onCancel: () => void;
+  targetServiceId?: string;
 }
 
-export function QuickPilgrimForm({ onSave, onCancel }: QuickPilgrimFormProps) {
+export function QuickPilgrimForm({ onSave, onCancel, targetServiceId }: QuickPilgrimFormProps) {
+  const isSrivariInitial = targetServiceId === 'srivari-seva' || (targetServiceId && targetServiceId.includes('srivari'));
   const [fullName, setFullName] = useState('');
   const [age, setAge] = useState('');
+  const [dob, setDob] = useState('');
   const [gender, setGender] = useState<Gender>(Gender.MALE);
   const [idType, setIdType] = useState<IdType>(IdType.AADHAAR);
   const [idNumber, setIdNumber] = useState('');
   const [mobile, setMobile] = useState('');
+  const [includeSrivari, setIncludeSrivari] = useState(Boolean(isSrivariInitial));
+  const [doorNumber, setDoorNumber] = useState('');
+  const [street, setStreet] = useState('');
+  const [district, setDistrict] = useState('');
+  const [city, setCity] = useState('');
+  const [pinCode, setPinCode] = useState('');
+  const [photo, setPhoto] = useState<string | undefined>(undefined);
   const [formError, setFormError] = useState<string | null>(null);
+
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setPhoto(event.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -35,6 +55,29 @@ export function QuickPilgrimForm({ onSave, onCancel }: QuickPilgrimFormProps) {
       setFormError('Photo ID Number is required');
       return;
     }
+    if (includeSrivari) {
+      if (!dob) {
+        setFormError('Date of Birth is mandatory for Srivari Seva');
+        return;
+      }
+      if (!mobile || mobile.replace(/\D/g, '').length !== 10) {
+        setFormError('10-digit Mobile is mandatory for Srivari Seva');
+        return;
+      }
+      if (!doorNumber.trim()) {
+        setFormError('Door Number is mandatory for Srivari Seva');
+        return;
+      }
+      if (!street.trim()) {
+        setFormError('Street is mandatory for Srivari Seva');
+        return;
+      }
+      if (!district.trim()) {
+        setFormError('District is mandatory for Srivari Seva');
+        return;
+      }
+    }
+
     setFormError(null);
     onSave({
       firstName: fullName.trim().split(' ')[0] || fullName.trim(),
@@ -42,36 +85,45 @@ export function QuickPilgrimForm({ onSave, onCancel }: QuickPilgrimFormProps) {
       fullName: fullName.trim(),
       gender,
       age: Number(age),
-      dateOfBirth: '',
+      dateOfBirth: dob || undefined,
       idType,
       idNumber: idNumber.trim(),
       mobile: mobile.trim() || undefined,
       country: 'India',
+      city: city.trim() || undefined,
+      district: district.trim() || undefined,
+      pinCode: pinCode.replace(/\D/g, '').slice(0, 6) || undefined,
+      address: street.trim() || undefined,
+      photo,
+      srivariSeva: includeSrivari ? {
+        doorNumber: doorNumber.trim() || undefined,
+        street: street.trim() || undefined,
+      } : undefined,
     });
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-2.5 p-3 rounded-xl bg-cream/70 dark:bg-[#211526]/80 border border-gold-500/25 animate-slide-up">
+    <form onSubmit={handleSubmit} className="space-y-2.5 p-3 rounded-xl bg-cream/70 dark:bg-[#211526]/80 border border-gold-500/25 animate-slide-up text-xs">
       {formError && (
         <div className="p-2 rounded-lg text-xs bg-red-50 dark:bg-red-950/40 border border-red-200 text-temple-red">
           {formError}
         </div>
       )}
       <div>
-        <label className="sp-label text-sm mb-1">Name *</label>
+        <label className="sp-label text-xs mb-1">Name *</label>
         <input
           type="text"
           value={fullName}
           onChange={e => setFullName(e.target.value)}
           placeholder="Enter pilgrim full name"
-          className="sp-input text-base"
+          className="sp-input text-xs"
           required
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-2.5">
+      <div className="grid grid-cols-2 gap-2">
         <div>
-          <label className="sp-label text-sm mb-1">Age *</label>
+          <label className="sp-label text-xs mb-1">Age *</label>
           <input
             type="number"
             value={age}
@@ -79,22 +131,23 @@ export function QuickPilgrimForm({ onSave, onCancel }: QuickPilgrimFormProps) {
             placeholder="Age"
             min="1"
             max="120"
-            className="sp-input text-base"
+            className="sp-input text-xs"
             required
           />
         </div>
         <div>
-          <label className="sp-label text-sm mb-1">Gender *</label>
-          <select value={gender} onChange={e => setGender(e.target.value as Gender)} className="sp-input text-base">
+          <label className="sp-label text-xs mb-1">Gender *</label>
+          <select value={gender} onChange={e => setGender(e.target.value as Gender)} className="sp-input text-xs">
             <option value={Gender.MALE}>Male</option>
             <option value={Gender.FEMALE}>Female</option>
+            <option value={Gender.OTHER}>Other</option>
           </select>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-2.5">
+      <div className="grid grid-cols-2 gap-2">
         <div>
-          <label className="sp-label text-sm mb-1">Photo ID Proof *</label>
+          <label className="sp-label text-xs mb-1">Photo ID Proof *</label>
           <select
             value={idType}
             onChange={e => {
@@ -104,7 +157,7 @@ export function QuickPilgrimForm({ onSave, onCancel }: QuickPilgrimFormProps) {
                 setIdNumber(prev => prev.replace(/\D/g, '').slice(0, 12));
               }
             }}
-            className="sp-input text-base"
+            className="sp-input text-xs"
           >
             <option value={IdType.AADHAAR}>Aadhaar Card</option>
             <option value={IdType.PASSPORT}>Passport</option>
@@ -114,8 +167,8 @@ export function QuickPilgrimForm({ onSave, onCancel }: QuickPilgrimFormProps) {
           </select>
         </div>
         <div>
-          <label className="sp-label text-sm mb-1">
-            {idType === IdType.AADHAAR ? 'Photo ID Number * (12 digits)' : 'Photo ID Number *'}
+          <label className="sp-label text-xs mb-1">
+            {idType === IdType.AADHAAR ? 'Photo ID (12 digits) *' : 'Photo ID Number *'}
           </label>
           <input
             type="text"
@@ -129,15 +182,15 @@ export function QuickPilgrimForm({ onSave, onCancel }: QuickPilgrimFormProps) {
               setIdNumber(val);
             }}
             maxLength={idType === IdType.AADHAAR ? 12 : 25}
-            placeholder={idType === IdType.AADHAAR ? '12 digits only' : 'Enter ID number'}
-            className="sp-input text-base font-mono"
+            placeholder={idType === IdType.AADHAAR ? '12 digits' : 'Enter ID number'}
+            className="sp-input text-xs font-mono"
             required
           />
         </div>
       </div>
 
       <div>
-        <label className="sp-label text-sm mb-1">Mobile Number (Optional)</label>
+        <label className="sp-label text-xs mb-1">Mobile Number {includeSrivari ? '*' : '(Optional)'}</label>
         <input
           type="tel"
           inputMode="numeric"
@@ -145,13 +198,100 @@ export function QuickPilgrimForm({ onSave, onCancel }: QuickPilgrimFormProps) {
           value={mobile}
           onChange={e => setMobile(e.target.value.replace(/\D/g, '').slice(0, 10))}
           placeholder="10-digit mobile number"
-          className="sp-input text-base font-mono"
+          className="sp-input text-xs font-mono"
         />
       </div>
 
-      <div className="flex gap-2.5 pt-1">
-        <button type="submit" className="sp-btn-primary flex-1 min-h-[44px] text-sm">{t('common.save')}</button>
-        <button type="button" onClick={onCancel} className="sp-btn-secondary min-h-[44px] text-sm px-4">{t('common.cancel')}</button>
+      {/* Srivari Seva Details Toggle */}
+      <div className="pt-1 border-t border-gold-500/15">
+        <label className="flex items-center gap-2 cursor-pointer select-none py-1">
+          <input
+            type="checkbox"
+            checked={includeSrivari}
+            onChange={e => setIncludeSrivari(e.target.checked)}
+            className="accent-[#5B2A86] w-3.5 h-3.5"
+          />
+          <span className="font-semibold text-xs text-[#5B2A86] dark:text-gold-300">
+            Include Srivari Seva Requirements (DOB, Photo & Address)
+          </span>
+        </label>
+      </div>
+
+      {includeSrivari && (
+        <div className="space-y-2 p-2.5 rounded-lg bg-[#5B2A86]/5 dark:bg-gold-500/10 border border-gold-500/20 animate-fade-in">
+          <div>
+            <label className="sp-label text-xs mb-0.5">Date of Birth *</label>
+            <input
+              type="date"
+              value={dob}
+              onChange={e => setDob(e.target.value)}
+              className="sp-input text-xs"
+              required={includeSrivari}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="sp-label text-xs mb-0.5">Door Number *</label>
+              <input
+                type="text"
+                placeholder="e.g. 1-24"
+                value={doorNumber}
+                onChange={e => setDoorNumber(e.target.value)}
+                className="sp-input text-xs"
+              />
+            </div>
+            <div>
+              <label className="sp-label text-xs mb-0.5">Street *</label>
+              <input
+                type="text"
+                placeholder="Street name"
+                value={street}
+                onChange={e => setStreet(e.target.value)}
+                className="sp-input text-xs"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="sp-label text-xs mb-0.5">District *</label>
+              <input
+                type="text"
+                placeholder="District"
+                value={district}
+                onChange={e => setDistrict(e.target.value)}
+                className="sp-input text-xs"
+              />
+            </div>
+            <div>
+              <label className="sp-label text-xs mb-0.5">City / Town</label>
+              <input
+                type="text"
+                placeholder="City"
+                value={city}
+                onChange={e => setCity(e.target.value)}
+                className="sp-input text-xs"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="sp-label text-xs mb-0.5">Pilgrim Photo (Optional upload)</label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handlePhotoUpload}
+              className="text-[11px] text-[#6B5A70] dark:text-[#A692B4] file:mr-2 file:py-0.5 file:px-2 file:rounded file:border-0 file:text-[11px] file:bg-[#5B2A86]/10 file:text-[#5B2A86]"
+            />
+            {photo && <span className="text-[10px] text-emerald-600 block mt-0.5">✓ Photo attached</span>}
+          </div>
+        </div>
+      )}
+
+      <div className="flex gap-2 pt-1">
+        <button type="submit" className="sp-btn-primary flex-1 min-h-[38px] text-xs font-bold">{t('common.save')}</button>
+        <button type="button" onClick={onCancel} className="sp-btn-secondary min-h-[38px] text-xs px-3">{t('common.cancel')}</button>
       </div>
     </form>
   );

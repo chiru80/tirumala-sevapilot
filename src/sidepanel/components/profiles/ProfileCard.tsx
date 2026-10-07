@@ -15,16 +15,28 @@ export function maskPhoneDisplay(val?: string): string {
   return '••••';
 }
 
+function getServiceDisplayName(serviceId?: string): string {
+  if (!serviceId) return 'Booking';
+  const id = serviceId.toLowerCase();
+  if (id.includes('special-entry') || id.includes('sed')) return 'Special Entry Darshan';
+  if (id.includes('padmavathi') || id.includes('spat')) return 'Padmavathi / SPAT';
+  if (id.includes('homam')) return 'Divyanugraha Homam';
+  if (id.includes('srivari')) return 'Srivari Seva';
+  return 'Booking';
+}
+
 export interface ProfileCardProps {
   profile: Profile;
   isSelected: boolean;
   isExpanded: boolean;
+  activeServiceId?: string;
   onToggleExpand: () => void;
   onSetDefault: (profileId: string) => void;
   onPrintSlip: (profile: Profile) => void;
   onDuplicateProfile: (profileId: string) => void;
   onDeleteProfile: (profileId: string) => void;
   onToggleSelectAll: (profile: Profile) => void;
+  onTogglePilgrim?: (profileId: string, pilgrimId: string) => void;
   onEditPilgrim: (profileId: string, pilgrim: Pilgrim) => void;
   onDuplicatePilgrim: (profileId: string, pilgrimId: string) => void;
   onDeletePilgrim: (profileId: string, pilgrimId: string) => void;
@@ -38,12 +50,14 @@ export function ProfileCard({
   profile,
   isSelected,
   isExpanded,
+  activeServiceId = 'special-entry-darshan-300',
   onToggleExpand,
   onSetDefault,
   onPrintSlip,
   onDuplicateProfile,
   onDeleteProfile,
   onToggleSelectAll,
+  onTogglePilgrim,
   onEditPilgrim,
   onDuplicatePilgrim,
   onDeletePilgrim,
@@ -52,7 +66,13 @@ export function ProfileCard({
   onSetShowAddPilgrim,
   onRefresh,
 }: ProfileCardProps) {
-  const health = calculateProfileHealth(profile);
+  const serviceKey = activeServiceId || 'special-entry-darshan-300';
+  const selectedList = profile.selectedPilgrims?.[serviceKey] ?? profile.selectedPilgrims?.['darshan'] ?? profile.pilgrims.map(p => p.id);
+  const health = calculateProfileHealth(profile, false, serviceKey);
+
+  const isReady = health.total > 0 && health.incomplete === 0;
+  const isActionRequired = health.total > 0 && health.incomplete > 0;
+  const serviceName = getServiceDisplayName(serviceKey);
 
   return (
     <div className="sp-card bg-white dark:bg-[#2D1A38] border-gold-500/25 transition-all">
@@ -122,54 +142,38 @@ export function ProfileCard({
           </div>
         </div>
 
-        {/* Profile Health Progress Bar */}
-        <div className="p-3 rounded-xl bg-cream/60 dark:bg-[#211526]/80 border border-gold-500/20 space-y-2">
-          <div className="flex items-center justify-between text-sm">
-            <div className="flex items-center gap-2">
-              <span className="font-bold text-sm text-[#5B2A86] dark:text-gold-300">
-                {health.percentage === 100 ? '✓ Ready for Special Entry' : `⚠ ${health.incomplete} need attention`}
-              </span>
-              {health.percentage === 100 && (
-                <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-500/30">
-                  100% READY
-                </span>
-              )}
-            </div>
-            <span className="font-mono font-bold text-sm text-[#321B3F] dark:text-[#F8EFD8]">{health.percentage}%</span>
-          </div>
-
-          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 overflow-hidden">
-            <div
-              className={`h-2.5 rounded-full transition-all duration-300 ${
-                health.percentage === 100
-                  ? 'bg-gradient-to-r from-emerald-500 to-green-600'
-                  : 'bg-gradient-to-r from-amber-500 to-gold-600'
+        {/* Profile Status Badge (Clean, Service-Aware, No Confusing Percentages) */}
+        <div className="p-3 rounded-xl bg-cream/60 dark:bg-[#211526]/80 border border-gold-500/20 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span
+              className={`w-2.5 h-2.5 rounded-full shrink-0 ${
+                isReady
+                  ? 'bg-[#2F8F68]'
+                  : isActionRequired
+                  ? 'bg-[#C98A18]'
+                  : 'bg-gray-400'
               }`}
-              style={{ width: `${health.percentage}%` }}
             />
+            <span className="font-bold text-xs text-[#30213A] dark:text-[#F8EFD8]">
+              {isReady
+                ? `✓ Ready for ${serviceName}`
+                : isActionRequired
+                ? `${health.incomplete} detail(s) need attention for ${serviceName}`
+                : 'Add pilgrims to profile'}
+            </span>
           </div>
 
-          {health.percentage === 100 ? (
-            <p className="text-xs text-[#1B5E20] dark:text-[#A5D6A7] font-medium pt-0.5">
-              All required details complete
-            </p>
-          ) : Object.keys(health.missingByField).length > 0 ? (
-            <div className="text-xs text-[#8D6E18] dark:text-[#FFE082] pt-0.5 space-y-0.5">
-              <span className="font-semibold">Missing: </span>
-              {Object.entries(health.missingByField)
-                .map(([field, count]) => {
-                  const label = field === 'fullName' ? 'Name'
-                    : field === 'idNumber' ? 'ID Number'
-                    : field === 'idType' ? 'ID Proof'
-                    : field === 'mobile' ? 'Mobile'
-                    : field === 'age' ? 'Age'
-                    : field === 'gender' ? 'Gender'
-                    : field;
-                  return `${label} (${count})`;
-                })
-                .join(', ')}
-            </div>
-          ) : null}
+          <span
+            className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
+              isReady
+                ? 'bg-[#2F8F68]/15 text-[#1B5E20] dark:text-[#A5D6A7]'
+                : isActionRequired
+                ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
+                : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
+            }`}
+          >
+            {isReady ? 'Ready' : isActionRequired ? 'Action required' : 'Not ready'}
+          </span>
         </div>
 
         {/* Profile Card Actions: [Select] and [Edit] */}
@@ -214,12 +218,12 @@ export function ProfileCard({
                 onClick={() => onToggleSelectAll(profile)}
                 className="font-semibold text-[#5B2A86] dark:text-[#F0CC63] underline cursor-pointer"
               >
-                {((profile.selectedPilgrims?.['darshan'] || []).length === profile.pilgrims.length && profile.pilgrims.length > 0)
+                {(selectedList.length === profile.pilgrims.length && profile.pilgrims.length > 0)
                   ? t('profiles.deselectAll')
                   : t('profiles.selectAll')}
               </button>
               <span className="text-[#6B5A70] dark:text-[#A692B4]">
-                {(profile.selectedPilgrims?.['darshan'] || profile.pilgrims.map(p => p.id)).length} / {profile.pilgrims.length} {t('profiles.selected')}
+                {selectedList.length} / {profile.pilgrims.length} {t('profiles.selected')} ({serviceName})
               </span>
             </div>
 
@@ -234,19 +238,38 @@ export function ProfileCard({
           </div>
 
           {profile.pilgrims.map(pilgrim => {
-            const pilgrimHealth = checkPilgrimHealth(pilgrim);
+            const pilgrimHealth = checkPilgrimHealth(pilgrim, serviceKey);
             const isComplete = pilgrimHealth.isReady;
+            const isPilgrimSelected = selectedList.includes(pilgrim.id);
             const missing = pilgrimHealth.missingFields.map(f => {
               if (f === 'fullName') return 'Name';
               if (f === 'idNumber') return 'ID Number';
               if (f === 'idType') return 'ID Proof';
               if (f === 'age') return 'Age';
+              if (f === 'dateOfBirth') return 'Date of Birth';
               if (f === 'gender') return 'Gender';
+              if (f === 'mobile') return 'Mobile';
+              if (f === 'photo') return 'Photo';
+              if (f === 'doorNumber') return 'Door Number';
+              if (f === 'street') return 'Street';
+              if (f === 'district') return 'District';
+              if (f === 'pinCode') return 'PIN Code';
               return f;
             });
 
             return (
               <div key={pilgrim.id} className="flex items-center gap-3 p-3 rounded-xl bg-cream/50 dark:bg-[#211526]/70 border border-gold-500/15">
+                {/* Pilgrim Selection Checkbox */}
+                {onTogglePilgrim && (
+                  <input
+                    type="checkbox"
+                    checked={isPilgrimSelected}
+                    onChange={() => onTogglePilgrim(profile.id, pilgrim.id)}
+                    className="w-4 h-4 accent-[#5B2A86] rounded cursor-pointer shrink-0"
+                    aria-label={`Select ${pilgrim.fullName || 'Pilgrim'} for ${serviceName}`}
+                  />
+                )}
+
                 <div className="w-8 h-8 rounded-full bg-[#5B2A86]/10 dark:bg-gold-500/20 text-[#5B2A86] dark:text-gold-300 font-bold text-xs flex items-center justify-center shrink-0">
                   {(pilgrim.firstName || pilgrim.fullName || '?').charAt(0)}
                 </div>
@@ -260,7 +283,7 @@ export function ProfileCard({
                         ? 'bg-[#E8F5E9] text-[#1B5E20] dark:bg-[#1B3E2B] dark:text-[#A5D6A7]'
                         : 'bg-[#FFF8E8] text-[#8D6E18] dark:bg-[#3D2F1B] dark:text-[#FFE082]'
                     }`}>
-                      {isComplete ? '✓ 100% Ready' : '⚠ Incomplete'}
+                      {isComplete ? '✓ Ready' : '⚠ Action required'}
                     </span>
                   </div>
                   {/* Masked Sensitive Data Display */}
@@ -278,7 +301,7 @@ export function ProfileCard({
                     )}
                   </p>
 
-                  {/* 5 Core Requirements Checklist + Optional Contact */}
+                  {/* Requirements Checklist */}
                   <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 mt-1.5 text-xs">
                     <span className={pilgrim.fullName?.trim() || pilgrim.firstName?.trim() ? 'text-[#1B5E20] dark:text-[#A5D6A7] font-medium' : 'text-rose-500 font-medium'}>
                       {pilgrim.fullName?.trim() || pilgrim.firstName?.trim() ? '✓' : '✗'} Name
@@ -286,21 +309,25 @@ export function ProfileCard({
                     <span className={pilgrim.gender ? 'text-[#1B5E20] dark:text-[#A5D6A7] font-medium' : 'text-rose-500 font-medium'}>
                       {pilgrim.gender ? '✓' : '✗'} Gender
                     </span>
-                    <span className={pilgrim.age || pilgrim.dateOfBirth ? 'text-[#1B5E20] dark:text-[#A5D6A7] font-medium' : 'text-rose-500 font-medium'}>
-                      {pilgrim.age || pilgrim.dateOfBirth ? '✓' : '✗'} Age
+                    <span className={pilgrim.age ? 'text-[#1B5E20] dark:text-[#A5D6A7] font-medium' : 'text-rose-500 font-medium'}>
+                      {pilgrim.age ? '✓' : '✗'} Age
                     </span>
+                    {serviceKey.includes('srivari') && (
+                      <span className={pilgrim.dateOfBirth ? 'text-[#1B5E20] dark:text-[#A5D6A7] font-medium' : 'text-rose-500 font-medium'}>
+                        {pilgrim.dateOfBirth ? '✓' : '✗'} DOB
+                      </span>
+                    )}
                     <span className={pilgrim.idType ? 'text-[#1B5E20] dark:text-[#A5D6A7] font-medium' : 'text-rose-500 font-medium'}>
                       {pilgrim.idType ? '✓' : '✗'} ID Proof
                     </span>
                     <span className={pilgrimHealth.missingFields.includes('idNumber') ? 'text-rose-500 font-medium' : 'text-[#1B5E20] dark:text-[#A5D6A7] font-medium'}>
                       {!pilgrimHealth.missingFields.includes('idNumber') ? '✓' : '✗'} ID Number
                     </span>
-                    <span className="text-[#6B5A70] dark:text-[#A692B4]">
-                      {pilgrim.mobile ? '✓ Mobile' : '○ Mobile — Optional'}
-                    </span>
-                    <span className="text-[#6B5A70] dark:text-[#A692B4]">
-                      {pilgrim.email ? '✓ Email' : '○ Email — Optional'}
-                    </span>
+                    {serviceKey.includes('srivari') && (
+                      <span className={pilgrim.photo ? 'text-[#1B5E20] dark:text-[#A5D6A7] font-medium' : 'text-rose-500 font-medium'}>
+                        {pilgrim.photo ? '✓' : '✗'} Photo
+                      </span>
+                    )}
                   </div>
                 </div>
 
@@ -359,16 +386,20 @@ export function ProfileCard({
             <span>{t('profiles.addPilgrim')}</span>
           </button>
 
-          {/* Quick Add Pilgrim Form */}
           {showAddPilgrim && (
             <QuickPilgrimForm
-              onSave={(pilgrim) => onAddPilgrim(profile.id, pilgrim)}
+              onSave={(p) => onAddPilgrim(profile.id, p)}
               onCancel={() => onSetShowAddPilgrim(false)}
+              targetServiceId={serviceKey}
             />
           )}
 
-          {/* Step 2 General Details Section (Email, City, State, Country, Pincode) */}
-          <GeneralDetailsSection profile={profile} onUpdate={onRefresh} />
+          {/* General Details Section */}
+          <GeneralDetailsSection
+            profile={profile}
+            onUpdate={onRefresh}
+            activeServiceId={serviceKey}
+          />
         </div>
       )}
     </div>

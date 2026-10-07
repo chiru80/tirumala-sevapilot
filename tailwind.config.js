@@ -96,6 +96,8 @@ export default {
         '2xl': '1rem',
       },
       boxShadow: {
+        '2xs': '0 1px 2px 0 rgba(0, 0, 0, 0.04)',
+        'xs': '0 1px 2px 0 rgba(0, 0, 0, 0.06)',
         'temple-sm': '0 1px 3px rgba(91, 42, 134, 0.05), 0 1px 2px rgba(212, 167, 44, 0.08)',
         'temple': '0 4px 12px rgba(91, 42, 134, 0.06), 0 2px 4px rgba(212, 167, 44, 0.08)',
         'temple-gold': '0 0 0 1px rgba(212, 167, 44, 0.35), 0 4px 12px rgba(91, 42, 134, 0.12)',

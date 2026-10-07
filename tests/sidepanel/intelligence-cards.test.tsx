@@ -2,7 +2,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import { ReleaseCountdownCard } from '../../src/sidepanel/components/dashboard/ReleaseCountdownCard';
-import { BookingPreparationCard } from '../../src/sidepanel/components/dashboard/BookingPreparationCard';
+import { BookingPreparationCard } from '../../src/sidepanel/components/diagnostics/BookingPreparationCard';
 import { Gender, IdType, type Profile, type Pilgrim } from '../../src/shared/types';
 import type { ReadinessEvaluation } from '../../src/services/readiness-engine';
 
@@ -22,10 +22,10 @@ describe('Phase 5 — Intelligence Dashboard Cards', () => {
 
       expect(screen.getByRole('region', { name: /NEXT TTD RELEASE/i })).toBeDefined();
       expect(screen.getByText(/Special Entry Darshan.*300/i)).toBeDefined();
-      // Should show release pattern for 3-month advance
-      expect(screen.getByText(/3 MONTHS IN ADVANCE/i)).toBeDefined();
+      // Should show release pattern for SED quota
+      expect(screen.getByText(/SPECIAL ENTRY DARSHAN QUOTA/i)).toBeDefined();
       // Should show target month
-      expect(screen.getByText(/December 2026/i)).toBeDefined();
+      expect(screen.getByText(/October 2026/i)).toBeDefined();
     });
 
     it('handles Open Official Source button click', () => {

@@ -12,6 +12,10 @@ export interface BookingPreparationCardProps {
   onPrepare?: () => void;
 }
 
+/**
+ * Diagnostic checklist component for advanced inspection.
+ * Moved to diagnostics to keep the Home dashboard clean and non-technical.
+ */
 export function BookingPreparationCard({
   profile,
   selectedPilgrims,
@@ -49,24 +53,24 @@ export function BookingPreparationCard({
   };
 
   const checklist = [
-    { label: t('intelligence.profileSelected'), passed: hasProfile },
-    { label: t('intelligence.pilgrimsComplete'), passed: pilgrimsComplete },
-    { label: t('intelligence.idDetailsVerified'), passed: idVerified },
-    { label: t('intelligence.generalDetailsComplete'), passed: generalComplete },
-    { label: t('intelligence.specialRequirementsComplete'), passed: specialComplete },
-    { label: t('intelligence.quotaSupported'), passed: quotaSupported },
-    { label: t('intelligence.sourceVerified'), passed: sourceVerified },
+    { label: t('intelligence.profileSelected') || 'Profile selected & complete', passed: hasProfile },
+    { label: t('intelligence.pilgrimsComplete') || 'Required pilgrims complete', passed: pilgrimsComplete },
+    { label: t('intelligence.idDetailsVerified') || 'ID details verified', passed: idVerified },
+    { label: t('intelligence.generalDetailsComplete') || 'General details complete', passed: generalComplete },
+    { label: t('intelligence.specialRequirementsComplete') || 'Special requirements complete', passed: specialComplete },
+    { label: t('intelligence.quotaSupported') || 'Quota supported for selected count', passed: quotaSupported },
+    { label: t('intelligence.sourceVerified') || 'Official source verified', passed: sourceVerified },
   ];
 
   return (
     <div
       className="p-4 rounded-2xl border bg-white dark:bg-[#1E1B24] border-[#E5DEEB] dark:border-[#382F45] shadow-xs"
       role="region"
-      aria-label={t('intelligence.bookingPreparation')}
+      aria-label={t('intelligence.bookingPreparation') || 'BOOKING PREPARATION'}
     >
       <div className="flex items-center justify-between mb-2.5">
         <span className="text-[11px] font-bold tracking-wider text-[#6F6477] dark:text-[#A89CB5] uppercase">
-          {t('intelligence.bookingPreparation')}
+          {t('intelligence.bookingPreparation') || 'BOOKING PREPARATION'}
         </span>
         <span
           className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
@@ -75,7 +79,7 @@ export function BookingPreparationCard({
               : 'bg-[#F2EDF7] text-[#54258A] dark:bg-[#2C2438] dark:text-[#D4A72C]'
           }`}
         >
-          {allItemsPass && isPrepared ? t('intelligence.readyForTtd') : `${readiness.score}%`}
+          {allItemsPass && isPrepared ? (t('intelligence.readyForTtd') || 'READY FOR TTD') : `${readiness.score}%`}
         </span>
       </div>
 
@@ -109,7 +113,7 @@ export function BookingPreparationCard({
       <div className="mt-3.5">
         {isPrepared && allItemsPass ? (
           <div className="w-full py-2 px-3 rounded-xl text-center text-xs font-bold bg-[#EBF7EE] text-[#1B5E20] dark:bg-[#13381B] dark:text-[#A5D6A7] border border-[#2F8F68]/30">
-            ✓ {t('intelligence.readyForTtd')}
+            ✓ {t('intelligence.readyForTtd') || 'READY FOR TTD'}
           </div>
         ) : (
           <button
@@ -121,10 +125,10 @@ export function BookingPreparationCard({
                 ? 'bg-[#54258A] text-white hover:bg-[#6830AA] cursor-pointer dark:bg-[#D4A72C] dark:text-[#1F1603] dark:hover:bg-[#E5B83E]'
                 : 'bg-[#ECE6F0] text-[#8B7C99] dark:bg-[#2C2438] dark:text-[#7C6E8A] cursor-not-allowed opacity-80'
             }`}
-            aria-label={t('intelligence.prepareBooking')}
+            aria-label={t('intelligence.prepareBooking') || 'PREPARE BOOKING'}
           >
             <span>⚡</span>
-            <span>{t('intelligence.prepareBooking')}</span>
+            <span>{t('intelligence.prepareBooking') || 'PREPARE BOOKING'}</span>
           </button>
         )}
       </div>

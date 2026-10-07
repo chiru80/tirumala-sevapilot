@@ -22,8 +22,8 @@ export const INDIAN_STATES = [
 ];
 
 /**
- * 5-Section Pilgrim Editor Modal
- * Sections: PERSONAL, IDENTITY, CONTACT, ADDRESS, PHOTO
+ * 6-Section Comprehensive Pilgrim Editor Modal
+ * Sections: PERSONAL, IDENTITY, CONTACT, ADDRESS, SRIVARI SEVA, PHOTO & NOTES
  */
 export function PilgrimEditorModal({
   editPilgrim,
@@ -34,20 +34,35 @@ export function PilgrimEditorModal({
   onClose: () => void;
   onSave: (pilgrim: Pilgrim) => Promise<void>;
 }) {
-  const [pilgrim, setPilgrim] = useState<Pilgrim>({ ...editPilgrim.pilgrim });
+  const [pilgrim, setPilgrim] = useState<Pilgrim>({
+    ...editPilgrim.pilgrim,
+    srivariSeva: { ...editPilgrim.pilgrim.srivariSeva },
+  });
   const [showIdPlain, setShowIdPlain] = useState(false);
-  const [activeTab, setActiveTab] = useState<'personal' | 'identity' | 'contact' | 'address' | 'photo'>('personal');
+  const [activeTab, setActiveTab] = useState<'personal' | 'identity' | 'contact' | 'address' | 'srivari' | 'photo'>('personal');
 
-  const tabs: Array<{ id: 'personal' | 'identity' | 'contact' | 'address' | 'photo'; label: string }> = [
+  const tabs: Array<{ id: 'personal' | 'identity' | 'contact' | 'address' | 'srivari' | 'photo'; label: string }> = [
     { id: 'personal', label: '1. Personal' },
     { id: 'identity', label: '2. Identity' },
     { id: 'contact', label: '3. Contact' },
     { id: 'address', label: '4. Address' },
-    { id: 'photo', label: '5. Photo' },
+    { id: 'srivari', label: '5. Srivari Seva' },
+    { id: 'photo', label: '6. Photo & Notes' },
   ];
 
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const dataUrl = event.target?.result as string;
+      setPilgrim(prev => ({ ...prev, photo: dataUrl }));
+    };
+    reader.readAsDataURL(file);
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-3 animate-fade-in">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-3 animate-fade-in">
       <div className="bg-white dark:bg-[#2D1A38] p-4 rounded-2xl shadow-2xl w-full max-w-md border border-gold-500/30 max-h-[90vh] overflow-y-auto space-y-3">
         <div className="flex items-center justify-between pb-2 border-b border-gold-500/15">
           <div>
@@ -127,7 +142,12 @@ export function PilgrimEditorModal({
             </div>
 
             <div>
-              <label className="sp-label">Date of Birth (Optional)</label>
+              <div className="flex items-center justify-between">
+                <label className="sp-label">Date of Birth</label>
+                <span className="text-[10px] text-amber-700 dark:text-amber-300 font-medium">
+                  * Required for Srivari Seva
+                </span>
+              </div>
               <input
                 type="date"
                 className="sp-input text-xs"
@@ -192,7 +212,12 @@ export function PilgrimEditorModal({
         {activeTab === 'contact' && (
           <div className="space-y-2.5 animate-fade-in text-xs">
             <div>
-              <label className="sp-label">Mobile Number (Optional)</label>
+              <div className="flex items-center justify-between">
+                <label className="sp-label">Pilgrim Mobile Number</label>
+                <span className="text-[10px] text-amber-700 dark:text-amber-300 font-medium">
+                  * Required for Srivari Seva
+                </span>
+              </div>
               <input
                 type="tel"
                 inputMode="numeric"
@@ -203,7 +228,7 @@ export function PilgrimEditorModal({
                 onChange={e => setPilgrim({ ...pilgrim, mobile: e.target.value.replace(/\D/g, '').slice(0, 10) })}
               />
               <p className="text-[10px] text-[#6B5A70] dark:text-[#A692B4] mt-0.5">
-                Optional pilgrim mobile. Booking contact mobile is maintained in General Details.
+                Optional for standard Darshan; required for Srivari Seva enrollment.
               </p>
             </div>
 
@@ -223,20 +248,62 @@ export function PilgrimEditorModal({
         {/* Section 4: ADDRESS */}
         {activeTab === 'address' && (
           <div className="space-y-2.5 animate-fade-in text-xs">
-            <div>
-              <label className="sp-label">City / Town</label>
-              <input
-                type="text"
-                className="sp-input text-xs"
-                placeholder="e.g. Tirupati"
-                value={pilgrim.city || ''}
-                onChange={e => setPilgrim({ ...pilgrim, city: e.target.value })}
-              />
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="sp-label">Door / Flat Number</label>
+                <input
+                  type="text"
+                  className="sp-input text-xs"
+                  placeholder="e.g. 4-12/A"
+                  value={pilgrim.srivariSeva?.doorNumber || ''}
+                  onChange={e => setPilgrim({
+                    ...pilgrim,
+                    srivariSeva: { ...pilgrim.srivariSeva, doorNumber: e.target.value },
+                  })}
+                />
+              </div>
+              <div>
+                <label className="sp-label">Street / Area</label>
+                <input
+                  type="text"
+                  className="sp-input text-xs"
+                  placeholder="e.g. Temple Street"
+                  value={pilgrim.srivariSeva?.street || pilgrim.address || ''}
+                  onChange={e => setPilgrim({
+                    ...pilgrim,
+                    address: e.target.value,
+                    srivariSeva: { ...pilgrim.srivariSeva, street: e.target.value },
+                  })}
+                />
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="sp-label">State</label>
+                <label className="sp-label">District *</label>
+                <input
+                  type="text"
+                  className="sp-input text-xs"
+                  placeholder="e.g. Chittoor / Tirupati"
+                  value={pilgrim.district || ''}
+                  onChange={e => setPilgrim({ ...pilgrim, district: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="sp-label">City / Town *</label>
+                <input
+                  type="text"
+                  className="sp-input text-xs"
+                  placeholder="e.g. Tirupati"
+                  value={pilgrim.city || ''}
+                  onChange={e => setPilgrim({ ...pilgrim, city: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="sp-label">State *</label>
                 <select
                   className="sp-input text-xs"
                   value={pilgrim.state || 'Andhra Pradesh'}
@@ -248,7 +315,7 @@ export function PilgrimEditorModal({
                 </select>
               </div>
               <div>
-                <label className="sp-label">PIN Code</label>
+                <label className="sp-label">PIN Code *</label>
                 <input
                   type="text"
                   inputMode="numeric"
@@ -274,14 +341,167 @@ export function PilgrimEditorModal({
           </div>
         )}
 
-        {/* Section 5: PHOTO */}
+        {/* Section 5: SRIVARI SEVA DETAILS */}
+        {activeTab === 'srivari' && (
+          <div className="space-y-2.5 animate-fade-in text-xs">
+            <div className="p-2.5 rounded-xl bg-gold-50 dark:bg-[#321B3F] border border-gold-500/25 text-2xs space-y-1">
+              <p className="font-bold text-[#5B2A86] dark:text-gold-300">Srivari Seva Voluntary Service Fields</p>
+              <p className="text-[#6B5A70] dark:text-[#A692B4]">
+                The official Srivari Seva enrollment page requires full personal details, verified photo, and residential address with Door Number and District.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="sp-label">Door Number *</label>
+                <input
+                  type="text"
+                  className="sp-input text-xs"
+                  placeholder="e.g. 1-23"
+                  value={pilgrim.srivariSeva?.doorNumber || ''}
+                  onChange={e => setPilgrim({
+                    ...pilgrim,
+                    srivariSeva: { ...pilgrim.srivariSeva, doorNumber: e.target.value },
+                  })}
+                />
+              </div>
+              <div>
+                <label className="sp-label">Street *</label>
+                <input
+                  type="text"
+                  className="sp-input text-xs"
+                  placeholder="Street name"
+                  value={pilgrim.srivariSeva?.street || pilgrim.address || ''}
+                  onChange={e => setPilgrim({
+                    ...pilgrim,
+                    address: e.target.value,
+                    srivariSeva: { ...pilgrim.srivariSeva, street: e.target.value },
+                  })}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="sp-label">District *</label>
+                <input
+                  type="text"
+                  className="sp-input text-xs"
+                  placeholder="District name"
+                  value={pilgrim.district || ''}
+                  onChange={e => setPilgrim({ ...pilgrim, district: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="sp-label">Mandal / Taluk</label>
+                <input
+                  type="text"
+                  className="sp-input text-xs"
+                  placeholder="Mandal / Block"
+                  value={pilgrim.srivariSeva?.mandal || ''}
+                  onChange={e => setPilgrim({
+                    ...pilgrim,
+                    srivariSeva: { ...pilgrim.srivariSeva, mandal: e.target.value },
+                  })}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="sp-label">Father / Spouse Name</label>
+                <input
+                  type="text"
+                  className="sp-input text-xs"
+                  placeholder="Parent / Spouse"
+                  value={pilgrim.srivariSeva?.fatherSpouseName || ''}
+                  onChange={e => setPilgrim({
+                    ...pilgrim,
+                    srivariSeva: { ...pilgrim.srivariSeva, fatherSpouseName: e.target.value },
+                  })}
+                />
+              </div>
+              <div>
+                <label className="sp-label">Blood Group</label>
+                <input
+                  type="text"
+                  className="sp-input text-xs"
+                  placeholder="e.g. O+, A+, B+"
+                  value={pilgrim.srivariSeva?.bloodGroup || ''}
+                  onChange={e => setPilgrim({
+                    ...pilgrim,
+                    srivariSeva: { ...pilgrim.srivariSeva, bloodGroup: e.target.value },
+                  })}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="sp-label">Qualification</label>
+                <input
+                  type="text"
+                  className="sp-input text-xs"
+                  placeholder="e.g. Graduate"
+                  value={pilgrim.srivariSeva?.qualification || ''}
+                  onChange={e => setPilgrim({
+                    ...pilgrim,
+                    srivariSeva: { ...pilgrim.srivariSeva, qualification: e.target.value },
+                  })}
+                />
+              </div>
+              <div>
+                <label className="sp-label">Profession</label>
+                <input
+                  type="text"
+                  className="sp-input text-xs"
+                  placeholder="e.g. Teacher, Engineer"
+                  value={pilgrim.srivariSeva?.profession || ''}
+                  onChange={e => setPilgrim({
+                    ...pilgrim,
+                    srivariSeva: { ...pilgrim.srivariSeva, profession: e.target.value },
+                  })}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Section 6: PHOTO & NOTES */}
         {activeTab === 'photo' && (
           <div className="space-y-2.5 animate-fade-in text-xs">
-            <div className="p-2.5 rounded-xl bg-gold-50 dark:bg-[#321B3F] border border-gold-500/20 text-2xs space-y-1">
-              <p className="font-bold text-[#5B2A86] dark:text-gold-300">Photo & Travel Notes</p>
-              <p className="text-[#6B5A70] dark:text-[#A692B4]">
-                Carry physical original Photo ID cards to the Vaikuntam queue complex for biometric/physical verification.
-              </p>
+            <div className="p-3 rounded-xl bg-gold-50/60 dark:bg-[#321B3F]/60 border border-gold-500/20 space-y-2">
+              <label className="sp-label font-bold text-[#5B2A86] dark:text-gold-300">
+                Pilgrim Photo {pilgrim.photo ? '✓ Uploaded' : '(Required for Srivari Seva)'}
+              </label>
+
+              <div className="flex items-center gap-3">
+                <div className="w-14 h-14 rounded-xl bg-gray-100 dark:bg-gray-800 border-2 border-dashed border-gold-500/40 flex items-center justify-center overflow-hidden shrink-0">
+                  {pilgrim.photo ? (
+                    <img src={pilgrim.photo} alt="Pilgrim" className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-xl">📷</span>
+                  )}
+                </div>
+
+                <div className="flex-1 space-y-1">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handlePhotoUpload}
+                    className="text-xs text-[#6B5A70] dark:text-[#A692B4] file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-[#5B2A86]/10 file:text-[#5B2A86] dark:file:bg-gold-500/20 dark:file:text-gold-300 hover:file:bg-[#5B2A86]/20 cursor-pointer"
+                  />
+                  {pilgrim.photo && (
+                    <button
+                      type="button"
+                      onClick={() => setPilgrim(prev => ({ ...prev, photo: undefined }))}
+                      className="text-[10px] text-red-600 hover:underline block"
+                    >
+                      Remove photo
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
 
             <div>

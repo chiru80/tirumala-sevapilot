@@ -2,11 +2,15 @@ import React from 'react';
 import type { UseReadinessResult } from '../../hooks/useReadiness';
 import { t } from '@i18n/index';
 
-interface ReadinessCardProps {
+export interface ReadinessCardProps {
   readiness: UseReadinessResult;
   onFixProfile: () => void;
 }
 
+/**
+ * Diagnostic readiness inspection card.
+ * Moved to diagnostics to keep the Home dashboard clean and non-technical.
+ */
 export const ReadinessCard: React.FC<ReadinessCardProps> = ({
   readiness,
   onFixProfile,
@@ -24,11 +28,11 @@ export const ReadinessCard: React.FC<ReadinessCardProps> = ({
     <div
       className="rounded-2xl border border-[rgba(84,37,138,0.15)] bg-white dark:bg-[#2A1733] p-4 shadow-xs space-y-3"
       role="region"
-      aria-label={t('dashboard.bookingReadiness')}
+      aria-label={t('dashboard.bookingReadiness') || 'Booking Readiness'}
     >
       <div className="flex items-center justify-between">
         <span className="text-sm font-bold uppercase tracking-wider text-[#6F6477] dark:text-[#A692B4]">
-          {t('dashboard.bookingReadiness')}
+          {t('dashboard.bookingReadiness') || 'Booking Readiness'}
         </span>
         <span
           className={`text-lg font-extrabold px-2.5 py-0.5 rounded-lg ${
@@ -39,7 +43,7 @@ export const ReadinessCard: React.FC<ReadinessCardProps> = ({
               : 'text-[#B64747] bg-[#FFEBEE] dark:bg-[#4E1C1C] dark:text-[#EF9A9A]'
           }`}
         >
-          {score}% {score >= 100 ? t('dashboard.ready') : ''}
+          {score}% {score >= 100 ? (t('dashboard.ready') || 'Ready') : ''}
         </span>
       </div>
 
@@ -87,9 +91,9 @@ export const ReadinessCard: React.FC<ReadinessCardProps> = ({
           <button
             onClick={onFixProfile}
             className="min-h-[44px] text-sm font-bold px-4 py-2 rounded-xl bg-[#54258A] hover:bg-[#4A216E] text-white shadow-xs transition-all cursor-pointer whitespace-nowrap active:scale-[0.98]"
-            aria-label={missingDetails[0]?.toLowerCase().includes('open') ? 'Open TTD' : t('dashboard.fixProfile')}
+            aria-label={missingDetails[0]?.toLowerCase().includes('open') ? 'Open TTD' : (t('dashboard.fixProfile') || 'Fix Profile')}
           >
-            {missingDetails[0]?.toLowerCase().includes('open') ? 'Open TTD →' : `${t('dashboard.fixProfile')} →`}
+            {missingDetails[0]?.toLowerCase().includes('open') ? 'Open TTD →' : `${t('dashboard.fixProfile') || 'Fix Profile'} →`}
           </button>
         </div>
       )}

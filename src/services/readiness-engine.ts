@@ -71,6 +71,7 @@ export class ReadinessEngine {
     profile: Profile | null | undefined,
     serviceType: ServiceType | string = ServiceType.DARSHAN,
     serviceId?: string,
+    selectedPilgrims?: (string | Pilgrim)[],
   ): ReadinessEvaluation {
     const checks: ReadinessCheckItem[] = [];
     const missingFields: string[] = [];
@@ -158,7 +159,9 @@ export class ReadinessEngine {
     // [] = user explicitly selected ZERO pilgrims (NEVER convert [] into all pilgrims)
     // [string IDs] = explicitly selected pilgrims (strictly capped by service rules)
     const selectionKey = serviceId || serviceType;
-    const configured = profile.selectedPilgrims?.[selectionKey as any] ??
+    const selectedIds = selectedPilgrims?.map(p => typeof p === 'string' ? p : p.id);
+    const configured = selectedIds ??
+      profile.selectedPilgrims?.[selectionKey as any] ??
       (serviceId ? profile.selectedPilgrims?.[serviceId as any] : undefined) ??
       (profile.selectedPilgrims?.[serviceType as any]);
 
@@ -258,13 +261,32 @@ export class ReadinessEngine {
       }
 
       // 2. Age / Date of Birth check
-      const hasAge = Boolean((pilgrim.age && pilgrim.age > 0) || pilgrim.dateOfBirth);
-      if (hasAge) {
-        pilgrimPoints += 1;
+      // For Srivari Seva, the official enrollment form strictly requires BOTH Age AND Date of Birth.
+      if (isSrivariSeva) {
+        const hasValidAge = Boolean(pilgrim.age && pilgrim.age > 0);
+        const hasValidDob = Boolean(pilgrim.dateOfBirth && pilgrim.dateOfBirth.trim());
+        if (hasValidAge && hasValidDob) {
+          pilgrimPoints += 1;
+        } else {
+          allPilgrimsValid = false;
+          if (!hasValidAge) {
+            pilgrimErrors.push('Missing Age');
+            missingFields.push(`${pilgrimName}: Age`);
+          }
+          if (!hasValidDob) {
+            pilgrimErrors.push('Missing Date of Birth');
+            missingFields.push(`${pilgrimName}: Date of Birth`);
+          }
+        }
       } else {
-        allPilgrimsValid = false;
-        pilgrimErrors.push('Missing Age');
-        missingFields.push(`${pilgrimName}: Age`);
+        const hasAge = Boolean((pilgrim.age && pilgrim.age > 0) || pilgrim.dateOfBirth);
+        if (hasAge) {
+          pilgrimPoints += 1;
+        } else {
+          allPilgrimsValid = false;
+          pilgrimErrors.push('Missing Age');
+          missingFields.push(`${pilgrimName}: Age`);
+        }
       }
 
       // 3. Gender check
@@ -769,8 +791,8 @@ export class ReadinessEngine {
             case 'physicallyFit':
               hasVal = (res.element as HTMLInputElement)?.checked ?? false;
               break;
-            case 'dateOfBirth': hasVal = Boolean(pilgrim.dateOfBirth || pilgrim.age); break;
-            case 'age': hasVal = Boolean(pilgrim.age || pilgrim.dateOfBirth); break;
+            case 'dateOfBirth': hasVal = Boolean(pilgrim.dateOfBirth && pilgrim.dateOfBirth.trim()); break;
+            case 'age': hasVal = Boolean(pilgrim.age && pilgrim.age > 0); break;
             case 'gender': hasVal = Boolean(pilgrim.gender); break;
             case 'country': hasVal = Boolean(pilgrim.country || profile?.general?.country); break;
             case 'pincode':

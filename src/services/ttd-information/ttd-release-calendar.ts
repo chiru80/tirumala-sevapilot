@@ -243,19 +243,19 @@ export const VERIFIED_RELEASE_EVENTS: TtdReleaseEvent[] = [
     id: 'release-sed-300-current',
     serviceId: 'special-entry-darshan-300',
     displayName: 'Special Entry Darshan ₹300',
-    targetMonth: 'December 2026',
-    releaseDate: '2026-09-24',
+    targetMonth: 'October 2026 (Oct 12, 13, 14, 18, 19, 20 Quota)',
+    releaseDate: '2026-10-07',
     releaseTime: '10:00',
     timezone: IST_TIMEZONE,
-    releasePattern: 'THREE_MONTHS_ADVANCE_MONTHLY_QUOTA',
-    advanceMonths: 3,
-    releaseType: 'MONTHLY_QUOTA_RELEASE',
-    sourceUrl: 'https://news.tirumala.org/',
-    sourceDate: '2026-09-01',
+    releasePattern: 'SPECIAL_ENTRY_DARSHAN_QUOTA',
+    advanceMonths: 0,
+    releaseType: 'QUOTA_RELEASE',
+    sourceUrl: 'https://news.tirumala.org/ttd-to-release-rs-300-sed-tickets-on-october-7-_-అక్టోబర్-7న-రూ-300-ప్రత/',
+    sourceDate: '2026-10-06',
     verified: true,
     isConfirmed: true,
-    fetchedAt: '2026-09-01T00:00:00.000Z',
-    expiresAt: '2026-10-31T00:00:00.000Z',
+    fetchedAt: '2026-10-07T00:00:00.000Z',
+    expiresAt: '2026-10-21T00:00:00.000Z',
   },
   {
     id: 'release-padmavathi-200-current',
@@ -297,10 +297,21 @@ export const VERIFIED_RELEASE_EVENTS: TtdReleaseEvent[] = [
 let activeReleaseEvents: TtdReleaseEvent[] = [...VERIFIED_RELEASE_EVENTS];
 
 /**
- * Returns currently active release events.
+ * Returns currently active verified release events.
+ * Strictly enforces expiresAt: expired events are never presented as valid.
  */
-export function getVerifiedReleaseEvents(): TtdReleaseEvent[] {
-  return [...activeReleaseEvents];
+export function getVerifiedReleaseEvents(nowMs: number = Date.now()): TtdReleaseEvent[] {
+  return activeReleaseEvents.filter(e => {
+    if (!e.verified) return false;
+    // Enforce expiresAt: if expired, drop from verified release events
+    if (e.expiresAt) {
+      const expiresEpoch = new Date(e.expiresAt).getTime();
+      if (!isNaN(expiresEpoch) && nowMs > expiresEpoch) {
+        return false;
+      }
+    }
+    return true;
+  });
 }
 
 /**
@@ -329,14 +340,32 @@ export function resetReleaseEventsToDefault(): void {
 
 /**
  * Finds the upcoming verified release event for a specific service or closest overall.
- * Every service strictly uses its own pattern.
- * If no confirmed release exists for the service, returns an unconfirmed event without fabricating a countdown.
+ * Strictly filters out past / expired events: releaseDate + releaseTime must be in the future
+ * (with up to 2 hours grace period during the active release window).
+ * If no confirmed future release exists, returns an unconfirmed event indicating
+ * "Pending official announcement" rather than fabricating a date or returning a passed event.
  */
-export function getUpcomingReleaseEvent(serviceId?: string): TtdReleaseEvent | undefined {
+export function getUpcomingReleaseEvent(serviceId?: string, nowMs: number = Date.now()): TtdReleaseEvent | undefined {
+  const verifiedEvents = getVerifiedReleaseEvents(nowMs);
+
+  // Filter only true future/active confirmed events
+  const futureEvents = verifiedEvents
+    .filter(e => Boolean(e.isConfirmed && e.releaseDate && e.releaseTime))
+    .filter(e => {
+      const epoch = getReleaseEpochMs(e.releaseDate!, e.releaseTime!);
+      // Up to 2 hours after release is considered active release window; past that is historical
+      return !isNaN(epoch) && (epoch + 2 * 3600 * 1000 >= nowMs);
+    })
+    .sort((a, b) => {
+      const aEpoch = getReleaseEpochMs(a.releaseDate!, a.releaseTime!);
+      const bEpoch = getReleaseEpochMs(b.releaseDate!, b.releaseTime!);
+      return aEpoch - bEpoch;
+    });
+
   if (serviceId) {
     const config = getServiceConfig(serviceId);
     const targetServiceId = config ? config.serviceId : serviceId;
-    const found = activeReleaseEvents.find(e =>
+    const found = futureEvents.find(e =>
       e.serviceId === targetServiceId ||
       e.serviceId === serviceId ||
       isMatchingService(targetServiceId, e.serviceId) ||
@@ -362,7 +391,9 @@ export function getUpcomingReleaseEvent(serviceId?: string): TtdReleaseEvent | u
       };
     }
   }
-  return activeReleaseEvents[0];
+
+  // If no serviceId specified, return the earliest upcoming event or undefined
+  return futureEvents[0];
 }
 
 /**
@@ -403,4 +434,86 @@ export function validateReleaseScheduleIntegrity(
   }
 
   return { isValid: true };
+}
+
+/**
+ * Syncs the active release calendar with verified events stored in the TTD cache.
+ */
+export async function syncReleaseScheduleWithCache(): Promise<TtdReleaseEvent[]> {
+  try {
+    const { getCachedTtdData } = await import('./ttd-cache');
+    const cached = await getCachedTtdData<TtdReleaseEvent[]>('verified_release_events');
+    if (cached && cached.verified && cached.status === 'FRESH' && Array.isArray(cached.data)) {
+      for (const event of cached.data) {
+        if (event && event.serviceId && event.verified) {
+          registerOfficialAnnouncement(event);
+        }
+      }
+    }
+  } catch {
+    // Graceful fallback to default in-memory verified events
+  }
+  return getVerifiedReleaseEvents();
+}
+
+/**
+ * Complete pipeline: validates official source URL, parses announcement text,
+ * validates service isolation, caches with expiry, and updates the release calendar.
+ */
+export async function processOfficialAnnouncementPipeline(input: {
+  title: string;
+  content: string;
+  sourceUrl: string;
+  publishedDate?: string;
+  expiresInMs?: number;
+}): Promise<{ success: boolean; events: TtdReleaseEvent[]; error?: string }> {
+  const sourceValidation = validateTtdSource(input.sourceUrl);
+  if (!sourceValidation.isValid) {
+    return {
+      success: false,
+      events: [],
+      error: `Unofficial source rejected: ${sourceValidation.reason}`,
+    };
+  }
+
+  const { parseTtdAnnouncement } = await import('./ttd-announcement-parser');
+  const { setCachedTtdData } = await import('./ttd-cache');
+
+  const parsedEvents = parseTtdAnnouncement({
+    title: input.title,
+    content: input.content,
+    sourceUrl: input.sourceUrl,
+    publishedDate: input.publishedDate,
+  });
+
+  if (parsedEvents.length === 0) {
+    return {
+      success: false,
+      events: [],
+      error: 'No recognized service quota schedule found in announcement text',
+    };
+  }
+
+  const validEvents: TtdReleaseEvent[] = [];
+  for (const event of parsedEvents) {
+    const integrity = validateReleaseScheduleIntegrity(event.serviceId, event);
+    if (!integrity.isValid) {
+      continue;
+    }
+    registerOfficialAnnouncement(event);
+    validEvents.push(event);
+  }
+
+  if (validEvents.length > 0) {
+    await setCachedTtdData('verified_release_events', getVerifiedReleaseEvents(), {
+      sourceUrl: input.sourceUrl,
+      expiresInMs: input.expiresInMs || 14 * 24 * 60 * 60 * 1000, // 14 days default for press releases
+      isVerified: true,
+    });
+  }
+
+  return {
+    success: validEvents.length > 0,
+    events: validEvents,
+  };
 }

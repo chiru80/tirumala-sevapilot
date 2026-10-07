@@ -2,7 +2,7 @@
 import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { ReadinessCard } from '../../src/sidepanel/components/dashboard/ReadinessCard';
+import { ReadinessCard } from '../../src/sidepanel/components/diagnostics/ReadinessCard';
 import type { UseReadinessResult } from '../../src/sidepanel/hooks/useReadiness';
 
 describe('ReadinessCard Component', () => {

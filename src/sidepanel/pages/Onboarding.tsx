@@ -12,32 +12,32 @@ export function Onboarding({ onComplete }: OnboardingProps) {
   const steps = [
     {
       num: '1 / 5',
-      title: 'Create Your Pilgrim Profile',
-      description: 'Add your pilgrim details (Name, Age, Gender, ID proof, Mobile) once. All information stays safely stored on this device.',
+      title: '1. Create Your Profile',
+      description: 'Save your profile once. Devotee details remain securely encrypted on your local device.',
       icon: '👤',
     },
     {
       num: '2 / 5',
-      title: 'Organize Pilgrim Groups',
-      description: 'Group family members or friends into profiles matching TTD darshan quota limits (e.g., up to 6 pilgrims for Special Entry Darshan).',
+      title: '2. Add Your Pilgrims',
+      description: 'Add family and devotees with valid photo IDs matching TTD quota guidelines.',
       icon: '👥',
     },
     {
       num: '3 / 5',
-      title: 'Open Official TTD Page',
-      description: 'Open the official TTD booking page. SevaPilot automatically recognizes whether you are booking Darshan, Homam, or Accommodation.',
+      title: '3. Open the Official TTD Page',
+      description: 'Open the official TTD booking portal. SevaPilot automatically recognizes whether you are booking Special Entry Darshan, Padmavathi Supadham Entry, Homam, or Srivari Seva.',
       icon: '🛕',
     },
     {
       num: '4 / 5',
-      title: 'Fill Safety Check',
-      description: 'Verify your pilgrim details and booking readiness checklist before filling. SevaPilot ensures all required fields are complete.',
+      title: '4. SevaPilot Checks the Form',
+      description: 'SevaPilot automatically checks the active page and verifies that your pilgrim details match TTD requirements.',
       icon: '🔍',
     },
     {
       num: '5 / 5',
-      title: 'Fill & Verify',
-      description: 'When the booking page is ready, populate and verify all pilgrim details. You maintain full control over final submission.',
+      title: '5. Fill & Verify',
+      description: 'Populate and verify all pilgrim details with a single click. You maintain complete manual control over payment and CAPTCHA.',
       icon: '⚡',
     },
   ];
@@ -60,10 +60,10 @@ export function Onboarding({ onComplete }: OnboardingProps) {
             </div>
             <div>
               <h1 className="font-serif font-bold text-base text-[#5B2A86] dark:text-[#F0CC63] leading-none">
-                SevaPilot
+                Tirumala SevaPilot
               </h1>
               <p className="text-[10px] text-[#6B5A70] dark:text-[#A898B0] mt-0.5">
-                TTD Booking Assistant
+                TTD Booking Assistant · v1.0.0
               </p>
             </div>
           </div>

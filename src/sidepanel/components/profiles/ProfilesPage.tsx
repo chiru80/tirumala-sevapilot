@@ -19,8 +19,16 @@ import { ProfileCreateModal } from './ProfileCreateModal';
 import { PilgrimEditorModal } from './PilgrimEditor';
 import { TravelChecklist } from './TravelChecklist';
 
+const SUPPORTED_SERVICES = [
+  { id: 'special-entry-darshan-300', label: 'SED ₹300' },
+  { id: 'padmavathi-supadham-entry-200', label: 'Padmavathi ₹200' },
+  { id: 'sri-srinivasa-divyanugraha-homam', label: 'Homam ₹1600' },
+  { id: 'srivari-seva', label: 'Srivari Seva' },
+];
+
 export function ProfilesPage() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [selectedService, setSelectedService] = useState<string>('special-entry-darshan-300');
   const [showCreate, setShowCreate] = useState(false);
   const [showAddPilgrim, setShowAddPilgrim] = useState<string | null>(null);
   const [editPilgrim, setEditPilgrim] = useState<{ profileId: string; pilgrim: Pilgrim } | null>(null);
@@ -86,9 +94,28 @@ export function ProfilesPage() {
 
   async function handleToggleSelectAll(profile: Profile) {
     const allIds = profile.pilgrims.map(p => p.id);
-    const current = profile.selectedPilgrims?.['darshan'] ?? allIds;
+    const current = profile.selectedPilgrims?.[selectedService] ?? profile.selectedPilgrims?.['darshan'] ?? allIds;
     const next = current.length === allIds.length ? [] : allIds;
-    await updateSelectedPilgrims(profile.id, 'darshan', next);
+    await updateSelectedPilgrims(profile.id, selectedService, next);
+    // Sync legacy 'darshan' key for backward compatibility when SED is active
+    if (selectedService === 'special-entry-darshan-300') {
+      await updateSelectedPilgrims(profile.id, 'darshan', next);
+    }
+    await loadProfiles();
+  }
+
+  async function handleTogglePilgrim(profileId: string, pilgrimId: string) {
+    const prof = profiles.find(p => p.id === profileId);
+    if (!prof) return;
+    const allIds = prof.pilgrims.map(p => p.id);
+    const current = prof.selectedPilgrims?.[selectedService] ?? prof.selectedPilgrims?.['darshan'] ?? allIds;
+    const next = current.includes(pilgrimId)
+      ? current.filter(id => id !== pilgrimId)
+      : [...current, pilgrimId];
+    await updateSelectedPilgrims(profileId, selectedService, next);
+    if (selectedService === 'special-entry-darshan-300') {
+      await updateSelectedPilgrims(profileId, 'darshan', next);
+    }
     await loadProfiles();
   }
 
@@ -122,6 +149,26 @@ export function ProfilesPage() {
         </button>
       </div>
 
+      {/* Service-Specific Context Switcher */}
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
+        <span className="text-[11px] font-bold text-[#6B5A70] dark:text-[#A692B4] shrink-0 mr-1">
+          Service:
+        </span>
+        {SUPPORTED_SERVICES.map(svc => (
+          <button
+            key={svc.id}
+            onClick={() => setSelectedService(svc.id)}
+            className={`px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-colors cursor-pointer ${
+              selectedService === svc.id
+                ? 'bg-[#5B2A86] text-white dark:bg-[#D4A72C] dark:text-[#211526]'
+                : 'bg-cream dark:bg-[#321B3F] text-[#6B5A70] dark:text-[#A692B4] hover:bg-gold-500/15'
+            }`}
+          >
+            {svc.label}
+          </button>
+        ))}
+      </div>
+
       <TempleDivider variant="compact" />
 
       {/* Create Profile Form Modal */}
@@ -152,12 +199,14 @@ export function ProfilesPage() {
             profile={profile}
             isSelected={profile.isDefault}
             isExpanded={expandedProfile === profile.id}
+            activeServiceId={selectedService}
             onToggleExpand={() => setExpandedProfile(expandedProfile === profile.id ? null : profile.id)}
             onSetDefault={handleSetDefaultProfile}
             onPrintSlip={handlePrintSlip}
             onDuplicateProfile={handleDuplicateProfile}
             onDeleteProfile={handleDeleteProfile}
             onToggleSelectAll={handleToggleSelectAll}
+            onTogglePilgrim={handleTogglePilgrim}
             onEditPilgrim={(profileId, pilgrim) => setEditPilgrim({ profileId, pilgrim })}
             onDuplicatePilgrim={handleDuplicateDevotee}
             onDeletePilgrim={handleDeleteDevotee}
@@ -169,7 +218,7 @@ export function ProfilesPage() {
         ))
       )}
 
-      {/* 5-Section Pilgrim Editor Modal */}
+      {/* 6-Section Pilgrim Editor Modal */}
       {editPilgrim && (
         <PilgrimEditorModal
           editPilgrim={editPilgrim}
