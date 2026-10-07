@@ -8,7 +8,7 @@ This document contains ready-to-copy metadata and compliance statements for publ
 
 - **Title**: Tirumala SevaPilot — TTD Booking Assistant
 - **Short Name**: SevaPilot
-- **Version**: 1.0.0
+- **Version**: 1.1.0
 - **Category**: Productivity / Accessibility
 - **Primary Language**: English
 

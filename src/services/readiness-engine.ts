@@ -857,3 +857,168 @@ export class ReadinessEngine {
     };
   }
 }
+
+export type NormalizedReadinessStatus = 'READY' | 'ACTION_REQUIRED' | 'NOT_READY' | 'UNKNOWN';
+
+export interface ServiceReadinessParams {
+  serviceId?: string;
+  serviceType?: ServiceType | string;
+  profile?: Profile | null;
+  selectedPilgrims?: (string | Pilgrim)[];
+  workflowState?: string;
+  currentPageState?: {
+    pageDetected?: boolean;
+    isSupported?: boolean;
+    url?: string;
+    formDetected?: boolean;
+    dom?: Document;
+  };
+}
+
+export interface InternalDiagnostics {
+  profileComplete: boolean;
+  pilgrimFieldsComplete: boolean;
+  idVerified: boolean;
+  generalDetailsComplete: boolean;
+  specialDetailsComplete: boolean;
+  serviceCountValid: boolean;
+  formDetected: boolean;
+  officialSourceVerified: boolean;
+  score: number;
+  checks: ReadinessCheckItem[];
+  missingFields: string[];
+  recommendations: string[];
+}
+
+export interface NormalizedReadinessResult {
+  status: NormalizedReadinessStatus;
+  headline: string;
+  userActionMessage?: string;
+  diagnostics: InternalDiagnostics;
+}
+
+/**
+ * Authoritative Canonical Service Readiness Engine (Section 5)
+ * Encapsulates all backend diagnostic checks while returning
+ * clean consumer-facing statuses: READY | ACTION_REQUIRED | NOT_READY | UNKNOWN.
+ */
+export class ServiceReadinessEngine {
+  public static evaluate(params: ServiceReadinessParams): NormalizedReadinessResult {
+    const {
+      serviceId,
+      serviceType = ServiceType.DARSHAN,
+      profile,
+      selectedPilgrims,
+      currentPageState,
+    } = params;
+
+    const baseEval = ReadinessEngine.evaluate(
+      profile,
+      serviceType,
+      serviceId,
+      selectedPilgrims,
+    );
+
+    const hasProfile = Boolean(profile);
+    const pilgrimsCount = selectedPilgrims ? selectedPilgrims.length : (profile?.pilgrims?.length ?? 0);
+    const hasPilgrims = pilgrimsCount > 0;
+    const pageDetected = currentPageState?.pageDetected ?? false;
+    const formDetected = currentPageState?.formDetected ?? false;
+
+    const profileComplete = hasProfile && (profile?.pilgrims?.length ?? 0) > 0;
+    const pilgrimFieldsComplete = baseEval.isProfileReady;
+    const idVerified = !baseEval.missingFields.some(f => f.toLowerCase().includes('id') || f.toLowerCase().includes('aadhaar'));
+    const generalCheck = baseEval.checks.find(c => c.id === 'general_details' || c.id === 'srivari_address');
+    const generalDetailsComplete = generalCheck ? generalCheck.status === 'ready' : true;
+    const specialDetailsComplete = !baseEval.missingFields.some(f => f.toLowerCase().includes('gothram') || f.toLowerCase().includes('photo'));
+    const countCheck = baseEval.checks.find(c => c.id === 'pilgrim_count' || c.id === 'exact_pilgrims');
+    const serviceCountValid = countCheck ? countCheck.status === 'ready' : hasPilgrims;
+    const officialSourceVerified = currentPageState?.url
+      ? (currentPageState.url.includes('tirumala.org') || currentPageState.url.includes('ttdevasthanams.ap.gov.in') || currentPageState.url.includes('tirupatibalaji.ap.gov.in'))
+      : false;
+
+    const diagnostics: InternalDiagnostics = {
+      profileComplete,
+      pilgrimFieldsComplete,
+      idVerified,
+      generalDetailsComplete,
+      specialDetailsComplete,
+      serviceCountValid,
+      formDetected,
+      officialSourceVerified,
+      score: baseEval.score,
+      checks: baseEval.checks,
+      missingFields: baseEval.missingFields,
+      recommendations: baseEval.recommendations,
+    };
+
+    if (!hasProfile) {
+      return {
+        status: 'NOT_READY',
+        headline: 'Create your pilgrim profile to begin',
+        userActionMessage: 'Create profile',
+        diagnostics,
+      };
+    }
+
+    if (!hasPilgrims) {
+      return {
+        status: 'ACTION_REQUIRED',
+        headline: 'Select pilgrims for this service',
+        userActionMessage: 'Select pilgrims',
+        diagnostics,
+      };
+    }
+
+    if (!serviceCountValid) {
+      return {
+        status: 'ACTION_REQUIRED',
+        headline: countCheck?.message || 'Devotee count does not match service requirement',
+        userActionMessage: 'Adjust pilgrim count',
+        diagnostics,
+      };
+    }
+
+    if (!pilgrimFieldsComplete || !idVerified || !specialDetailsComplete) {
+      return {
+        status: 'ACTION_REQUIRED',
+        headline: 'Complete required pilgrim details in your profile',
+        userActionMessage: 'Fix profile details',
+        diagnostics,
+      };
+    }
+
+    if (!generalDetailsComplete) {
+      return {
+        status: 'ACTION_REQUIRED',
+        headline: 'Complete booking contact details in your profile',
+        userActionMessage: 'Complete contact details',
+        diagnostics,
+      };
+    }
+
+    if (pageDetected && baseEval.isBookingReady) {
+      return {
+        status: 'READY',
+        headline: 'Details verified and ready to fill',
+        userActionMessage: 'Fill & Verify',
+        diagnostics,
+      };
+    }
+
+    if (baseEval.isProfileReady) {
+      return {
+        status: 'READY',
+        headline: 'Profile is ready for booking',
+        userActionMessage: 'Open TTD booking page',
+        diagnostics,
+      };
+    }
+
+    return {
+      status: 'UNKNOWN',
+      headline: 'Checking readiness…',
+      diagnostics,
+    };
+  }
+}

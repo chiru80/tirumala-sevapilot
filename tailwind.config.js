@@ -95,6 +95,9 @@ export default {
         'xl': '0.75rem',
         '2xl': '1rem',
       },
+      backdropBlur: {
+        'xs': '2px',
+      },
       boxShadow: {
         '2xs': '0 1px 2px 0 rgba(0, 0, 0, 0.04)',
         'xs': '0 1px 2px 0 rgba(0, 0, 0, 0.06)',

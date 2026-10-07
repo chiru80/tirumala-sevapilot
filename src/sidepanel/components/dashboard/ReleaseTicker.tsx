@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  getVerifiedReleaseEvents,
+  getUpcomingVerifiedReleases,
   calculateReleaseCountdown,
   type TtdReleaseEvent,
 } from '../../../services/ttd-information/ttd-release-calendar';
@@ -13,18 +13,18 @@ interface ReleaseTickerProps {
 function formatReleaseTickerItem(event: TtdReleaseEvent): { text: string; isPast: boolean } {
   const countdown = calculateReleaseCountdown(event);
   const isPast = countdown.state === 'PASSED' || countdown.state === 'RELEASE_TIME_REACHED';
-  const name = event.displayName || 'TTD Quota';
-  const target = event.targetMonth || '';
+  const name = event.displayName || event.serviceName || 'TTD Quota';
+  const target = event.targetBookingDates || event.targetMonth || '';
 
   if (isPast) {
     return {
-      text: `${name} · ${target} quota released`,
+      text: `${name} • ${target} quota released`,
       isPast: true,
     };
   }
 
   if (event.releaseDate && event.releaseTime) {
-    const [year, monthStr, dayStr] = event.releaseDate.split('-');
+    const [, monthStr, dayStr] = event.releaseDate.split('-');
     const months = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     const month = parseInt(monthStr, 10);
     const day = parseInt(dayStr, 10);
@@ -37,14 +37,21 @@ function formatReleaseTickerItem(event: TtdReleaseEvent): { text: string; isPast
     const displayHour = !isNaN(hour) ? (hour % 12 || 12) : event.releaseTime;
     const timeFormatted = `${displayHour}:${min} ${ampm} IST`;
 
+    if (target && !target.toLowerCase().includes('pending')) {
+      return {
+        text: `${name} • Tickets for ${target} • Release ${dateFormatted} at ${timeFormatted}`,
+        isPast: false,
+      };
+    }
+
     return {
-      text: `${name} · ${target} · ${dateFormatted} · ${timeFormatted}`,
+      text: `${name} • Next verified release: ${dateFormatted} at ${timeFormatted}`,
       isPast: false,
     };
   }
 
   return {
-    text: `${name} · ${target} quota announced`,
+    text: `${name} • TTD release date not announced yet`,
     isPast: false,
   };
 }
@@ -54,8 +61,8 @@ export const ReleaseTicker: React.FC<ReleaseTickerProps> = ({ onOpenSource }) =>
   const [isPaused, setIsPaused] = useState(false);
 
   useEffect(() => {
-    // Only verified official TTD releases
-    const verified = getVerifiedReleaseEvents().filter(e => e.verified && e.sourceUrl);
+    // Only verified official upcoming TTD releases
+    const verified = getUpcomingVerifiedReleases().filter(e => e.verified && e.sourceUrl);
     setEvents(verified);
   }, []);
 
@@ -80,7 +87,7 @@ export const ReleaseTicker: React.FC<ReleaseTickerProps> = ({ onOpenSource }) =>
           TTD RELEASES
         </span>
         <span className="text-[#6F6477] dark:text-[#C5B4D4] truncate font-medium">
-          Check official TTD announcements for latest release schedule
+          TTD release date not announced yet
         </span>
       </div>
     );

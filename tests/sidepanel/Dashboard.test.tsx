@@ -215,16 +215,16 @@ describe('Dashboard Component — Redesign & Consumer Experience', () => {
   });
 
   it('G. No verified release: displays fallback message without fabricating dates or countdowns', async () => {
-    const spy = vi.spyOn(releaseCal, 'getVerifiedReleaseEvents').mockReturnValue([]);
+    releaseCal.setActiveReleaseEvents([]);
     render(<Dashboard onNavigate={vi.fn()} />);
 
     await waitFor(() => {
-      expect(screen.getByText(/Latest TTD release schedule unavailable/i)).toBeTruthy();
+      expect(screen.getAllByText(/Release date not announced yet|Latest TTD release schedule unavailable/i)[0]).toBeTruthy();
     });
 
     // Official TTD link is provided instead of fake dates
     expect(screen.getByText(/VIEW TTD UPDATES ↗/i)).toBeTruthy();
-    spy.mockRestore();
+    releaseCal.resetActiveReleaseEvents();
   });
 
   it('H. Backend readiness: internal checks operate silently without exposing checklist on Home', async () => {
@@ -234,15 +234,14 @@ describe('Dashboard Component — Redesign & Consumer Experience', () => {
       expect(screen.getByText('Family')).toBeTruthy();
     });
 
-    // Detailed checks are not visible on Home
+    // Detailed checks are not visible on Home (relocated to Settings -> Advanced -> Diagnostics)
     expect(screen.queryByText(/Profile selected & complete/i)).toBeNull();
     expect(screen.queryByText(/Required special details complete/i)).toBeNull();
     expect(screen.queryByText(/System Verification State/i)).toBeNull();
 
-    // Home shows clean consumer status with modal diagnostics trigger
+    // Home shows clean consumer status without engineering diagnostics noise
     expect(screen.getByText(/Booking Readiness/i)).toBeTruthy();
-    const diagBtn = screen.getByRole('button', { name: /Open system diagnostics modal/i });
-    expect(diagBtn).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /Open system diagnostics modal/i })).toBeNull();
   });
 
   it('E. Temporary lock: renders CHECK BOOKING HISTORY and TRY AGAIN without showing Fill failed', async () => {

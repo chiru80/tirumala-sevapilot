@@ -202,31 +202,50 @@ export function QuickPilgrimForm({ onSave, onCancel, targetServiceId }: QuickPil
         />
       </div>
 
-      {/* Srivari Seva Details Toggle */}
-      <div className="pt-1 border-t border-gold-500/15">
-        <label className="flex items-center gap-2 cursor-pointer select-none py-1">
-          <input
-            type="checkbox"
-            checked={includeSrivari}
-            onChange={e => setIncludeSrivari(e.target.checked)}
-            className="accent-[#5B2A86] w-3.5 h-3.5"
-          />
-          <span className="font-semibold text-xs text-[#5B2A86] dark:text-gold-300">
-            Include Srivari Seva Requirements (DOB, Photo & Address)
-          </span>
-        </label>
-      </div>
+      {/* Srivari Seva Details Section */}
+      {isSrivariInitial ? (
+        <div className="pt-1 border-t border-gold-500/15">
+          <div className="flex items-center gap-1.5 py-1 text-xs font-bold text-[#5B2A86] dark:text-gold-300">
+            <span>🛕</span>
+            <span>Srivari Seva Required Details (DOB, Photo & Address)</span>
+          </div>
+        </div>
+      ) : (
+        <div className="pt-1 border-t border-gold-500/15">
+          <label className="flex items-center gap-2 cursor-pointer select-none py-1">
+            <input
+              type="checkbox"
+              checked={includeSrivari}
+              onChange={e => setIncludeSrivari(e.target.checked)}
+              className="accent-[#5B2A86] w-3.5 h-3.5"
+            />
+            <span className="font-semibold text-xs text-[#5B2A86] dark:text-gold-300">
+              Include Srivari Seva Requirements (DOB, Photo & Address)
+            </span>
+          </label>
+        </div>
+      )}
 
-      {includeSrivari && (
+      {(isSrivariInitial || includeSrivari) && (
         <div className="space-y-2 p-2.5 rounded-lg bg-[#5B2A86]/5 dark:bg-gold-500/10 border border-gold-500/20 animate-fade-in">
           <div>
             <label className="sp-label text-xs mb-0.5">Date of Birth *</label>
             <input
               type="date"
               value={dob}
-              onChange={e => setDob(e.target.value)}
+              onChange={e => {
+                const val = e.target.value;
+                setDob(val);
+                if (val && !age) {
+                  const birthYear = new Date(val).getFullYear();
+                  const currentYear = new Date().getFullYear();
+                  if (!isNaN(birthYear) && currentYear > birthYear) {
+                    setAge(String(currentYear - birthYear));
+                  }
+                }
+              }}
               className="sp-input text-xs"
-              required={includeSrivari}
+              required={Boolean(isSrivariInitial || includeSrivari)}
             />
           </div>
 

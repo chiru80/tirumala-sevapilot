@@ -30,6 +30,7 @@ export interface ProfileCardProps {
   isSelected: boolean;
   isExpanded: boolean;
   activeServiceId?: string;
+  sensitivePreviewMasking?: boolean;
   onToggleExpand: () => void;
   onSetDefault: (profileId: string) => void;
   onPrintSlip: (profile: Profile) => void;
@@ -51,6 +52,7 @@ export function ProfileCard({
   isSelected,
   isExpanded,
   activeServiceId = 'special-entry-darshan-300',
+  sensitivePreviewMasking = true,
   onToggleExpand,
   onSetDefault,
   onPrintSlip,
@@ -142,7 +144,7 @@ export function ProfileCard({
           </div>
         </div>
 
-        {/* Profile Status Badge (Clean, Service-Aware, No Confusing Percentages) */}
+        {/* Profile Status Badge (Section 8: READY / ACTION REQUIRED / NOT READY) */}
         <div className="p-3 rounded-xl bg-cream/60 dark:bg-[#211526]/80 border border-gold-500/20 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span
@@ -156,9 +158,9 @@ export function ProfileCard({
             />
             <span className="font-bold text-xs text-[#30213A] dark:text-[#F8EFD8]">
               {isReady
-                ? `✓ Ready for ${serviceName}`
+                ? `Ready for ${serviceName} - all details verified`
                 : isActionRequired
-                ? `${health.incomplete} detail(s) need attention for ${serviceName}`
+                ? `${health.incomplete} detail(s) need attention`
                 : 'Add pilgrims to profile'}
             </span>
           </div>
@@ -172,7 +174,7 @@ export function ProfileCard({
                 : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
             }`}
           >
-            {isReady ? 'Ready' : isActionRequired ? 'Action required' : 'Not ready'}
+            {isReady ? 'READY' : isActionRequired ? 'ACTION REQUIRED' : 'NOT READY'}
           </span>
         </div>
 
@@ -286,11 +288,11 @@ export function ProfileCard({
                       {isComplete ? '✓ Ready' : '⚠ Action required'}
                     </span>
                   </div>
-                  {/* Masked Sensitive Data Display */}
+                  {/* Sensitive Data Display with configurable masking */}
                   <p className="text-xs text-[#6B5A70] dark:text-[#A692B4] mt-0.5">
-                    {pilgrim.gender} • Age {pilgrim.age || '—'} • {pilgrim.idType} ({maskIdDisplay(pilgrim.idNumber)})
+                    {pilgrim.gender} • Age {pilgrim.age || '—'} • {pilgrim.idType} ({sensitivePreviewMasking ? maskIdDisplay(pilgrim.idNumber) : (pilgrim.idNumber || '—')})
                     {pilgrim.mobile ? (
-                      <span> • 📱 {maskPhoneDisplay(pilgrim.mobile)}</span>
+                      <span> • 📱 {sensitivePreviewMasking ? maskPhoneDisplay(pilgrim.mobile) : pilgrim.mobile}</span>
                     ) : (
                       <span className="text-[#6B5A70]/70 dark:text-[#A692B4]/70"> • 📱 Optional</span>
                     )}

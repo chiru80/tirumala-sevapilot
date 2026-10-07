@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  getVerifiedReleaseEvents,
+  getUpcomingVerifiedReleases,
   calculateReleaseCountdown,
   type TtdReleaseEvent,
 } from '../../../services/ttd-information/ttd-release-calendar';
@@ -12,7 +12,7 @@ interface UpcomingReleasesCardProps {
 
 function formatReleaseDateOnly(dateStr?: string, timeStr?: string): string {
   if (!dateStr) return '';
-  const [yearStr, monthStr, dayStr] = dateStr.split('-');
+  const [, monthStr, dayStr] = dateStr.split('-');
   const month = parseInt(monthStr, 10);
   const day = parseInt(dayStr, 10);
   const months = [
@@ -34,8 +34,8 @@ export const UpcomingReleasesCard: React.FC<UpcomingReleasesCardProps> = ({ onOp
   const [events, setEvents] = useState<TtdReleaseEvent[]>([]);
 
   useEffect(() => {
-    // Only verified official TTD events
-    const verified = getVerifiedReleaseEvents().filter(e => e.verified);
+    // Only verified official upcoming TTD events
+    const verified = getUpcomingVerifiedReleases().filter(e => e.verified);
     setEvents(verified);
   }, []);
 
@@ -70,7 +70,7 @@ export const UpcomingReleasesCard: React.FC<UpcomingReleasesCardProps> = ({ onOp
       {events.length === 0 ? (
         <div className="p-3 rounded-xl bg-[#FAF8F5] dark:bg-[#22132A] text-center space-y-2">
           <p className="text-xs text-[#6F6477] dark:text-[#C5B4D4] font-medium">
-            {t('home.noVerifiedRelease') || 'Latest TTD release schedule unavailable'}
+            Release date not announced yet
           </p>
           <button
             onClick={() => handleOpen('https://news.tirumala.org/')}
@@ -83,20 +83,12 @@ export const UpcomingReleasesCard: React.FC<UpcomingReleasesCardProps> = ({ onOp
         <div className="space-y-2.5">
           {events.map((evt) => {
             const countdown = calculateReleaseCountdown(evt);
-            const isPassed = countdown.state === 'PASSED';
-            const isReached = countdown.state === 'RELEASE_TIME_REACHED';
             const isConfirmed = evt.isConfirmed && evt.releaseDate && evt.releaseTime;
 
             let statusLabel = '';
             let statusBadgeClass = '';
 
-            if (isPassed) {
-              statusLabel = evt.targetMonth ? `${evt.targetMonth} quota released` : 'Quota released';
-              statusBadgeClass = 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300';
-            } else if (isReached) {
-              statusLabel = 'Booking window open';
-              statusBadgeClass = 'bg-[#E8F5E9] text-[#1B5E20] dark:bg-[#1B3E2B] dark:text-[#A5D6A7] font-bold';
-            } else if (!isConfirmed) {
+            if (!isConfirmed) {
               statusLabel = 'Release date not announced yet';
               statusBadgeClass = 'bg-[#FFF8E8] text-[#8D6E18] dark:bg-[#3D2F1B] dark:text-[#FFE082]';
             } else if (countdown.days > 0) {

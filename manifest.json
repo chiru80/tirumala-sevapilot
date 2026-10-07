@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Tirumala SevaPilot — TTD Booking Assistant",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Prepare your TTD booking details before the booking window. Store pilgrim info locally, validate, and fill forms accurately. Independent third-party utility — not affiliated with TTD.",
   "permissions": [
     "storage",

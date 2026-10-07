@@ -8,11 +8,16 @@ import { getServiceConfig } from './ttd-service-rules';
 
 export const IST_TIMEZONE = 'Asia/Kolkata';
 
+export type VerificationStatus = 'VERIFIED_OFFICIAL' | 'UNVERIFIED' | 'EXPIRED' | 'PENDING';
+
 export interface TtdReleaseEvent {
   id: string;
   serviceId: string;
+  serviceName?: string;
   displayName?: string;
-  targetMonth: string; // e.g. "December 2026" or "2026-12"
+  bookingType?: string;
+  targetBookingDates?: string;
+  targetMonth?: string; // e.g. "December 2026" or "2026-12"
 
   releaseDate?: string; // YYYY-MM-DD (omitted if not yet confirmed by official announcement)
   releaseTime?: string; // HH:mm (in 24-hour format IST)
@@ -30,11 +35,13 @@ export interface TtdReleaseEvent {
   sourceUrl: string;
   sourceDate?: string;
 
+  verificationStatus?: VerificationStatus;
   verified: boolean;
 
   /** True only when an official TTD announcement confirms the exact release date/time */
   isConfirmed?: boolean;
 
+  publishedTimestamp?: string;
   fetchedAt?: string;
   expiresAt?: string;
 }
@@ -242,7 +249,10 @@ export const VERIFIED_RELEASE_EVENTS: TtdReleaseEvent[] = [
   {
     id: 'release-sed-300-current',
     serviceId: 'special-entry-darshan-300',
+    serviceName: 'Special Entry Darshan ₹300',
     displayName: 'Special Entry Darshan ₹300',
+    bookingType: 'Special Entry Darshan',
+    targetBookingDates: 'Oct 12, 13, 14, 18, 19, 20',
     targetMonth: 'October 2026 (Oct 12, 13, 14, 18, 19, 20 Quota)',
     releaseDate: '2026-10-07',
     releaseTime: '10:00',
@@ -252,15 +262,20 @@ export const VERIFIED_RELEASE_EVENTS: TtdReleaseEvent[] = [
     releaseType: 'QUOTA_RELEASE',
     sourceUrl: 'https://news.tirumala.org/ttd-to-release-rs-300-sed-tickets-on-october-7-_-అక్టోబర్-7న-రూ-300-ప్రత/',
     sourceDate: '2026-10-06',
+    verificationStatus: 'VERIFIED_OFFICIAL',
     verified: true,
     isConfirmed: true,
+    publishedTimestamp: '2026-10-06T12:00:00.000Z',
     fetchedAt: '2026-10-07T00:00:00.000Z',
     expiresAt: '2026-10-21T00:00:00.000Z',
   },
   {
     id: 'release-padmavathi-200-current',
     serviceId: 'padmavathi-supadham-entry-200',
+    serviceName: 'Padmavathi / Sri PAT',
     displayName: 'Padmavathi / Sri PAT',
+    bookingType: 'Supadham Entry',
+    targetBookingDates: 'November 2026',
     targetMonth: 'November 2026',
     releaseDate: '2026-10-25',
     releaseTime: '10:00',
@@ -269,15 +284,20 @@ export const VERIFIED_RELEASE_EVENTS: TtdReleaseEvent[] = [
     advanceMonths: 1,
     sourceUrl: 'https://www.tirumala.org/',
     sourceDate: '2026-10-01',
+    verificationStatus: 'VERIFIED_OFFICIAL',
     verified: true,
     isConfirmed: true,
+    publishedTimestamp: '2026-10-01T10:00:00.000Z',
     fetchedAt: '2026-10-06T00:00:00.000Z',
     expiresAt: '2026-10-26T00:00:00.000Z',
   },
   {
     id: 'release-homam-1600-current',
     serviceId: 'sri-srinivasa-divyanugraha-homam',
+    serviceName: 'Sri Srinivasa Divyanugraha Vishesha Homam (₹1600)',
     displayName: 'Sri Srinivasa Divyanugraha Vishesha Homam (₹1600)',
+    bookingType: 'Vishesha Homam',
+    targetBookingDates: 'November 2026',
     targetMonth: 'November 2026',
     releaseDate: '2026-10-27',
     releaseTime: '15:00',
@@ -287,14 +307,67 @@ export const VERIFIED_RELEASE_EVENTS: TtdReleaseEvent[] = [
     releaseType: 'ONE_MONTH_ADVANCE',
     sourceUrl: 'https://news.tirumala.org/',
     sourceDate: '2026-10-01',
+    verificationStatus: 'VERIFIED_OFFICIAL',
     verified: true,
     isConfirmed: true,
+    publishedTimestamp: '2026-10-01T10:00:00.000Z',
     fetchedAt: '2026-10-06T00:00:00.000Z',
     expiresAt: '2026-10-28T00:00:00.000Z',
   },
 ];
 
 let activeReleaseEvents: TtdReleaseEvent[] = [...VERIFIED_RELEASE_EVENTS];
+
+export function setActiveReleaseEvents(events: TtdReleaseEvent[]): void {
+  activeReleaseEvents = [...events];
+}
+
+export function resetActiveReleaseEvents(): void {
+  activeReleaseEvents = [...VERIFIED_RELEASE_EVENTS];
+}
+
+/**
+ * Evaluates whether an event qualifies strictly as UPCOMING:
+ * 1. releaseDate + releaseTime > current time
+ * 2. event is verified (verified === true and verificationStatus === 'VERIFIED_OFFICIAL' or unset)
+ * 3. event has not expired (!expiresAt or nowMs < expiresAt)
+ * 4. source is trusted (validateTtdSource(sourceUrl).isValid)
+ */
+export function isEventUpcoming(event: TtdReleaseEvent, nowMs: number = Date.now()): boolean {
+  if (!event) return false;
+
+  const isVerified = event.verified === true && (event.verificationStatus === 'VERIFIED_OFFICIAL' || !event.verificationStatus);
+  if (!isVerified) return false;
+
+  const sourceCheck = validateTtdSource(event.sourceUrl);
+  if (!sourceCheck.isValid) return false;
+
+  if (event.expiresAt) {
+    const expiresMs = new Date(event.expiresAt).getTime();
+    if (!isNaN(expiresMs) && nowMs >= expiresMs) return false;
+  }
+
+  if (!event.releaseDate || !event.releaseTime || event.isConfirmed === false) return false;
+
+  const epoch = getReleaseEpochMs(event.releaseDate, event.releaseTime);
+  if (isNaN(epoch)) return false;
+
+  return epoch > nowMs;
+}
+
+/**
+ * Returns strictly upcoming verified releases.
+ * Only includes events where releaseDate + releaseTime > current time.
+ */
+export function getUpcomingVerifiedReleases(nowMs: number = Date.now()): TtdReleaseEvent[] {
+  return activeReleaseEvents
+    .filter(e => isEventUpcoming(e, nowMs))
+    .sort((a, b) => {
+      const aEpoch = getReleaseEpochMs(a.releaseDate!, a.releaseTime!);
+      const bEpoch = getReleaseEpochMs(b.releaseDate!, b.releaseTime!);
+      return aEpoch - bEpoch;
+    });
+}
 
 /**
  * Returns currently active verified release events.
@@ -340,27 +413,12 @@ export function resetReleaseEventsToDefault(): void {
 
 /**
  * Finds the upcoming verified release event for a specific service or closest overall.
- * Strictly filters out past / expired events: releaseDate + releaseTime must be in the future
- * (with up to 2 hours grace period during the active release window).
+ * Strictly filters out past / expired events: releaseDate + releaseTime must be in the future.
  * If no confirmed future release exists, returns an unconfirmed event indicating
- * "Pending official announcement" rather than fabricating a date or returning a passed event.
+ * "Release date not announced yet" rather than fabricating a date or returning a passed event.
  */
 export function getUpcomingReleaseEvent(serviceId?: string, nowMs: number = Date.now()): TtdReleaseEvent | undefined {
-  const verifiedEvents = getVerifiedReleaseEvents(nowMs);
-
-  // Filter only true future/active confirmed events
-  const futureEvents = verifiedEvents
-    .filter(e => Boolean(e.isConfirmed && e.releaseDate && e.releaseTime))
-    .filter(e => {
-      const epoch = getReleaseEpochMs(e.releaseDate!, e.releaseTime!);
-      // Up to 2 hours after release is considered active release window; past that is historical
-      return !isNaN(epoch) && (epoch + 2 * 3600 * 1000 >= nowMs);
-    })
-    .sort((a, b) => {
-      const aEpoch = getReleaseEpochMs(a.releaseDate!, a.releaseTime!);
-      const bEpoch = getReleaseEpochMs(b.releaseDate!, b.releaseTime!);
-      return aEpoch - bEpoch;
-    });
+  const futureEvents = getUpcomingVerifiedReleases(nowMs);
 
   if (serviceId) {
     const config = getServiceConfig(serviceId);
@@ -379,13 +437,17 @@ export function getUpcomingReleaseEvent(serviceId?: string, nowMs: number = Date
       return {
         id: `unconfirmed-${config.serviceId}`,
         serviceId: config.serviceId,
+        serviceName: config.displayName,
         displayName: config.displayName,
-        targetMonth: 'Pending official announcement',
+        bookingType: config.category,
+        targetBookingDates: 'Not announced yet',
+        targetMonth: 'Release date not announced yet',
         timezone: IST_TIMEZONE,
         releasePattern: config.releasePattern,
         advanceMonths: config.advanceMonths,
         releaseType: config.releaseType,
         sourceUrl: config.source?.url || 'https://news.tirumala.org/',
+        verificationStatus: 'PENDING',
         verified: false,
         isConfirmed: false,
       };

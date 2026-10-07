@@ -13,7 +13,7 @@ export const TTD_DOMAINS = [
 /** Extension metadata */
 export const EXTENSION_NAME = 'Tirumala SevaPilot';
 export const EXTENSION_TAGLINE = 'Prepare once. Fill accurately. Book yourself.';
-export const EXTENSION_VERSION = '1.0.0';
+export const EXTENSION_VERSION = '1.1.0';
 
 /** Storage keys */
 export const STORAGE_KEYS = {

@@ -1414,23 +1414,27 @@ async function executeSrivariInstructionsStep(
       res.actionMessage = 'Declaration confirmed by user. You may proceed to click Continue.';
       return res;
     } else {
-      progress.state = 'PARTIAL_SUCCESS';
+      progress.state = 'USER_ACTION_REQUIRED';
       progress.percent = 50;
       emit();
       const res = buildResult(progress, 'srivari_instructions', startedAt, workflow);
       res.instructionsState = 'READY_FOR_USER_CONFIRMATION';
       res.actionRequired = true;
+      res.success = false;
+      res.needsAttention = true;
       res.actionMessage = 'Please review the Srivari Seva instructions and confirm the declaration checkbox to continue.';
       return res;
     }
   }
 
-  progress.state = 'PARTIAL_SUCCESS';
+  progress.state = 'USER_ACTION_REQUIRED';
   progress.percent = 50;
   emit();
   const res = buildResult(progress, 'srivari_instructions', startedAt, workflow);
   res.instructionsState = 'NOT_REVIEWED';
   res.actionRequired = true;
+  res.success = false;
+  res.needsAttention = true;
   res.actionMessage = 'Please review the Srivari Seva instructions.';
   return res;
 }
@@ -2171,18 +2175,19 @@ function buildResult(
   const totalFailed = allResults.filter(r => r.status === 'failed').length;
 
   if (step === 'srivari_instructions') {
+    const isComplete = progress.state === 'COMPLETE';
     return {
-      success: progress.state === 'COMPLETE' || progress.state === 'PARTIAL_SUCCESS',
-      state: progress.state,
+      success: isComplete,
+      state: isComplete ? 'COMPLETE' : (progress.state === 'USER_ACTION_REQUIRED' ? 'USER_ACTION_REQUIRED' : 'PARTIAL_SUCCESS'),
       step: 'srivari_instructions',
       pilgrimResults: progress.pilgrimResults,
       generalResults: progress.generalResults,
       totalVerified,
-      totalFailed: 0,
+      totalFailed: isComplete ? 0 : 1,
       totalFields: 1,
       durationMs: Math.round(performance.now() - startedAt),
       errors: progress.errors,
-      needsAttention: false,
+      needsAttention: !isComplete,
       failedItems: [],
     };
   }

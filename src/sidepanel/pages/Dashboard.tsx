@@ -493,14 +493,6 @@ export function Dashboard({ onNavigate }: DashboardProps = {}) {
               </span>
             </span>
           </div>
-
-          <button
-            onClick={dialogs.toggleDiagnostics}
-            className="text-[11px] font-semibold text-[#54258A] dark:text-[#D4A72C] hover:underline cursor-pointer"
-            aria-label="Open system diagnostics modal"
-          >
-            Diagnostics ↗
-          </button>
         </div>
 
         {/* 11. QUICK ACTIONS (PILGRIMS, PROFILES, BOOKING HISTORY, SETTINGS) */}

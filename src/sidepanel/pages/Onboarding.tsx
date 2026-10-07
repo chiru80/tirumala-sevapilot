@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { saveSettings } from '@storage/repository';
 import { TempleDivider } from '../components/TempleDivider';
+import { EXTENSION_VERSION } from '@shared/constants';
 
 interface OnboardingProps {
   onComplete: () => void;
@@ -63,7 +64,7 @@ export function Onboarding({ onComplete }: OnboardingProps) {
                 Tirumala SevaPilot
               </h1>
               <p className="text-[10px] text-[#6B5A70] dark:text-[#A898B0] mt-0.5">
-                TTD Booking Assistant · v1.0.0
+                TTD Booking Assistant · v{EXTENSION_VERSION}
               </p>
             </div>
           </div>

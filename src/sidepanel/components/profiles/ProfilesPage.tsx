@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { t } from '@i18n/index';
 import {
   getProfiles,
+  getSettings,
   createProfile,
   deleteProfile,
   duplicateProfile,
@@ -29,6 +30,7 @@ const SUPPORTED_SERVICES = [
 export function ProfilesPage() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [selectedService, setSelectedService] = useState<string>('special-entry-darshan-300');
+  const [sensitivePreviewMasking, setSensitivePreviewMasking] = useState<boolean>(true);
   const [showCreate, setShowCreate] = useState(false);
   const [showAddPilgrim, setShowAddPilgrim] = useState<string | null>(null);
   const [editPilgrim, setEditPilgrim] = useState<{ profileId: string; pilgrim: Pilgrim } | null>(null);
@@ -41,8 +43,11 @@ export function ProfilesPage() {
 
   async function loadProfiles() {
     try {
-      const p = await getProfiles();
+      const [p, s] = await Promise.all([getProfiles(), getSettings()]);
       setProfiles(p);
+      if (s && typeof s.sensitivePreviewMasking === 'boolean') {
+        setSensitivePreviewMasking(s.sensitivePreviewMasking);
+      }
     } catch {
       /* graceful fallback */
     }
@@ -200,6 +205,7 @@ export function ProfilesPage() {
             isSelected={profile.isDefault}
             isExpanded={expandedProfile === profile.id}
             activeServiceId={selectedService}
+            sensitivePreviewMasking={sensitivePreviewMasking}
             onToggleExpand={() => setExpandedProfile(expandedProfile === profile.id ? null : profile.id)}
             onSetDefault={handleSetDefaultProfile}
             onPrintSlip={handlePrintSlip}

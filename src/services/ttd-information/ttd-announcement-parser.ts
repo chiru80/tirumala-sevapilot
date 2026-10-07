@@ -247,7 +247,10 @@ export function parseTtdAnnouncement(input: AnnouncementParseInput): TtdReleaseE
         events.push({
           id: `announcement-${sig.serviceId}-${extracted.releaseDate}`,
           serviceId: sig.serviceId,
+          serviceName: config?.displayName || sig.serviceId,
           displayName: config?.displayName || sig.serviceId,
+          bookingType: config?.category || 'Quota Release',
+          targetBookingDates: extracted.targetMonth,
           targetMonth: extracted.targetMonth,
           releaseDate: extracted.releaseDate,
           releaseTime: time,
@@ -257,8 +260,10 @@ export function parseTtdAnnouncement(input: AnnouncementParseInput): TtdReleaseE
           releaseType: config?.releaseType || 'MONTHLY_QUOTA_RELEASE',
           sourceUrl: input.sourceUrl,
           sourceDate: input.publishedDate || new Date().toISOString().slice(0, 10),
+          verificationStatus: validation.isValid ? 'VERIFIED_OFFICIAL' : 'UNVERIFIED',
           verified: validation.isValid,
           isConfirmed: validation.isValid && Boolean(extracted.releaseDate),
+          publishedTimestamp: input.publishedDate ? new Date(input.publishedDate).toISOString() : new Date().toISOString(),
           fetchedAt: new Date().toISOString(),
         });
       }

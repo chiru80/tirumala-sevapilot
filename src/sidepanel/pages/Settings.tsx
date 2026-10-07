@@ -4,11 +4,13 @@ import { getSettings, saveSettings, clearAllData } from '@storage/repository';
 import { EXTENSION_VERSION, STORAGE_KEYS } from '@shared/constants';
 import type { Settings as SettingsType, AutofillMode } from '@shared/types';
 import { TempleDivider } from '../components/TempleDivider';
+import { DiagnosticModal } from '../components/dashboard/DiagnosticModal';
 
 export function Settings({ onSettingsChange }: { onSettingsChange: () => void }) {
   const [settings, setSettings] = useState<SettingsType | null>(null);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [resetFloatStatus, setResetFloatStatus] = useState<string | null>(null);
+  const [showDiagnostics, setShowDiagnostics] = useState(false);
 
   useEffect(() => { loadSettings(); }, []);
 
@@ -224,6 +226,27 @@ export function Settings({ onSettingsChange }: { onSettingsChange: () => void })
         />
       </div>
 
+      {/* Advanced Diagnostics (Only visible when diagnosticsMode is enabled) */}
+      {settings.diagnosticsMode && (
+        <div className="sp-card bg-white dark:bg-[#2D1A38] border-gold-500/25 space-y-2.5 animate-fade-in">
+          <div>
+            <span className="sp-section-title text-sm text-[#5B2A86] dark:text-[#F0CC63]">
+              Advanced → Diagnostics
+            </span>
+            <p className="text-xs text-[#6B5A70] dark:text-[#A692B4] mt-0.5 leading-relaxed">
+              Technical DOM detection, service confidence, and autofill timing telemetry.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowDiagnostics(true)}
+            className="w-full py-2.5 px-3 rounded-xl bg-[#5B2A86]/10 dark:bg-gold-500/15 text-[#5B2A86] dark:text-[#F0CC63] hover:bg-[#5B2A86]/20 font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+          >
+            <span>View Technical Diagnostics Modal ↗</span>
+          </button>
+        </div>
+      )}
+
       {/* Shortcuts */}
       <div className="sp-card bg-cream/50 dark:bg-[#2D1A38] border-gold-500/25 space-y-2.5">
         <span className="sp-section-title text-sm">{t('settings.shortcuts')}</span>
@@ -276,6 +299,23 @@ export function Settings({ onSettingsChange }: { onSettingsChange: () => void })
           </button>
         )}
       </div>
+
+      {/* Diagnostic Modal (On Demand) */}
+      <DiagnosticModal
+        isOpen={showDiagnostics}
+        onClose={() => setShowDiagnostics(false)}
+        data={{
+          ttdDetected: false,
+          serviceName: 'Settings Diagnostic Inspector',
+          workflowVersion: EXTENSION_VERSION,
+          currentStep: 'INSPECTION',
+          rowsDetected: 0,
+          fieldsDetected: 0,
+          fieldsVerified: 0,
+          confidence: 100,
+          durationMs: 0,
+        }}
+      />
     </div>
   );
 }
@@ -309,7 +349,7 @@ function ToggleRow({
       >
         <span
           className={`block w-4 h-4 rounded-full bg-white dark:bg-[#F8EFD8] shadow-sm transition-transform absolute top-0.5 ${
-            checked ? 'translate-x-5.5 bg-gold-200' : 'translate-x-1'
+            checked ? 'translate-x-[22px] bg-gold-200' : 'translate-x-1'
           }`}
         />
       </button>
