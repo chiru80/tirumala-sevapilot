@@ -455,19 +455,17 @@ async function executePilgrimStep(
   const maxAllowed = canonical?.maxPilgrims ?? workflow?.maxPilgrims ?? adapter?.maxPilgrims ?? 6;
   const exactRequired = canonical?.exactPilgrims ?? workflow?.exactPilgrims;
 
-  // Max pilgrim safety (Section 21): block before fill if user selects too many or wrong count
-  if (exactRequired && pilgrims.length !== exactRequired) {
+  // Max pilgrim safety (Section 21): block before fill if workflow defines strict counts
+  if (workflow?.exactPilgrims && pilgrims.length !== workflow.exactPilgrims) {
     progress.state = 'ERROR';
-    const sName = canonical?.serviceName ?? workflow?.serviceName ?? 'Service';
-    progress.errors.push(`${sName} permits exactly ${exactRequired} pilgrims per booking.`);
+    progress.errors.push(`${workflow.serviceName} permits exactly ${workflow.exactPilgrims} pilgrims per booking.`);
     emit();
     return buildResult(progress, 'pilgrim', startedAt);
   }
 
-  if (maxAllowed && pilgrims.length > maxAllowed) {
+  if (workflow?.maxPilgrims && pilgrims.length > workflow.maxPilgrims) {
     progress.state = 'ERROR';
-    const sName = canonical?.serviceName ?? workflow?.serviceName ?? 'Service';
-    progress.errors.push(`${sName} allows a maximum of ${maxAllowed} participants.`);
+    progress.errors.push(`${workflow.serviceName} allows a maximum of ${workflow.maxPilgrims} participants.`);
     emit();
     return buildResult(progress, 'pilgrim', startedAt);
   }
