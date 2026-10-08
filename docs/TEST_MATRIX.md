@@ -124,6 +124,31 @@ Automated suite: [`tests/services/guardian/booking-guardian.test.ts`](file:///te
 - [x] zero PII leakage into release logs or cache
 - [x] i18n English and Telugu verified across release intelligence
 
+## Security Hardening tests (Phase 9 Complete)
+
+Automated suite: [`tests/security/security-hardening.test.ts`](file:///tests/security/security-hardening.test.ts) (30/30 tests passing)
+
+- [x] Official TTD HTTPS domains permitted (`ttdevasthanams.ap.gov.in`, `tirupatibalaji.ap.gov.in`, `news.tirumala.org`, `tirumala.org`)
+- [x] Dangerous pseudo-protocols blocked (`javascript:`, `data:`, `blob:`, `file:`, `vbscript:`)
+- [x] HTTP navigation rejected
+- [x] Embedded user credentials in URLs rejected
+- [x] Untrusted third-party domains blocked
+- [x] Prototype pollution keys (`__proto__`, `constructor`, `prototype`) stripped recursively
+- [x] Stored XSS tags (`<script>`, `<img onerror>`) and control characters sanitized
+- [x] Devotee profile schema validated, dropping corrupted records safely
+- [x] Extension message privilege isolation (`isInternalExtensionContext`) rejecting content scripts from accessing storage
+- [x] Hostile DOM defense: password fields forbidden
+- [x] Hostile DOM defense: hidden fields forbidden
+- [x] Hostile DOM defense: disabled, readonly, and aria-disabled site controls respected
+- [x] Hostile DOM defense: payment, credit card, and UPI fields strictly forbidden
+- [x] Hostile DOM defense: OTP and CAPTCHA targets strictly forbidden
+- [x] Legitimate devotee fields permitted with support for dynamic enable workflows
+- [x] Photo file size limit (500 KB) enforced
+- [x] Photo MIME types strictly restricted to JPEG and PNG (executables, SVGs rejected)
+- [x] Dangerous multiple file extensions (`.exe.jpg`, etc.) rejected
+- [x] Base64 image Data URIs strictly validated
+- [x] Zero-PII logger redaction verified (Aadhaar, mobile, secrets, image Data URIs)
+
 ## UI tests
 
 - [ ] first-time Home
@@ -135,3 +160,4 @@ Automated suite: [`tests/services/guardian/booking-guardian.test.ts`](file:///te
 - [ ] one dominant CTA
 - [ ] mobile/side-panel responsive
 - [ ] keyboard accessibility
+
