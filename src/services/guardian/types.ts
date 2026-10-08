@@ -46,7 +46,8 @@ export type GuardianPageStage =
   | 'SUCCESS'
   | 'ERROR'
   | 'LOCKED'
-  | 'SESSION_EXPIRED';
+  | 'SESSION_EXPIRED'
+  | 'DIGITAL_QUEUE';
 
 /** Detailed Page Detection Evidence */
 export interface PageDetectionResult {
@@ -62,6 +63,10 @@ export interface PageDetectionResult {
   isSuccessPresent: boolean;
   isLocked: boolean;
   isSessionExpired: boolean;
+  isQueuePresent?: boolean;
+  queueState?: string;
+  queuePosition?: number;
+  queueWaitTime?: string;
   temporaryLock?: TtdTemporaryLockState;
 }
 

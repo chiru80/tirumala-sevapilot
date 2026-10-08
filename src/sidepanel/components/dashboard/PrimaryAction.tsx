@@ -9,6 +9,7 @@ export type DashboardContextState =
   | 'FILLING'
   | 'READY_FOR_REVIEW'
   | 'ACTION_REQUIRED'
+  | 'DIGITAL_QUEUE'
   | 'TEMPORARY_TTD_LOCK';
 
 export interface PrimaryActionProps {
@@ -65,6 +66,10 @@ export const PrimaryAction: React.FC<PrimaryActionProps> = ({
       return t('home.openTtd') || 'OPEN TTD BOOKING ↗';
     }
 
+    if (contextState === 'DIGITAL_QUEUE') {
+      return actionLabel || t('queue.waiting') || 'WAITING IN QUEUE';
+    }
+
     if (contextState === 'ACTION_REQUIRED') {
       if (disabledReason === 'Select pilgrims' || disabledReason === t('dashboard.selectPilgrims')) {
         return t('dashboard.selectPilgrims') || 'SELECT PILGRIMS';
@@ -85,6 +90,7 @@ export const PrimaryAction: React.FC<PrimaryActionProps> = ({
 
   // Determine disabled state
   const isDisabled =
+    contextState === 'DIGITAL_QUEUE' ||
     isFilling ||
     (!isReady &&
       !isComplete &&
@@ -99,6 +105,9 @@ export const PrimaryAction: React.FC<PrimaryActionProps> = ({
   const getButtonClass = () => {
     if (contextState === 'TEMPORARY_TTD_LOCK' || isTemporaryLock) {
       return 'bg-gradient-to-r from-amber-600 to-amber-700 text-white border-2 border-amber-400/80 hover:border-amber-300 hover:shadow-lg shadow-md';
+    }
+    if (contextState === 'DIGITAL_QUEUE') {
+      return 'bg-gradient-to-r from-blue-700 to-indigo-800 text-white border-2 border-blue-400/80 hover:border-blue-300 shadow-md cursor-wait';
     }
     if (isFilling) {
       return 'bg-[#3E1B68] text-white/90 cursor-wait ring-2 ring-[#D4A72C]/40';
@@ -128,6 +137,9 @@ export const PrimaryAction: React.FC<PrimaryActionProps> = ({
   // Determine subtext
   const getSubtext = () => {
     if (supportingText) return supportingText;
+    if (contextState === 'DIGITAL_QUEUE') {
+      return t('queue.keepOpenDesc') || 'Please keep this TTD page open. Do not refresh unnecessarily.';
+    }
     if (contextState === 'TEMPORARY_TTD_LOCK' || isTemporaryLock) {
       return t('home.temporaryLockDesc') || 'TTD is processing your previous booking attempt. Lock releases automatically.';
     }

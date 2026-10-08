@@ -22,6 +22,7 @@ export type BookingCockpitState =
   | 'ACTION_REQUIRED'
   | 'READY'
   | 'NO_TTD_PAGE'
+  | 'DIGITAL_QUEUE'
   | 'UNKNOWN';
 
 export interface BookingServiceInfo {
@@ -165,7 +166,27 @@ export function useBookingContext(params: UseBookingContextParams): UseBookingCo
         headline: 'Server-side hold active',
       };
     }
-    // Priority 2: First-time User (No profile or 0 pilgrims created)
+    // Priority 2: Digital Queue Active (TTD waiting room active)
+    else if (
+      (scanResult as any)?.stage === 'DIGITAL_QUEUE' ||
+      (scanResult as any)?.isQueuePresent ||
+      (scanResult as any)?.currentStep?.stepType === 'DIGITAL_QUEUE'
+    ) {
+      state = 'DIGITAL_QUEUE';
+      contextState = 'DIGITAL_QUEUE';
+      actionLabel = t('queue.waiting') || 'WAITING IN QUEUE';
+      supportingText =
+        t('queue.keepOpenDesc') ||
+        'Please keep this TTD page open. Do not refresh unnecessarily.';
+      onClick = () => {};
+      isDisabled = true;
+      statusBadge = {
+        type: 'neutral',
+        label: t('queue.title') || 'TTD Digital Queue',
+        headline: t('queue.processing') || 'Processing queue state...',
+      };
+    }
+    // Priority 3: First-time User (No profile or 0 pilgrims created)
     else if (isFirstTime) {
       state = 'FIRST_TIME';
       contextState = 'FIRST_TIME_USER';

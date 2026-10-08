@@ -68,15 +68,19 @@ export function isForbiddenAutofillTarget(
   }
 
   // 4. Name / ID / Attribute pattern check
-  const name = (el.getAttribute('name') || '').toLowerCase().trim();
-  const id = (el.id || '').toLowerCase().trim();
-  const formControlName = (el.getAttribute('formcontrolname') || '').toLowerCase().trim();
-  const ariaLabel = (el.getAttribute('aria-label') || '').toLowerCase().trim();
-  const placeholder = ((el as HTMLInputElement).placeholder || '').toLowerCase().trim();
+  const rawName = (el.getAttribute('name') || '').trim();
+  const rawId = (el.id || '').trim();
+  const rawFormControlName = (el.getAttribute('formcontrolname') || '').trim();
+  const rawAriaLabel = (el.getAttribute('aria-label') || '').trim();
+  const rawPlaceholder = ((el as HTMLInputElement).placeholder || '').trim();
 
-  const combinedAttributes = `${name} ${id} ${formControlName} ${ariaLabel} ${placeholder}`;
+  // Split camelCase words (e.g. mobileOtp -> mobile otp) and normalize
+  const combinedAttributes = `${rawName} ${rawId} ${rawFormControlName} ${rawAriaLabel} ${rawPlaceholder}`
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
+    .toLowerCase();
+
   if (FORBIDDEN_NAME_PATTERNS.test(combinedAttributes)) {
-    logger.warn('[DomSecurity] Rejected forbidden element target:', { name, id, formControlName, type });
+    logger.warn('[DomSecurity] Rejected forbidden element target:', { name: rawName, id: rawId, formControlName: rawFormControlName, type });
     return true;
   }
 

@@ -13,7 +13,8 @@ import logger from '@shared/logger';
 export function sanitizeText(val: unknown, maxLength = 250): string {
   if (typeof val !== 'string') return '';
   return val
-    .replace(/[<>]/g, '') // Strip HTML brackets
+    .replace(/<[^>]+>/g, '') // Strip HTML tags
+    .replace(/[<>]/g, '') // Strip stray brackets
     .replace(/[\x00-\x1F\x7F]/g, '') // Strip control chars
     .trim()
     .slice(0, maxLength);
