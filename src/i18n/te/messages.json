@@ -14,7 +14,11 @@
     "documents": "పత్రాలు",
     "backup": "బ్యాకప్",
     "settings": "సెట్టింగ్‌లు",
-    "compatibility": "అనుకూలత"
+    "compatibility": "అనుకూలత",
+    "homeA11y": "బుకింగ్ డాష్‌బోర్డ్",
+    "profilesA11y": "భక్తుల సమూహాలను నిర్వహించండి",
+    "pilgrimsA11y": "భద్రపరిచిన భక్తుల వివరాలను నిర్వహించండి",
+    "settingsA11y": "సేవాపైలట్ కాన్ఫిగర్ చేయండి"
   },
   "dashboard": {
     "ttdPage": "TTD పేజీ",
@@ -105,7 +109,32 @@
     "pilgrimsSelectedCount": "{count} మంది భక్తులు ఎంపికయ్యారు",
     "oneHundredPercentReady": "100% సిద్ధం",
     "fieldsVerified": "{verified} / {total} ఫీల్డ్‌లు ధృవీకరించబడ్డాయి",
-    "viewDevoteeDetails": "భక్తుడి వివరాలను చూడండి"
+    "viewDevoteeDetails": "భక్తుడి వివరాలను చూడండి",
+    "openTtdWebsite": "TTD వెబ్‌సైట్ తెరవండి ↗",
+    "verifyingStatus": "ధృవీకరిస్తోంది…",
+    "fillComplete": "✓ వివరాలు నింపడం పూర్తయింది",
+    "allDetailsVerifiedDesc": "గుర్తించిన అన్ని ఫీల్డ్‌లు విజయవంతంగా నింపబడి ధృవీకరించబడ్డాయి. కొనసాగే ముందు TTD పేజీని సమీక్షించండి.",
+    "ttdConnected": "TTD అనుసంధానించబడింది",
+    "notDetected": "గుర్తించబడలేదు",
+    "connected": "అనుసంధానమైంది",
+    "supportedBookingPageDetected": "మద్దతు ఉన్న బుకింగ్ పేజీ గుర్తించబడింది.",
+    "pilgrimsSelected": "{count} {plural} ఎంపిక చేయబడ్డారు",
+    "reviewDetails": "వివరాలను సమీక్షించండి",
+    "openTtd": "TTD తెరవండి",
+    "profileReadyForBooking": "ఈ బుకింగ్ కోసం ప్రొఫైల్ సిద్ధంగా ఉంది.",
+    "selectPilgrims": "భక్తులను ఎంచుకోండి",
+    "noPilgrimsInProfile": "ఈ ప్రొఫైల్‌లో ఇంకా భక్తులు లేరు.",
+    "pilgrimProgress": "{total} లో {current} వ భక్తుడి వివరాలు నింపుతోంది",
+    "pilgrimLabel": "భక్తుడు",
+    "managePilgrims": "భద్రపరిచిన భక్తుల వివరాలను నిర్వహించండి",
+    "readySupporting": "కొనసాగే ముందు ఫీల్డ్‌లను నింపి ప్రతి విలువను ధృవీకరించండి.",
+    "pageNotDetectedSupporting": "ముందుగా మద్దతు ఉన్న TTD బుకింగ్ పేజీని తెరవండి.",
+    "notReadySupporting": "ముందుగా అవసరమైన ప్రొఫైల్ వివరాలను పూర్తి చేయండి.",
+    "userControlledSubmission": "వినియోగదారు నియంత్రిత సమర్పణ",
+    "bookingFlow": "బుకింగ్ ప్రవాహం",
+    "ttdPageRequired": "TTD పేజీ అవసరం",
+    "profileNeedsAttention": "ప్రొఫైల్‌కు శ్రద్ధ అవసరం",
+    "missingDetails": "లోపించిన వివరాలు"
   },
   "profiles": {
     "title": "ప్రొఫైల్‌లు",
@@ -150,7 +179,14 @@
     "optional": "ఐచ్ఛికం",
     "ready": "సిద్ధం",
     "incomplete": "అసంపూర్ణం",
-    "allReady": "✓ 100% సిద్ధం"
+    "allReady": "✓ 100% సిద్ధం",
+    "subtitle": "మీ భక్తుల సమూహాలు మరియు బుకింగ్ వివరాలను నిర్వహించండి",
+    "printProfile": "ప్రొఫైల్ ముద్రించండి",
+    "deleteProfileConfirm": "ఈ ప్రొఫైల్‌ను తొలగించాలా?",
+    "allDetailsComplete": "అవసరమైన అన్ని వివరాలు పూర్తయ్యాయి",
+    "readyForSpecialEntry": "✓ ప్రత్యేక ప్రవేశ దర్శనం కోసం సిద్ధం",
+    "readyForSriPat": "✓ శ్రీ పద్మావతి అమ్మవారి దర్శనం కోసం సిద్ధం",
+    "readyForHomam": "✓ హోమం కోసం సిద్ధం"
   },
   "pilgrim": {
     "firstName": "మొదటి పేరు",
@@ -181,7 +217,10 @@
     "notes": "గమనికలు",
     "gothram": "గోత్రం",
     "optional": "ఐచ్ఛికం",
-    "required": "తప్పనిసరి"
+    "required": "తప్పనిసరి",
+    "idVerified": "గుర్తింపు కార్డు ధృవీకరించబడింది",
+    "statusReady": "సిద్ధంగా ఉంది",
+    "statusNeedsAttention": "పరిశీలన అవసరం"
   },
   "services": {
     "darshan": "ప్రత్యేక ప్రవేశ దర్శనం (₹300)",
@@ -285,7 +324,9 @@
     "confirmClear": "తొలగింపును నిర్ధారించండి",
     "floatingHelperDesc": "TTD పోర్టల్‌లో ఫ్లోటింగ్ సేవాపైలట్ త్వరిత బటన్",
     "autoScanDesc": "పేజీ లోడ్ అయినప్పుడు ఆటోమేటిక్‌గా ఫీల్డ్‌లను స్కాన్ చేయండి",
-    "maskSensitiveDesc": "UI ప్రివ్యూలలో ఆధార్ & ఫోన్ నంబర్‌లను దాచండి"
+    "maskSensitiveDesc": "UI ప్రివ్యూలలో ఆధార్ & ఫోన్ నంబర్‌లను దాచండి",
+    "themeAestheticsDesc": "సేవాపైలట్ రూపురేఖలను ఎంచుకోండి.",
+    "clearDataModalTitle": "భద్రపరిచిన డేటాను తొలగించాలా?"
   },
   "bookings": {
     "title": "భక్తుల సమూహ నిర్వాహకుడు",
@@ -551,7 +592,12 @@
       "openPage": "TTD బుకింగ్ పేజీ తెరవండి",
       "connection": "ఇంటర్నెట్ కనెక్షన్ స్థిరంగా ఉంచండి",
       "beReady": "విడుదల సమయానికి ముందే సిద్ధంగా ఉండండి"
-    }
+    },
+    "viewTtdUpdates": "TTD అప్‌డేట్‌లను చూడండి ↗",
+    "releaseDateUnavailable": "విడుదల తేదీ అందుబాటులో లేదు",
+    "releaseDateUnavailableDesc": "తాజా అధికారిక TTD ప్రకటనను తనిఖీ చేయండి.",
+    "countdownIst": "కౌంట్‌డౌన్ · IST",
+    "pilgrimDetailsReady": "భక్తుల వివరాలు సిద్ధంగా ఉన్నాయి"
   },
   "home": {
     "title": "సేవాపైలట్",
@@ -629,5 +675,3 @@
     "safeModeActive": "సురక్షిత నిరీక్షణ మోడ్ సక్రియంగా ఉంది (క్యూ బైపాస్ లేదు)"
   }
 }
-
-

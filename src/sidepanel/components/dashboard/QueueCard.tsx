@@ -13,7 +13,7 @@ export interface QueueCardProps {
   onRefreshManually?: () => void;
 }
 
-export function QueueCard({ session, onStopMonitoring, onRefreshManually }: QueueCardProps) {
+export const QueueCard = React.memo(function QueueCard({ session, onStopMonitoring, onRefreshManually }: QueueCardProps) {
   if (!session) return null;
 
   const isCaptcha = session.state === 'QUEUE_CAPTCHA_REQUIRED';
@@ -116,7 +116,8 @@ export function QueueCard({ session, onStopMonitoring, onRefreshManually }: Queu
           <button
             type="button"
             onClick={onStopMonitoring}
-            className="sp-btn-secondary flex-1 py-1.5 text-xs font-semibold hover:border-red-400 hover:text-red-600 transition-colors"
+            className="sp-btn-secondary flex-1 min-h-[36px] py-1.5 text-xs font-semibold hover:border-red-400 hover:text-red-600 transition-colors focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:outline-none cursor-pointer"
+            aria-label={t('queue.stopMonitoring')}
           >
             {t('queue.stopMonitoring')}
           </button>
@@ -125,8 +126,9 @@ export function QueueCard({ session, onStopMonitoring, onRefreshManually }: Queu
           <button
             type="button"
             onClick={onRefreshManually}
-            className="sp-btn-secondary py-1.5 px-3 text-xs font-semibold"
+            className="sp-btn-secondary min-h-[36px] py-1.5 px-3 text-xs font-semibold focus-visible:ring-2 focus-visible:ring-gold-500 focus-visible:outline-none cursor-pointer"
             title="Refresh the TTD browser page manually"
+            aria-label={t('queue.refreshManually')}
           >
             {t('queue.refreshManually')}
           </button>
@@ -134,4 +136,4 @@ export function QueueCard({ session, onStopMonitoring, onRefreshManually }: Queu
       </div>
     </div>
   );
-}
+});
