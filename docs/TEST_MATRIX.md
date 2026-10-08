@@ -200,15 +200,68 @@ Automated suites:
 - [x] Chaos resilience: disabled/readonly form controls respected
 - [x] Zero-PII performance telemetry logged without devotee identity
 
+## Performance Engineering tests (Phase 12 Complete)
+
+Automated suites:
+- [`tests/content/automation/performance-regression.test.ts`](file:///tests/content/automation/performance-regression.test.ts) (11/11 tests passing)
+- [`tests/content/automation/chaos-performance.test.ts`](file:///tests/content/automation/chaos-performance.test.ts) (5/5 tests passing)
+
+- [x] DOM Invalidation Cache: bounded TTL lookups, element connectivity invalidation (`isConnected`), and document change purge
+- [x] MutationObserver stress: 100, 500, and 1,000 rapid DOM mutations micro-batched into <= 3 batches without unbounded scans
+- [x] MutationObserver filtering: pure style changes and extension's own UI mutations ignored
+- [x] Anti-reflow defense: layout-forcing `innerText` replaced with `textContent` across detectors
+- [x] Message deduplication & coalescing: rapid identical state messages suppressed (99.5% suppression rate)
+- [x] Storage multi-tier separation: `chrome.storage.sync` for settings, `chrome.storage.session` for ephemeral state, in-memory caching for instant read (< 5ms)
+- [x] Deterministic timer lifecycle: owner-scoped tracking, auto-termination of exceeded intervals, and complete bulk disposal on unmount
+- [x] React zero-lag rendering: `BookingCockpit`, `QueueCard`, `ReleaseCountdownCard`, `ActiveProfileCard`, `PrivacyBadge` wrapped in `React.memo`
+- [x] Strict Zero-PII invariance preserved under telemetry stress
+
+## Performance Profiler & Real Timing Instrumentation tests (Phase 11 Complete)
+
+Automated suite: [`tests/content/autofill/performance-profiler.test.ts`](file:///tests/content/autofill/performance-profiler.test.ts) (6/6 tests passing)
+
+- [x] High-resolution timing initialized with safe performance marks (`sevapilot:<session>:start`)
+- [x] Phase durations measured with `performance.mark` and `performance.measure` (`scan`, `resolve`, `fill`, `verify`)
+- [x] Granular operation durations and Angular wait timings tracked (`recordAngularWait`)
+- [x] Accurate accounting of resolved, filled, verified, skipped, and retry counts
+- [x] Strict zero-PII guarantee maintained across all telemetry metrics and logs
+- [x] Graceful fallback when performance marks or measures throw in restricted environments
+
+## Internationalization (i18n) Parity tests (Phase 11 Complete)
+
+Automated suite: [`tests/i18n/language-parity.test.ts`](file:///tests/i18n/language-parity.test.ts) (5/5 tests passing)
+
+- [x] 100% exact key count parity across all 5 supported languages (`en`, `te`, `hi`, `ta`, `kn`) — 611 keys each
+- [x] Zero missing keys in Telugu, Hindi, Tamil, or Kannada relative to English
+- [x] Zero extra or orphaned keys in any dictionary
+- [x] All translations contain non-empty, meaningful content
+- [x] Dynamic format placeholders (`{count}`, `{service}`, `{time}`, etc.) preserved across all languages
+
+## Accessibility & UI Polish tests (Phase 11 Complete)
+
+Automated suite: [`tests/sidepanel/accessibility-and-polish.test.tsx`](file:///tests/sidepanel/accessibility-and-polish.test.tsx) (5/5 tests passing)
+
+- [x] QueueCard accessibility: `role="region"`, `aria-live="polite"`, `aria-label`, accessible action buttons, min 36px click target
+- [x] BookingCockpit accessibility: `role="region"`, `aria-live="polite"` status bar, `aria-disabled`, min 44px touch target, focus visible outline
+- [x] AutofillProgress progressbar semantics: `role="progressbar"`, `aria-valuenow`, `aria-valuemin="0"`, `aria-valuemax="100"`, `aria-label`
+- [x] TemporaryLockCard alert semantics: `role="alert"`, `aria-live="assertive"`
+- [x] ReleaseCountdownCard accessibility: minimum touch targets (min-h-[36px]), focus visible rings
+
 ## UI tests
 
-- [ ] first-time Home
-- [ ] existing-profile Home
-- [ ] TTD-detected Home
-- [ ] temporary-lock Home
-- [ ] diagnostics hidden from primary Home
-- [ ] diagnostics available in Settings
-- [ ] one dominant CTA
-- [ ] mobile/side-panel responsive
-- [ ] keyboard accessibility
+Automated suites:
+- [`tests/sidepanel/BookingCockpit.test.tsx`](file:///tests/sidepanel/BookingCockpit.test.tsx) (6/6 tests passing)
+- [`tests/sidepanel/Dashboard.test.tsx`](file:///tests/sidepanel/Dashboard.test.tsx) (11/11 tests passing)
+- [`tests/sidepanel/accessibility-and-polish.test.tsx`](file:///tests/sidepanel/accessibility-and-polish.test.tsx) (5/5 tests passing)
+
+- [x] first-time Home (renders CREATE PROFILE, How It Works, zero percentage clutter)
+- [x] existing-profile Home (renders PREPARE BOOKING and secondary OPEN TTD BOOKING)
+- [x] TTD-detected Home (renders TTD PAGE READY, service context, ⚡ FILL & VERIFY)
+- [x] temporary-lock Home (renders TRY AGAIN, CHECK BOOKING HISTORY, non-auto-retry)
+- [x] diagnostics hidden from primary Home (internal scores kept off main dashboard)
+- [x] diagnostics available in Settings (System Diagnostics modal opens on demand)
+- [x] one dominant CTA (single primary sticky button adapts contextually)
+- [x] mobile/side-panel responsive (supports 360px-400px widths, truncated text, responsive grids)
+- [x] keyboard accessibility (ARIA landmarks, progressbar, alert semantics, focus rings)
+
 
