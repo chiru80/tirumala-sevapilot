@@ -10,6 +10,7 @@ import {
   BookingGuardian,
   bookingGuardian,
   detectGuardianPageStage,
+  invalidateGuardianPageStageCache,
   detectCaptchaPresence,
   detectOtpPresence,
   detectBookingSuccess,
@@ -80,6 +81,7 @@ describe('Phase 8 — Booking Guardian Orchestration Suite', () => {
 
   beforeEach(() => {
     document.body.innerHTML = '';
+    invalidateGuardianPageStageCache();
     guardian = new BookingGuardian();
     bookingSession.reset();
     vi.restoreAllMocks();
