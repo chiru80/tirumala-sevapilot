@@ -7,6 +7,7 @@
 import { validateTtdSource } from './ttd-source-validator';
 
 export interface TtdCacheEntry<T> {
+  schemaVersion?: number;
   sourceUrl: string;
   fetchedAt: string; // ISO timestamp
   expiresAt: string; // ISO timestamp
@@ -16,7 +17,9 @@ export interface TtdCacheEntry<T> {
   lastVerifiedAt?: string;
 }
 
+export const CURRENT_CACHE_SCHEMA_VERSION = 1;
 const CACHE_PREFIX = 'sp_ttd_cache_';
+const MAX_CACHE_ENTRIES = 50;
 
 /**
  * In-memory fallback cache for non-extension or testing environments.
@@ -60,6 +63,7 @@ export async function setCachedTtdData<T>(
   const expiresAt = new Date(now.getTime() + ttlMs).toISOString();
 
   const entry: TtdCacheEntry<T> = {
+    schemaVersion: CURRENT_CACHE_SCHEMA_VERSION,
     sourceUrl: options.sourceUrl,
     fetchedAt: now.toISOString(),
     expiresAt,
@@ -78,6 +82,11 @@ export async function setCachedTtdData<T>(
       memoryCache.set(key, entry);
     }
   } else {
+    // Bound memory cache size
+    if (memoryCache.size >= MAX_CACHE_ENTRIES && !memoryCache.has(key)) {
+      const oldestKey = memoryCache.keys().next().value;
+      if (oldestKey) memoryCache.delete(oldestKey);
+    }
     memoryCache.set(key, entry);
   }
 
@@ -87,6 +96,7 @@ export async function setCachedTtdData<T>(
 /**
  * Retrieves a cached TTD entry by key.
  * Evaluates staleness automatically. If expired, marks entry STALE.
+ * Gracefully handles version mismatches or schema corruption.
  */
 export async function getCachedTtdData<T>(
   key: string,
@@ -106,7 +116,12 @@ export async function getCachedTtdData<T>(
     rawEntry = (memoryCache.get(key) as TtdCacheEntry<T>) || null;
   }
 
-  if (!rawEntry) {
+  if (!rawEntry || typeof rawEntry !== 'object') {
+    return null;
+  }
+
+  // Graceful corruption / version handling: if corrupted, ignore
+  if (!rawEntry.fetchedAt || !rawEntry.sourceUrl) {
     return null;
   }
 
@@ -122,6 +137,24 @@ export async function getCachedTtdData<T>(
   }
 
   return rawEntry;
+}
+
+/**
+ * Clears cached TTD entries from storage.
+ */
+export async function clearTtdCache(): Promise<void> {
+  memoryCache.clear();
+  if (isChromeStorageAvailable()) {
+    try {
+      const all = await chrome.storage.local.get(null);
+      const keysToRemove = Object.keys(all).filter(k => k.startsWith(CACHE_PREFIX));
+      if (keysToRemove.length > 0) {
+        await chrome.storage.local.remove(keysToRemove);
+      }
+    } catch {
+      // Fallback
+    }
+  }
 }
 
 /**
