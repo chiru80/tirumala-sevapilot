@@ -356,6 +356,10 @@ export enum MessageType {
   PAGE_STATE_UPDATED = 'PAGE_STATE_UPDATED',
   PROFILES_UPDATED = 'PROFILES_UPDATED',
   SETTINGS_UPDATED = 'SETTINGS_UPDATED',
+
+  // Guardian Orchestration
+  GET_GUARDIAN_STATE = 'GET_GUARDIAN_STATE',
+  EMERGENCY_STOP = 'EMERGENCY_STOP',
 }
 
 /** Ephemeral Booking Session state */
@@ -454,6 +458,8 @@ export interface PageState {
   lastScan?: ScanResult;
   lastFill?: FillResult[];
   temporaryLock?: TtdTemporaryLockState;
+  guardianState?: string;
+  guardianStage?: string;
 }
 
 /** Service adapter interface */

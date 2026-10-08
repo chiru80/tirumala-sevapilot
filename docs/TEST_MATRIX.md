@@ -70,15 +70,36 @@ Phase 6 Hardening suite: [`tests/services/srivari-seva-hardening.test.ts`](file:
 - [x] No fitness-attestation auto-tick
 - [x] No sensitive PII in logs (Zero-PII guarantee)
 
-## Temporary-lock tests
+## Temporary-lock tests (Phase 8 Complete)
 
-- [ ] Lock message detected
-- [ ] Autofill stops
-- [ ] No automatic retry
-- [ ] No automatic refresh
-- [ ] User can check booking history
-- [ ] User can retry manually
-- [ ] Lock remains dedicated if still present
+- [x] Lock message detected
+- [x] Autofill stops
+- [x] No automatic retry
+- [x] No automatic refresh
+- [x] User can check booking history
+- [x] User can retry manually
+- [x] Lock remains dedicated if still present
+
+## Booking Guardian tests (Phase 8 Complete)
+
+Automated suite: [`tests/services/guardian/booking-guardian.test.ts`](file:///tests/services/guardian/booking-guardian.test.ts) (25/25 tests passing)
+
+- [x] Multi-signal page detection (CAPTCHA, OTP, Payment, Review, Success, Lock, Session Expired)
+- [x] Success detected only from definitive official confirmation markers (rejects button click or disappearing form)
+- [x] 10-point Preflight Verification passed for valid configurations
+- [x] Preflight fails when pilgrim count exceeds service limits (SED/Padmavathi: 1–6, Homam: exact 2, Srivari: exact 1)
+- [x] Preflight blocks autofill on CAPTCHA, payment, or active server lock
+- [x] Single-session concurrency lock prevents duplicate / overlapping sessions
+- [x] Enforces manual OTP entry without scraping or auto-fill
+- [x] Preserves human payment control without manipulating payment gateways
+- [x] Requires human review before manual submission
+- [x] Autofill handoff executes and transitions to `SUBMISSION_MANUAL` (never auto-submits)
+- [x] Partial autofill failure transitions to `USER_ACTION_REQUIRED` without exposing PII
+- [x] Server-side hold during autofill transitions to `TTD_TEMPORARY_BOOKING_LOCK`
+- [x] Emergency stop immediately halts autofill, retries, and marks `BLOCKED` while preserving user data
+- [x] Page navigation or step transition during autofill invalidates stale session (`PAGE_CHANGED`)
+- [x] Notification deduplication prevents spam on unchanged state
+- [x] Zero-PII guarantee: sessions, diagnostics, and logs contain zero raw Aadhaar, phone, or identity values
 
 ## Release-data tests (Phase 7 Complete)
 
