@@ -642,7 +642,18 @@ export function detectSrivariSevaEnrollment(doc: Document = document, url: strin
   let score = 0;
   const sanitizedUrl = url.toLowerCase();
 
-  if (/srivari[-_]?seva.*(?:unified-profile|enrollment|profile)/i.test(sanitizedUrl) || sanitizedUrl.includes('unified-profile')) {
+  const isEnrollmentUrl = /srivari[-_]?seva.*(?:unified-profile|enrollment|profile)/i.test(sanitizedUrl) || sanitizedUrl.includes('unified-profile');
+  const isInstructionsUrl = /srivari[-_]?seva.*instructions/i.test(sanitizedUrl) || (sanitizedUrl.includes('srivari') && sanitizedUrl.includes('instructions'));
+
+  // If explicitly on an instructions route and not an enrollment route, never treat as enrollment
+  if (isInstructionsUrl && !isEnrollmentUrl) {
+    return {
+      isCurrentStep: false,
+      confidence: 0,
+    };
+  }
+
+  if (isEnrollmentUrl) {
     score += 50;
   }
 
@@ -658,6 +669,19 @@ export function detectSrivariSevaEnrollment(doc: Document = document, url: strin
   if (pageText.includes('address details') || pageText.includes('address')) sectionCount++;
 
   score += sectionCount * 12;
+
+  // When not on an explicit enrollment URL, text-only keyword matches MUST require an actual
+  // interactive form / input signal so instructional text mentioning these sections does not false-match.
+  if (!isEnrollmentUrl) {
+    const hasEnrollmentForm = Boolean(
+      doc.querySelector('#srivariSevaForm, form[name*="srivari" i], [data-service*="srivari" i]') ||
+      doc.querySelector('input[name*="idProof" i], input[formcontrolname*="idProof" i], input[name*="father" i], input[formcontrolname*="father" i]') ||
+      (doc.querySelectorAll('input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]), select').length >= 3)
+    );
+    if (!hasEnrollmentForm) {
+      score = Math.min(score, 30);
+    }
+  }
 
   const confidence = Math.min(100, score);
   return {

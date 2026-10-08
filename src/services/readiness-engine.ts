@@ -931,7 +931,37 @@ export class ReadinessEngine {
     profile: Profile | null | undefined,
     serviceId: string = 'srivari-seva',
   ): DomReadinessEvaluation {
+    const isInstructions = detectSrivariSevaInstructions(doc).isCurrentStep;
     const isEnrollment = detectSrivariSevaEnrollment(doc).isCurrentStep;
+
+    if (isInstructions && !isEnrollment) {
+      const decl = detectDeclarationCheckbox(doc);
+      if (decl.detected && decl.checked) {
+        return {
+          isReady: true,
+          status: 'READY',
+          step: 'INSTRUCTIONS_REVIEW',
+          actionRequired: false,
+          actionMessage: 'Declaration confirmed. You can proceed to continue.',
+          missingRequiredFields: [],
+          satisfiedRequiredFields: ['declarationConfirmed'],
+          optionalFieldsSkipped: [],
+          optionalFieldsAvailable: [],
+        };
+      }
+      return {
+        isReady: false,
+        status: 'USER_ACTION_REQUIRED',
+        step: 'INSTRUCTIONS_REVIEW',
+        actionRequired: true,
+        actionMessage: 'Please review Srivari Seva instructions and confirm the declaration checkbox to continue.',
+        missingRequiredFields: ['declarationConfirmed'],
+        satisfiedRequiredFields: [],
+        optionalFieldsSkipped: [],
+        optionalFieldsAvailable: [],
+      };
+    }
+
     if (isEnrollment) {
       const { fields, requiredMap } = resolveSrivariEnrollmentFields(doc);
       const pilgrim = profile?.pilgrims?.[0];
@@ -1074,35 +1104,6 @@ export class ReadinessEngine {
         satisfiedRequiredFields: satisfiedRequired,
         optionalFieldsSkipped: optionalSkipped,
         optionalFieldsAvailable: optionalAvail,
-      };
-    }
-
-    const isInstructions = detectSrivariSevaInstructions(doc).isCurrentStep;
-    if (isInstructions) {
-      const decl = detectDeclarationCheckbox(doc);
-      if (decl.detected && decl.checked) {
-        return {
-          isReady: true,
-          status: 'READY',
-          step: 'INSTRUCTIONS_REVIEW',
-          actionRequired: false,
-          actionMessage: 'Declaration confirmed. You can proceed to continue.',
-          missingRequiredFields: [],
-          satisfiedRequiredFields: ['declarationConfirmed'],
-          optionalFieldsSkipped: [],
-          optionalFieldsAvailable: [],
-        };
-      }
-      return {
-        isReady: false,
-        status: 'USER_ACTION_REQUIRED',
-        step: 'INSTRUCTIONS_REVIEW',
-        actionRequired: true,
-        actionMessage: 'Please review Srivari Seva instructions and confirm the declaration checkbox to continue.',
-        missingRequiredFields: ['declarationConfirmed'],
-        satisfiedRequiredFields: [],
-        optionalFieldsSkipped: [],
-        optionalFieldsAvailable: [],
       };
     }
 

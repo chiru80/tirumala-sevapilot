@@ -25,6 +25,10 @@ import {
   detectActiveBookingStep,
 } from '../../src/content/autofill/page-workflow';
 import {
+  detectSrivariSevaInstructions,
+  detectSrivariSevaEnrollment,
+} from '../../src/services/workflows/step-detectors';
+import {
   resolveSrivariEnrollmentFields,
 } from '../../src/content/autofill/field-resolver';
 import {
@@ -592,6 +596,50 @@ describe('Phase 6 — Srivari Seva Hardening & Verification', () => {
       const res = resolveCanonicalService('https://ttdevasthanams.ap.gov.in/news/bulletin');
       expect(res.service).toBeUndefined();
       expect(res.isUncertain).toBe(true);
+    });
+  });
+
+  // ─────────────────────────────────────────────────────────────
+  // L: Codex Review Finding Regression: Instructions Precedence
+  // ─────────────────────────────────────────────────────────────
+  describe('L. Codex Review Finding: Instructions Page Precedence', () => {
+    it('preserves instruction-page precedence even when instructions text mentions enrollment section keywords', () => {
+      document.body.innerHTML = `
+        <div class="instructions-wrapper">
+          <h1>Srivari Seva</h1>
+          <h2>Instructions for Sevaks</h2>
+          <p>Please note: All sevaks must bring original identity proof at reporting.</p>
+          <p>You must fill your basic details accurately.</p>
+          <p>Devotees must be in sound medical fitness to render physical seva.</p>
+          <p>Profession and education information must be stated honestly.</p>
+          <p>Current address details and contact details will be verified.</p>
+          <label>
+            <input type="checkbox" id="chkDeclare" />
+            I hereby declare that I have read and agree to all instructions, terms and conditions.
+          </label>
+        </div>
+      `;
+
+      const instructionsUrl = 'https://ttdevasthanams.ap.gov.in/srivari-seva/instructions';
+
+      // 1. detectSrivariSevaEnrollment must not trigger without enrollment URL/form
+      const enrollRes = detectSrivariSevaEnrollment(document, instructionsUrl);
+      expect(enrollRes.isCurrentStep).toBe(false);
+
+      // 2. detectSrivariSevaInstructions must trigger
+      const instRes = detectSrivariSevaInstructions(document, instructionsUrl);
+      expect(instRes.isCurrentStep).toBe(true);
+
+      // 3. detectActiveBookingStep must resolve to INSTRUCTIONS_REVIEW
+      const activeStep = detectActiveBookingStep(document, instructionsUrl);
+      expect(activeStep).toBe('INSTRUCTIONS_REVIEW');
+
+      // 4. evaluateDomReadiness must evaluate instructions step and require declaration confirmation
+      const domEval = ReadinessEngine.evaluateDomReadiness(document, baseValidProfile, 'srivari-seva');
+      expect(domEval.step).toBe('INSTRUCTIONS_REVIEW');
+      expect(domEval.actionRequired).toBe(true);
+      expect(domEval.actionMessage).toContain('declaration checkbox');
+      expect(domEval.isReady).toBe(false);
     });
   });
 });

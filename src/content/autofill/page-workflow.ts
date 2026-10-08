@@ -35,10 +35,16 @@ export function detectActiveBookingStep(doc: Document = document, url: string = 
   const targetUrl = url || (doc as any)?.location?.href || (typeof window !== 'undefined' ? window.location?.href : '') || '';
 
   // Srivari Seva specific route and form detection
-  if (detectSrivariSevaEnrollment(doc, targetUrl).isCurrentStep) {
+  const instructionsStep = detectSrivariSevaInstructions(doc, targetUrl);
+  const enrollmentStep = detectSrivariSevaEnrollment(doc, targetUrl);
+
+  if (instructionsStep.isCurrentStep && (!enrollmentStep.isCurrentStep || /instructions/i.test(targetUrl) || instructionsStep.confidence >= enrollmentStep.confidence)) {
+    return 'INSTRUCTIONS_REVIEW';
+  }
+  if (enrollmentStep.isCurrentStep) {
     return 'SRIVARI_SEVA_ENROLLMENT';
   }
-  if (detectSrivariSevaInstructions(doc, targetUrl).isCurrentStep) {
+  if (instructionsStep.isCurrentStep) {
     return 'INSTRUCTIONS_REVIEW';
   }
 
