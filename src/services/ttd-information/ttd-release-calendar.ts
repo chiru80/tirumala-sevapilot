@@ -1,82 +1,59 @@
 // ─────────────────────────────────────────────────────────────
-// Tirumala SevaPilot — Official TTD Release Calendar & Countdown (Phase 5)
+// Tirumala SevaPilot — Official TTD Release Calendar & Intelligence (Phase 7)
 // All dates & times are strictly evaluated in Asia/Kolkata (IST).
 // ─────────────────────────────────────────────────────────────
 
 import { validateTtdSource } from './ttd-source-validator';
 import { getServiceConfig } from './ttd-service-rules';
+import {
+  IST_TIMEZONE,
+  type ReleaseEvent,
+  type ReleaseStatus,
+  type ReleaseConfidence,
+  type VerificationStatus,
+  type CountdownState,
+  type ReleaseCountdownResult,
+} from './release-types';
+import { detectReleaseChanges } from './release-change-detector';
+import { calculateExpectedRelease } from './recurring-pattern-engine';
 
-export const IST_TIMEZONE = 'Asia/Kolkata';
+export {
+  IST_TIMEZONE,
+  type ReleaseEvent,
+  type ReleaseStatus,
+  type ReleaseConfidence,
+  type VerificationStatus,
+  type CountdownState,
+  type ReleaseCountdownResult,
+};
 
-export type VerificationStatus = 'VERIFIED_OFFICIAL' | 'UNVERIFIED' | 'EXPIRED' | 'PENDING';
-
-export interface TtdReleaseEvent {
-  id: string;
-  serviceId: string;
-  serviceName?: string;
-  displayName?: string;
-  bookingType?: string;
-  targetBookingDates?: string;
-  targetMonth?: string; // e.g. "December 2026" or "2026-12"
-
-  releaseDate?: string; // YYYY-MM-DD (omitted if not yet confirmed by official announcement)
-  releaseTime?: string; // HH:mm (in 24-hour format IST)
-  timezone: string; // strictly "Asia/Kolkata"
-
-  /** Release pattern identifier, e.g. 'THREE_MONTHS_ADVANCE_MONTHLY_QUOTA', 'ONE_MONTH_ADVANCE' */
-  releasePattern?: string;
-
-  /** Number of months in advance the quota is released */
-  advanceMonths?: number;
-
-  /** Release type: MONTHLY_QUOTA_RELEASE, ONE_MONTH_ADVANCE, etc. */
-  releaseType?: string;
-
-  sourceUrl: string;
-  sourceDate?: string;
-
-  verificationStatus?: VerificationStatus;
-  verified: boolean;
-
-  /** True only when an official TTD announcement confirms the exact release date/time */
-  isConfirmed?: boolean;
-
-  publishedTimestamp?: string;
-  fetchedAt?: string;
-  expiresAt?: string;
-}
-
-export type CountdownState =
-  | 'UPCOMING'
-  | 'RELEASE_TIME_REACHED'
-  | 'PASSED'
-  | 'STALE'
-  | 'UNVERIFIED'
-  | 'NOT_CONFIRMED';
-
-export interface ReleaseCountdownResult {
-  state: CountdownState;
-  formattedCountdown: string; // e.g. "2d 04h 21m" or "Official release date not yet confirmed."
-  days: number;
-  hours: number;
-  minutes: number;
-  seconds: number;
-  totalSecondsRemaining: number;
-  isStale: boolean;
-  isVerified: boolean;
-  targetDateTimeIST: string;
-  canOpenTtd: boolean;
-}
+export type TtdReleaseEvent = ReleaseEvent;
 
 /**
  * Parses releaseDate (YYYY-MM-DD) and releaseTime (HH:mm) into a Unix epoch timestamp (ms)
  * assuming the Asia/Kolkata (UTC+05:30) timezone.
+ * Defensively validates month (1-12), day (1-31), hour (0-23), and min (0-59).
  */
 export function getReleaseEpochMs(releaseDate: string, releaseTime: string): number {
+  if (!releaseDate || !releaseTime) return NaN;
   const [year, month, day] = releaseDate.split('-').map(Number);
   const [hours, minutes] = releaseTime.split(':').map(Number);
 
-  if (!year || !month || !day || isNaN(hours) || isNaN(minutes)) {
+  if (
+    !year ||
+    !month ||
+    !day ||
+    isNaN(hours) ||
+    isNaN(minutes) ||
+    month < 1 ||
+    month > 12 ||
+    day < 1 ||
+    day > 31 ||
+    hours < 0 ||
+    hours > 23 ||
+    minutes < 0 ||
+    minutes > 59
+  ) {
     return NaN;
   }
 
@@ -89,10 +66,14 @@ export function getReleaseEpochMs(releaseDate: string, releaseTime: string): num
 
 /**
  * Checks whether release event metadata is stale.
- * Events are stale if fetchedAt is older than 24h and past expiresAt,
- * or if explicitly unverified.
+ * Events are stale if status is explicitly STALE, if past expiresAt,
+ * or if fetchedAt is older than 48 hours without a fresh verification.
  */
 export function isReleaseStale(event: TtdReleaseEvent, nowMs: number = Date.now()): boolean {
+  if (event.status === 'STALE') {
+    return true;
+  }
+
   if (event.expiresAt) {
     const expiresMs = new Date(event.expiresAt).getTime();
     if (!isNaN(expiresMs) && nowMs > expiresMs) {
@@ -100,8 +81,7 @@ export function isReleaseStale(event: TtdReleaseEvent, nowMs: number = Date.now(
     }
   }
 
-  // Also check if fetchedAt is older than 48 hours without a fresh verification
-  if (event.fetchedAt) {
+  if (event.fetchedAt && !event.expiresAt) {
     const fetchedMs = new Date(event.fetchedAt).getTime();
     const fortyEightHoursMs = 48 * 60 * 60 * 1000;
     if (!isNaN(fetchedMs) && nowMs - fetchedMs > fortyEightHoursMs) {
@@ -115,6 +95,9 @@ export function isReleaseStale(event: TtdReleaseEvent, nowMs: number = Date.now(
 /**
  * Computes release countdown against current time.
  * Never silently converts to the user's local timezone without marking IST.
+ * For CONFIRMED events: produces precise countdown.
+ * For EXPECTED events: produces approximate guidance without false precision.
+ * For STALE events: communicates that data needs refreshing.
  */
 export function calculateReleaseCountdown(
   event: TtdReleaseEvent,
@@ -123,15 +106,87 @@ export function calculateReleaseCountdown(
   const stale = isReleaseStale(event, nowMs);
   const isSourceVerified = event.verified && validateTtdSource(event.sourceUrl).isValid;
 
+  // Stale handling
+  if (stale || event.status === 'STALE') {
+    return {
+      state: 'STALE',
+      formattedCountdown: 'Release information needs refreshing',
+      days: 0,
+      hours: 0,
+      minutes: 0,
+      seconds: 0,
+      totalSecondsRemaining: 0,
+      isStale: true,
+      isVerified: false,
+      status: 'STALE',
+      targetDateTimeIST:
+        event.releaseDate && event.releaseTime
+          ? `${event.releaseDate} ${event.releaseTime} IST`
+          : 'Not confirmed',
+      canOpenTtd: Boolean(event.sourceUrl && validateTtdSource(event.sourceUrl).isValid),
+      isUpdated: Boolean(event.isUpdated),
+    };
+  }
+
+  // Expected event handling: derive approximate calendar countdown without false precision
+  if (event.status === 'EXPECTED') {
+    if (!event.releaseDate || !event.releaseTime) {
+      return {
+        state: 'NOT_CONFIRMED',
+        formattedCountdown: 'Official release date not yet confirmed.',
+        days: 0,
+        hours: 0,
+        minutes: 0,
+        seconds: 0,
+        totalSecondsRemaining: 0,
+        isStale: false,
+        isVerified: false,
+        status: 'EXPECTED',
+        targetDateTimeIST: 'Expected release pattern',
+        canOpenTtd: Boolean(event.sourceUrl && validateTtdSource(event.sourceUrl).isValid),
+        isUpdated: Boolean(event.isUpdated),
+      };
+    }
+
+    const targetEpoch = getReleaseEpochMs(event.releaseDate, event.releaseTime);
+    const diffMs = targetEpoch - nowMs;
+    const totalSeconds = Math.floor(diffMs / 1000);
+    const approxDays = Math.ceil(totalSeconds / 86400);
+
+    const formattedCountdown =
+      approxDays <= 0
+        ? 'EXPECTED TODAY'
+        : approxDays === 1
+        ? 'EXPECTED IN ~1 DAY'
+        : `EXPECTED IN ~${approxDays} DAYS`;
+
+    return {
+      state: 'EXPECTED_APPROACHING',
+      formattedCountdown,
+      days: Math.max(0, approxDays),
+      hours: 0,
+      minutes: 0,
+      seconds: 0,
+      totalSecondsRemaining: Math.max(0, totalSeconds),
+      isStale: false,
+      isVerified: false,
+      status: 'EXPECTED',
+      targetDateTimeIST: `${event.releaseDate} ${event.releaseTime} IST (Expected)`,
+      canOpenTtd: Boolean(event.sourceUrl && validateTtdSource(event.sourceUrl).isValid),
+      isUpdated: Boolean(event.isUpdated),
+    };
+  }
+
   // If no official announcement confirms the exact release date/time:
   // Do NOT fabricate a countdown.
   if (
     !event.releaseDate ||
     !event.releaseTime ||
     event.isConfirmed === false ||
-    !isSourceVerified
+    !isSourceVerified ||
+    event.status === 'UNKNOWN' ||
+    event.status === 'ESTIMATED'
   ) {
-    const isUnconfirmed = event.isConfirmed === false || !event.releaseDate || !event.releaseTime;
     return {
       state: !isSourceVerified ? 'UNVERIFIED' : 'NOT_CONFIRMED',
       formattedCountdown: 'Official release date not yet confirmed.',
@@ -140,13 +195,15 @@ export function calculateReleaseCountdown(
       minutes: 0,
       seconds: 0,
       totalSecondsRemaining: 0,
-      isStale: stale,
+      isStale: false,
       isVerified: false,
+      status: event.status || 'UNKNOWN',
       targetDateTimeIST:
         event.releaseDate && event.releaseTime
           ? `${event.releaseDate} ${event.releaseTime} IST`
           : 'Not confirmed',
       canOpenTtd: Boolean(event.sourceUrl && validateTtdSource(event.sourceUrl).isValid),
+      isUpdated: Boolean(event.isUpdated),
     };
   }
 
@@ -160,10 +217,12 @@ export function calculateReleaseCountdown(
       minutes: 0,
       seconds: 0,
       totalSecondsRemaining: 0,
-      isStale: stale,
+      isStale: false,
       isVerified: false,
+      status: 'UNKNOWN',
       targetDateTimeIST: `${event.releaseDate} ${event.releaseTime} IST`,
       canOpenTtd: false,
+      isUpdated: Boolean(event.isUpdated),
     };
   }
 
@@ -180,10 +239,12 @@ export function calculateReleaseCountdown(
       minutes: 0,
       seconds: 0,
       totalSecondsRemaining: 0,
-      isStale: stale,
+      isStale: false,
       isVerified: isSourceVerified,
+      status: 'CONFIRMED',
       targetDateTimeIST: `${event.releaseDate} ${event.releaseTime} IST`,
       canOpenTtd: true,
+      isUpdated: Boolean(event.isUpdated),
     };
   }
 
@@ -197,10 +258,12 @@ export function calculateReleaseCountdown(
       minutes: 0,
       seconds: 0,
       totalSecondsRemaining: 0,
-      isStale: stale,
+      isStale: false,
       isVerified: isSourceVerified,
+      status: 'CONFIRMED',
       targetDateTimeIST: `${event.releaseDate} ${event.releaseTime} IST`,
       canOpenTtd: true,
+      isUpdated: Boolean(event.isUpdated),
     };
   }
 
@@ -216,17 +279,19 @@ export function calculateReleaseCountdown(
       : `${pad(hours)}h ${pad(minutes)}m ${pad(seconds)}s`;
 
   return {
-    state: stale ? 'STALE' : 'UPCOMING',
+    state: 'UPCOMING',
     formattedCountdown,
     days,
     hours,
     minutes,
     seconds,
     totalSecondsRemaining: totalSeconds,
-    isStale: stale,
+    isStale: false,
     isVerified: isSourceVerified,
+    status: 'CONFIRMED',
     targetDateTimeIST: `${event.releaseDate} ${event.releaseTime} IST`,
     canOpenTtd: true,
+    isUpdated: Boolean(event.isUpdated),
   };
 }
 
@@ -260,6 +325,8 @@ export const VERIFIED_RELEASE_EVENTS: TtdReleaseEvent[] = [
     releasePattern: 'SPECIAL_ENTRY_DARSHAN_QUOTA',
     advanceMonths: 0,
     releaseType: 'QUOTA_RELEASE',
+    status: 'CONFIRMED',
+    confidence: 'OFFICIAL',
     sourceUrl: 'https://news.tirumala.org/ttd-to-release-rs-300-sed-tickets-on-october-7-_-అక్టోబర్-7న-రూ-300-ప్రత/',
     sourceDate: '2026-10-06',
     verificationStatus: 'VERIFIED_OFFICIAL',
@@ -282,6 +349,8 @@ export const VERIFIED_RELEASE_EVENTS: TtdReleaseEvent[] = [
     timezone: IST_TIMEZONE,
     releasePattern: 'MONTHLY_QUOTA_RELEASE',
     advanceMonths: 1,
+    status: 'CONFIRMED',
+    confidence: 'OFFICIAL',
     sourceUrl: 'https://www.tirumala.org/',
     sourceDate: '2026-10-01',
     verificationStatus: 'VERIFIED_OFFICIAL',
@@ -305,6 +374,8 @@ export const VERIFIED_RELEASE_EVENTS: TtdReleaseEvent[] = [
     releasePattern: 'ONE_MONTH_ADVANCE',
     advanceMonths: 1,
     releaseType: 'ONE_MONTH_ADVANCE',
+    status: 'CONFIRMED',
+    confidence: 'OFFICIAL',
     sourceUrl: 'https://news.tirumala.org/',
     sourceDate: '2026-10-01',
     verificationStatus: 'VERIFIED_OFFICIAL',
@@ -356,17 +427,27 @@ export function isEventUpcoming(event: TtdReleaseEvent, nowMs: number = Date.now
 }
 
 /**
- * Returns strictly upcoming verified releases.
- * Only includes events where releaseDate + releaseTime > current time.
+ * Filters and sorts release events to only upcoming future ones in ascending release order.
  */
-export function getUpcomingVerifiedReleases(nowMs: number = Date.now()): TtdReleaseEvent[] {
-  return activeReleaseEvents
+export function filterFutureReleaseEvents(
+  events: TtdReleaseEvent[],
+  nowMs: number = Date.now()
+): TtdReleaseEvent[] {
+  return events
     .filter(e => isEventUpcoming(e, nowMs))
     .sort((a, b) => {
       const aEpoch = getReleaseEpochMs(a.releaseDate!, a.releaseTime!);
       const bEpoch = getReleaseEpochMs(b.releaseDate!, b.releaseTime!);
       return aEpoch - bEpoch;
     });
+}
+
+/**
+ * Returns strictly upcoming verified releases.
+ * Only includes events where releaseDate + releaseTime > current time.
+ */
+export function getUpcomingVerifiedReleases(nowMs: number = Date.now()): TtdReleaseEvent[] {
+  return filterFutureReleaseEvents(activeReleaseEvents, nowMs);
 }
 
 /**
@@ -389,8 +470,8 @@ export function getVerifiedReleaseEvents(nowMs: number = Date.now()): TtdRelease
 
 /**
  * Registers an official release announcement event.
- * If the latest official TTD announcement changes the pattern,
- * the official announcement overrides the stored default.
+ * If the latest official TTD announcement changes the schedule,
+ * detect differences and mark the event as updated.
  */
 export function registerOfficialAnnouncement(event: TtdReleaseEvent): void {
   const index = activeReleaseEvents.findIndex(e =>
@@ -398,9 +479,31 @@ export function registerOfficialAnnouncement(event: TtdReleaseEvent): void {
     isMatchingService(event.serviceId, e.serviceId)
   );
   if (index >= 0) {
-    activeReleaseEvents[index] = { ...event };
+    const existing = activeReleaseEvents[index];
+    const change = detectReleaseChanges(existing, event);
+    if (change.hasChanged) {
+      activeReleaseEvents[index] = {
+        ...event,
+        status: event.status || 'CONFIRMED',
+        confidence: event.confidence || 'OFFICIAL',
+        isUpdated: true,
+        previousReleaseDate: change.previousReleaseDate,
+        previousReleaseTime: change.previousReleaseTime,
+        changeNotes: change.changeNotes,
+      };
+    } else {
+      activeReleaseEvents[index] = {
+        ...event,
+        status: event.status || 'CONFIRMED',
+        confidence: event.confidence || 'OFFICIAL',
+      };
+    }
   } else {
-    activeReleaseEvents.push({ ...event });
+    activeReleaseEvents.push({
+      ...event,
+      status: event.status || 'CONFIRMED',
+      confidence: event.confidence || 'OFFICIAL',
+    });
   }
 }
 
@@ -414,7 +517,8 @@ export function resetReleaseEventsToDefault(): void {
 /**
  * Finds the upcoming verified release event for a specific service or closest overall.
  * Strictly filters out past / expired events: releaseDate + releaseTime must be in the future.
- * If no confirmed future release exists, returns an unconfirmed event indicating
+ * If no confirmed future release exists, consults recurring pattern engine for an EXPECTED release.
+ * If none exists, returns an unconfirmed event indicating
  * "Release date not announced yet" rather than fabricating a date or returning a passed event.
  */
 export function getUpcomingReleaseEvent(serviceId?: string, nowMs: number = Date.now()): TtdReleaseEvent | undefined {
@@ -433,6 +537,12 @@ export function getUpcomingReleaseEvent(serviceId?: string, nowMs: number = Date
       return found;
     }
 
+    // Check if recurring pattern engine can provide an EXPECTED release
+    const expected = calculateExpectedRelease(serviceId, nowMs);
+    if (expected) {
+      return expected;
+    }
+
     if (config) {
       return {
         id: `unconfirmed-${config.serviceId}`,
@@ -446,6 +556,8 @@ export function getUpcomingReleaseEvent(serviceId?: string, nowMs: number = Date
         releasePattern: config.releasePattern,
         advanceMonths: config.advanceMonths,
         releaseType: config.releaseType,
+        status: 'UNKNOWN',
+        confidence: 'UNKNOWN',
         sourceUrl: config.source?.url || 'https://news.tirumala.org/',
         verificationStatus: 'PENDING',
         verified: false,
