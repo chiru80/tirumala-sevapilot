@@ -137,6 +137,12 @@ export class DomObservationEngine {
           const node = m.addedNodes[i];
           if (node && node.nodeType === Node.ELEMENT_NODE) {
             const el = node as HTMLElement;
+            // Ignore extension's own UI mutations
+            const id = el.id || '';
+            const className = typeof el.className === 'string' ? el.className : '';
+            if (id.startsWith('sp-') || className.includes('sp-') || el.closest?.('[data-sevapilot]')) {
+              continue;
+            }
             const tag = el.tagName?.toLowerCase() || '';
             if (['input', 'select', 'textarea', 'mat-select', 'form'].includes(tag) || el.querySelector?.('input, select, mat-select')) {
               this.pendingBatch.hasFormChanges = true;
@@ -145,6 +151,10 @@ export class DomObservationEngine {
         }
       } else if (m.type === 'attributes') {
         const attrName = m.attributeName || '';
+        // Ignore pure style and presentation mutations that don't affect form semantics
+        if (attrName === 'style') {
+          continue;
+        }
         if (!this.pendingBatch.attributeChanges.includes(attrName)) {
           this.pendingBatch.attributeChanges.push(attrName);
         }
@@ -167,7 +177,7 @@ export class DomObservationEngine {
   /**
    * Emits the batched changes to listeners and resets batch state.
    */
-  private flushBatch(): void {
+  public flushBatch(): void {
     if (this.debounceTimer) {
       clearTimeout(this.debounceTimer);
       this.debounceTimer = null;
