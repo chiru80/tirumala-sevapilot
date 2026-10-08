@@ -172,6 +172,34 @@ Automated suite: [`tests/services/queue/queue-intelligence.test.ts`](file:///tes
 - [x] Security: malicious DOM scripts or unescaped HTML safely ignored as untrusted text
 - [x] Zero Queue Bypass: strictly no queue circumvention, no token forgery, no automated refresh loops
 
+## Resilient Automation Engine tests (Phase 11 Complete)
+
+Automated suites:
+- [`tests/content/automation/resilient-automation.test.ts`](file:///tests/content/automation/resilient-automation.test.ts) (17/17 tests passing)
+- [`tests/content/automation/chaos-resilience.test.ts`](file:///tests/content/automation/chaos-resilience.test.ts) (5/5 tests passing)
+
+- [x] Canonical state machine forward transitions validated (`IDLE` -> `OBSERVING` -> `FORM_DETECTED` -> `FIELD_RESOLUTION`)
+- [x] Illegal state transitions rejected without state corruption
+- [x] State change callbacks and transition history logging
+- [x] Document instance identity (`documentId`) generation and tracking
+- [x] SPA navigation detection (`pushState`, `replaceState`, `popstate`, URL changes)
+- [x] Safe Shadow DOM traversal (`DomTraversalEngine`) across open shadow roots
+- [x] DOM observation engine debouncing and micro-batching
+- [x] Field lifecycle classification (`EMPTY`, `ALREADY_CORRECT`, `USER_MODIFIED`, `WRONG_VALUE`, `UNAVAILABLE`)
+- [x] Human field ownership tracking and zero silent overwrite guarantee
+- [x] Idempotent autofill execution (skips already-correct fields)
+- [x] Bounded exponential retry engine with jitter
+- [x] Hard safety retry exclusions (never automatically retries CAPTCHA, OTP, payment, locks, declarations)
+- [x] Instant AbortSignal cancellation during retry operations
+- [x] Controlled recovery engine strategies (`FIELD_NOT_FOUND`, `DOM_REPLACED`, `USER_MODIFIED`, `PAGE_CHANGED`)
+- [x] Typed extension message protocol runtime validation
+- [x] Emergency Stop immediately halts active automation without page reload or tab closure
+- [x] Chaos resilience: late field mounting handled via bounded retry
+- [x] Chaos resilience: parent container replacement (Angular / React rerender) safely recovered
+- [x] Chaos resilience: abort mid-execution safely halts and preserves form state
+- [x] Chaos resilience: disabled/readonly form controls respected
+- [x] Zero-PII performance telemetry logged without devotee identity
+
 ## UI tests
 
 - [ ] first-time Home

@@ -118,17 +118,38 @@ Status: COMPLETE
 - Accessible Queue Card UI (`QueueCard.tsx`) with English and Telugu translations.
 - Full Phase 10 regression suite: 18 new tests in `queue-intelligence.test.ts`, 71 test files total (890 tests passing 100%).
 
-## Phase 11 — Performance / polish
-- Real timing instrumentation.
-- Reduce redundant work.
-- Accessibility.
-- i18n.
-- responsive side panel.
-- visual consistency.
+## Phase 11 — Resilient Automation Engine
+Status: COMPLETE
+- Canonical Automation State Machine (`src/content/automation/state-machine.ts`) with 14 strongly typed states and transition validation matrix.
+- Structured Concurrency & Session Ownership: `AutomationSession` with `AbortController` owning all asynchronous tasks and operations.
+- Document Identity & SPA Navigation (`document-identity.ts`): Unique instance identification (`documentId`) prevents stale automation across route changes (`pushState`, `replaceState`, `popstate`).
+- Centralized DOM Observation Engine (`dom-observation-engine.ts`): Micro-batched (50ms) debounced `MutationObserver` with safe open Shadow DOM traversal (`DomTraversalEngine`).
+- Field Ownership & Human Protection (`field-ownership-tracker.ts`): Real-time devotee input tracking. Marks fields as `USER_MODIFIED` and guarantees zero silent overwriting.
+- Idempotent Autofill: Automatically skips `ALREADY_CORRECT` fields, eliminating redundant DOM writes.
+- Resilient Retry Engine (`resilient-retry-engine.ts`): Exponential backoff with jitter and hard safety exclusion (never retries CAPTCHA, OTP, payment, locks, declarations).
+- Recovery Engine (`recovery-engine.ts`): Controlled self-healing for `FIELD_NOT_FOUND`, `DOM_REPLACED`, `PAGE_CHANGED`, `USER_MODIFIED`, and `UNKNOWN_STATE`.
+- Typed Message Protocol (`message-protocol.ts`): Runtime schema validation rejecting malformed payloads or mismatched session IDs.
+- Zero-PII Performance Telemetry: Measures operation duration without logging devotee identity.
+- Full Phase 11 Suite: 22 new tests across `resilient-automation.test.ts` and `chaos-resilience.test.ts`, 73 test files total (912 tests passing 100%).
 
-## Phase 12 — Release
-- Production build.
-- final security audit.
-- Chrome Web Store package.
-- release notes.
-- manual TTD validation.
+## Phase 12 — Performance & Zero-Lag Architecture
+- Memory and observer profiling.
+- Request coalescing optimization.
+- Cache warming and storage batching.
+
+## Phase 13 — AI-Assisted DOM Intelligence (Deterministic/Safe)
+- Deterministic heuristic fallback and semantic fuzzy matching.
+- Human review boundaries.
+
+## Phase 14 — Advanced UX / Accessibility / i18n
+- Multi-language expansion and WCAG 2.1 AA keyboard/screen-reader compliance.
+
+## Phase 15 — Observability + Diagnostics without PII
+- Structured internal diagnostics, zero-PII telemetry aggregation.
+
+## Phase 16 — Production QA / Chaos Testing
+- End-to-end chaos suites, simulated network degradation, and mock server latency.
+
+## Phase 17 — Chrome Web Store Release Hardening
+- Final manifest and security audit, package bundle production distribution.
+
