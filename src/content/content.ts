@@ -15,6 +15,7 @@ import { AngularFormObserver } from './angular-form-observer';
 // Legacy ttd-pilgrim-autofill is no longer imported — all autofill goes through autofill-manager
 import { executeAutofill, repairFailedFields, requestStop } from './autofill/autofill-manager';
 import { detectTtdTemporaryLock } from '@services/ttd-information/ttd-lock-detector';
+import { bookingGuardian } from '@services/guardian';
 import { STORAGE_KEYS } from '@shared/constants';
 import { MessageType, ServiceType } from '@shared/types';
 import type { ExtensionMessage, Pilgrim, Profile, FieldMapping, ScanResult, AutofillMode } from '@shared/types';
@@ -27,6 +28,12 @@ const recognition = ServiceRecognitionEngine.recognize(window.location.href, doc
 
 if (recognition.status !== 'not-detected') {
   const initLock = detectTtdTemporaryLock(document, window.location.href);
+  const guardianEval = bookingGuardian.evaluateState({
+    doc: document,
+    url: window.location.href,
+    explicitServiceId: recognition.serviceId,
+  });
+
   updatePageState({
     url: window.location.href,
     isSupported: true,
@@ -38,6 +45,8 @@ if (recognition.status !== 'not-detected') {
     formDetected: document.querySelectorAll('input:not([type="hidden"]), select').length > 0,
     fieldCount: document.querySelectorAll('input:not([type="hidden"]), select').length,
     temporaryLock: initLock.isLocked && initLock.lockState ? initLock.lockState : undefined,
+    guardianState: guardianEval.guardianState,
+    guardianStage: guardianEval.pageDetection.stage,
   });
 
   logger.info(`TTD service detected: ${recognition.serviceName} (${recognition.confidenceScore}% confidence)`);
@@ -444,7 +453,28 @@ async function handleMessage(
 
       case MessageType.STOP_AUTOFILL: {
         requestStop();
+        bookingGuardian.emergencyStop('User stopped autofill');
         sendResponse({ success: true });
+        break;
+      }
+
+      case MessageType.EMERGENCY_STOP: {
+        const reason = (message.payload as any)?.reason || 'User emergency stop';
+        bookingGuardian.emergencyStop(reason);
+        sendResponse({ success: true });
+        break;
+      }
+
+      case MessageType.GET_GUARDIAN_STATE: {
+        const payload = (message.payload || {}) as any;
+        const evaluation = bookingGuardian.evaluateState({
+          doc: document,
+          url: window.location.href,
+          profile: payload?.profile,
+          selectedPilgrims: payload?.selectedPilgrims,
+          explicitServiceId: payload?.serviceId || recognition.serviceId,
+        });
+        sendResponse({ success: true, data: evaluation });
         break;
       }
 
