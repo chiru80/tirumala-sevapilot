@@ -46,6 +46,45 @@ export const VALID_AUTOMATION_TRANSITIONS: Readonly<Record<AutomationState, read
 };
 
 /**
+ * Clean product-level state exposed to user-facing Cockpit / UI.
+ * Never leaks internal low-level engineering states directly to devotees.
+ */
+export type ProductAutomationState =
+  | 'READY'
+  | 'WORKING'
+  | 'USER_ACTION_REQUIRED'
+  | 'BLOCKED'
+  | 'COMPLETED';
+
+/**
+ * Maps detailed internal engineering state to clean consumer product state.
+ */
+export function mapToProductState(state: AutomationState): ProductAutomationState {
+  switch (state) {
+    case 'IDLE':
+    case 'PAGE_IDENTIFIED':
+    case 'FORM_DETECTED':
+      return 'READY';
+    case 'OBSERVING':
+    case 'FIELD_RESOLUTION':
+    case 'ACTION_PLANNING':
+    case 'FILLING':
+    case 'VERIFYING':
+    case 'RECOVERY':
+      return 'WORKING';
+    case 'USER_ACTION_REQUIRED':
+      return 'USER_ACTION_REQUIRED';
+    case 'BLOCKED':
+      return 'BLOCKED';
+    case 'COMPLETED':
+      return 'COMPLETED';
+    case 'STOPPED':
+    case 'FAILED':
+      return 'USER_ACTION_REQUIRED';
+  }
+}
+
+/**
  * Field Lifecycle status representing dynamic DOM state.
  * Prevents destructive blind overwriting.
  */

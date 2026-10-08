@@ -158,8 +158,8 @@ export function detectQueueState(doc: Document = document, url: string = ''): Qu
     };
   }
 
-  // 2. Explicit Error Check
-  const pageText = (doc.body?.innerText || doc.body?.textContent || '').toLowerCase();
+  // 2. Explicit Error Check (using textContent to prevent synchronous layout reflow)
+  const pageText = (doc.body?.textContent || '').toLowerCase();
   const isErrorPresent =
     pageText.includes('service unavailable') ||
     pageText.includes('queue service error') ||

@@ -11,3 +11,4 @@ export * from './resilient-retry-engine';
 export * from './recovery-engine';
 export * from './message-protocol';
 export * from './resilient-automation-engine';
+export * from './dom-cache';

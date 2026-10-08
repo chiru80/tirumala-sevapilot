@@ -48,6 +48,15 @@ describe('Phase 6: DOM Lifecycle Engine (Scoped & Debounced)', () => {
     document.body.innerHTML = '';
   });
 
+  async function waitForEvent(predicate: () => boolean, timeoutMs = 1500): Promise<boolean> {
+    const start = Date.now();
+    while (Date.now() - start < timeoutMs) {
+      if (predicate()) return true;
+      await new Promise((r) => setTimeout(r, 20));
+    }
+    return predicate();
+  }
+
   it('detects FORM_APPEARED when a form node is injected', async () => {
     const events: DomLifecycleEvent[] = [];
     engine.subscribe((e) => events.push(e));
@@ -57,10 +66,8 @@ describe('Phase 6: DOM Lifecycle Engine (Scoped & Debounced)', () => {
     form.id = 'booking-form';
     document.body.appendChild(form);
 
-    // Let mutation observer and debounce timer fire
-    await new Promise((r) => setTimeout(r, 150));
-
-    expect(events.some((e) => e.type === 'FORM_APPEARED')).toBe(true);
+    const detected = await waitForEvent(() => events.some((e) => e.type === 'FORM_APPEARED'));
+    expect(detected).toBe(true);
   });
 
   it('detects FIELD_APPEARED when an input is dynamically added', async () => {
@@ -72,9 +79,8 @@ describe('Phase 6: DOM Lifecycle Engine (Scoped & Debounced)', () => {
     input.name = 'pilgrimName';
     document.body.appendChild(input);
 
-    await new Promise((r) => setTimeout(r, 150));
-
-    expect(events.some((e) => e.type === 'FIELD_APPEARED')).toBe(true);
+    const detected = await waitForEvent(() => events.some((e) => e.type === 'FIELD_APPEARED'));
+    expect(detected).toBe(true);
   });
 
   it('detects FIELD_DISABLED and FIELD_ENABLED attribute changes', async () => {
@@ -88,13 +94,13 @@ describe('Phase 6: DOM Lifecycle Engine (Scoped & Debounced)', () => {
 
     // Disable field
     input.setAttribute('disabled', 'true');
-    await new Promise((r) => setTimeout(r, 150));
-    expect(events.some((e) => e.type === 'FIELD_DISABLED')).toBe(true);
+    const disabledDetected = await waitForEvent(() => events.some((e) => e.type === 'FIELD_DISABLED'));
+    expect(disabledDetected).toBe(true);
 
     // Enable field
     input.removeAttribute('disabled');
-    await new Promise((r) => setTimeout(r, 150));
-    expect(events.some((e) => e.type === 'FIELD_ENABLED')).toBe(true);
+    const enabledDetected = await waitForEvent(() => events.some((e) => e.type === 'FIELD_ENABLED'));
+    expect(enabledDetected).toBe(true);
   });
 
   it('cleans up MutationObserver properly on stop() without memory leaks', async () => {

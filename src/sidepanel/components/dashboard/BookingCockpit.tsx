@@ -24,7 +24,7 @@ export interface BookingCockpitProps {
   pilgrimReports?: PilgrimRowReport[];
 }
 
-export const BookingCockpit: React.FC<BookingCockpitProps> = ({
+export const BookingCockpit: React.FC<BookingCockpitProps> = React.memo(({
   serviceName,
   selectedPilgrims,
   maxPilgrims = 6,
@@ -75,7 +75,7 @@ export const BookingCockpit: React.FC<BookingCockpitProps> = ({
       </div>
 
       {/* ─── Ready Before You Click Status Bar ─── */}
-      <div className="grid grid-cols-3 gap-2 text-center">
+      <div className="grid grid-cols-3 gap-2 text-center" aria-live="polite">
         <div className="bg-white/80 dark:bg-white/5 rounded-2xl p-2 border border-[#D4A72C]/20 shadow-xs">
           <span className="text-[10px] font-semibold text-[#735A88] dark:text-[#B6A2C7] block">
             Devotees
@@ -113,7 +113,8 @@ export const BookingCockpit: React.FC<BookingCockpitProps> = ({
           {onNavigateProfiles && (
             <button
               onClick={onNavigateProfiles}
-              className="text-[10px] font-bold text-[#5B2A86] dark:text-[#D4A72C] hover:underline cursor-pointer"
+              className="text-[10px] font-bold text-[#5B2A86] dark:text-[#D4A72C] hover:underline focus-visible:ring-1 focus-visible:ring-gold-500 focus-visible:outline-none cursor-pointer"
+              aria-label="Edit Pilgrim Details"
             >
               Edit Details ↗
             </button>
@@ -173,7 +174,8 @@ export const BookingCockpit: React.FC<BookingCockpitProps> = ({
         {isFilling ? (
           <button
             onClick={onStopClick}
-            className="w-full py-3.5 px-4 rounded-2xl bg-red-600 hover:bg-red-700 text-white font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg transition-all active:scale-[0.98] cursor-pointer"
+            className="w-full min-h-[44px] py-3.5 px-4 rounded-2xl bg-red-600 hover:bg-red-700 text-white font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg transition-all active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:outline-none cursor-pointer"
+            aria-label="Stop Autofill Process"
           >
             <span className="w-2.5 h-2.5 rounded-full bg-white animate-pulse" />
             <span>STOP AUTOFILL</span>
@@ -182,9 +184,10 @@ export const BookingCockpit: React.FC<BookingCockpitProps> = ({
           <button
             onClick={onFillClick}
             disabled={!isReady}
+            aria-disabled={!isReady}
             aria-label="Cockpit Execute Fill"
             id="sp-cockpit-fill-btn"
-            className={`w-full py-3.5 px-4 rounded-2xl font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg transition-all active:scale-[0.98] cursor-pointer ${
+            className={`w-full min-h-[44px] py-3.5 px-4 rounded-2xl font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg transition-all active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-gold-500 focus-visible:outline-none cursor-pointer ${
               isReady
                 ? 'bg-gradient-to-r from-[#5B2A86] via-[#6F32A3] to-[#5B2A86] hover:from-[#4A2070] hover:to-[#4A2070] text-[#FFFDF7] border border-[#D4A72C]/40 shadow-[#5B2A86]/20'
                 : 'bg-gray-300 dark:bg-gray-800 text-gray-500 cursor-not-allowed border border-gray-400/20'
@@ -243,4 +246,4 @@ export const BookingCockpit: React.FC<BookingCockpitProps> = ({
       </div>
     </div>
   );
-};
+});

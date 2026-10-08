@@ -17,6 +17,7 @@ import {
 } from '../workflows/step-detectors';
 import { detectTtdTemporaryLock } from '../ttd-information/ttd-lock-detector';
 import { detectQueueState } from '../queue/queue-detector';
+import { domCache } from '../../content/automation/dom-cache';
 import type { GuardianPageStage, PageDetectionResult } from './types';
 
 /**
@@ -172,13 +173,39 @@ export function detectSessionExpired(doc: Document = document, url: string = '')
 
 /**
  * Authoritative Guardian Page Detector.
- * Evaluates live DOM signals with fallback priority.
+ * Evaluates live DOM signals with fallback priority and zero-lag domCache integration.
  */
 export function detectGuardianPageStage(
   doc: Document = document,
   url: string = '',
+  skipCache = false,
 ): PageDetectionResult {
   const targetUrl = url || (doc as any)?.location?.href || (typeof window !== 'undefined' ? window.location?.href : '') || '';
+  const cacheKey = `guardianPageStage:${targetUrl}`;
+
+  if (!skipCache) {
+    const cached = domCache.get<PageDetectionResult>(cacheKey);
+    if (cached) {
+      return cached;
+    }
+  }
+
+  const result = computeGuardianPageStage(doc, targetUrl);
+  domCache.set(cacheKey, result, 150);
+  return result;
+}
+
+/**
+ * Explicitly invalidates cached page detection results on navigation or DOM replacement.
+ */
+export function invalidateGuardianPageStageCache(): void {
+  domCache.invalidatePrefix('guardianPageStage:');
+}
+
+function computeGuardianPageStage(
+  doc: Document,
+  targetUrl: string,
+): PageDetectionResult {
   const reasons: string[] = [];
 
   // 1. Session Expiration (P0)

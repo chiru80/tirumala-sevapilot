@@ -333,27 +333,117 @@ export async function updateSelectedPilgrims(
   await chrome.storage.local.set({ [STORAGE_KEYS.PROFILES]: profiles });
 }
 
-// ─── Settings ───
+// ─── Settings In-Memory Cache & Storage Area (Phase 12) ───
+let cachedSettings: Settings | null = null;
 
-/** Get application settings */
-export async function getSettings(): Promise<Settings> {
-  const result = await chrome.storage.local.get(STORAGE_KEYS.SETTINGS);
-  const raw = result[STORAGE_KEYS.SETTINGS];
-  if (!raw || typeof raw !== 'object') return { ...DEFAULT_SETTINGS };
-  const cleaned = stripPrototypePollution(raw) as Partial<Settings>;
-  return { ...DEFAULT_SETTINGS, ...cleaned };
+export function invalidateSettingsCache(): void {
+  cachedSettings = null;
 }
 
-/** Save application settings */
+function getSettingsStorage(): chrome.storage.StorageArea {
+  if (typeof chrome !== 'undefined' && chrome.storage) {
+    if (chrome.storage.sync) {
+      return chrome.storage.sync;
+    }
+    return chrome.storage.local;
+  }
+  return {
+    get: async () => ({}),
+    set: async () => {},
+    remove: async () => {},
+    clear: async () => {},
+  } as unknown as chrome.storage.StorageArea;
+}
+
+/** Get application settings (instant in-memory cache with sync/local fallback) */
+export async function getSettings(forceRefresh = false): Promise<Settings> {
+  if (cachedSettings && !forceRefresh) {
+    return { ...cachedSettings };
+  }
+
+  const storage = getSettingsStorage();
+  let raw: unknown;
+  try {
+    const result = await storage.get(STORAGE_KEYS.SETTINGS);
+    raw = result[STORAGE_KEYS.SETTINGS];
+  } catch (err) {
+    logger.debug('[Storage] Storage.sync read fallback to storage.local:', err);
+    const localResult = await chrome.storage.local.get(STORAGE_KEYS.SETTINGS);
+    raw = localResult[STORAGE_KEYS.SETTINGS];
+  }
+
+  // If sync was empty, check if local has settings data (migration bridge)
+  if (!raw && storage !== chrome.storage.local && typeof chrome !== 'undefined' && chrome.storage?.local) {
+    try {
+      const localResult = await chrome.storage.local.get(STORAGE_KEYS.SETTINGS);
+      raw = localResult[STORAGE_KEYS.SETTINGS];
+    } catch {
+      // Fallback
+    }
+  }
+
+  if (!raw || typeof raw !== 'object') {
+    cachedSettings = { ...DEFAULT_SETTINGS };
+    return { ...DEFAULT_SETTINGS };
+  }
+
+  const cleaned = stripPrototypePollution(raw) as Partial<Settings>;
+  cachedSettings = { ...DEFAULT_SETTINGS, ...cleaned };
+  return { ...cachedSettings };
+}
+
+/** Save application settings (with debounced in-memory sync) */
 export async function saveSettings(settings: Partial<Settings>): Promise<Settings> {
   return enqueueWrite(async () => {
     const current = await getSettings();
     const cleaned = stripPrototypePollution(settings) as Partial<Settings>;
     const updated = { ...current, ...cleaned };
-    await chrome.storage.local.set({ [STORAGE_KEYS.SETTINGS]: updated });
+    cachedSettings = { ...updated };
+
+    const storage = getSettingsStorage();
+    try {
+      await storage.set({ [STORAGE_KEYS.SETTINGS]: updated });
+    } catch (err) {
+      logger.debug('[Storage] Storage.sync write fallback to storage.local:', err);
+      await chrome.storage.local.set({ [STORAGE_KEYS.SETTINGS]: updated });
+    }
     logger.debug('Settings saved');
     return updated;
   });
+}
+
+// ─── Ephemeral Runtime Session Storage (chrome.storage.session) ───
+
+export async function getSessionState<T>(key: string): Promise<T | null> {
+  if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.session) {
+    try {
+      const res = await chrome.storage.session.get(key);
+      return (res[key] as T) ?? null;
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
+export async function setSessionState<T>(key: string, value: T): Promise<void> {
+  if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.session) {
+    try {
+      await chrome.storage.session.set({ [key]: value });
+    } catch {
+      // Fallback
+    }
+  }
+}
+
+export async function clearSessionState(key: string): Promise<void> {
+  if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.session) {
+    try {
+      await chrome.storage.session.remove(key);
+    } catch {
+      // Fallback
+    }
+  }
 }
 
 // ─── Notifications ───
@@ -729,6 +819,14 @@ export async function importProfilesSafely(incoming: unknown): Promise<{ importe
 
 /** Delete ALL local data. Requires explicit confirmation. */
 export async function clearAllData(): Promise<void> {
+  invalidateSettingsCache();
   await chrome.storage.local.clear();
+  if (typeof chrome !== 'undefined' && chrome.storage?.sync) {
+    try {
+      await chrome.storage.sync.clear();
+    } catch {
+      // Fallback
+    }
+  }
   logger.warn('All local data cleared');
 }

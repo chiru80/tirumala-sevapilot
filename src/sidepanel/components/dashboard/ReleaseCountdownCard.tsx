@@ -59,7 +59,7 @@ function formatReleaseDateTime(dateStr?: string, timeStr?: string): string {
   return `${dateFormatted} · ${displayHour}:${min} ${ampm} IST`;
 }
 
-export function ReleaseCountdownCard({ serviceId, onOpenTtd, onPrepareBooking }: ReleaseCountdownCardProps) {
+export const ReleaseCountdownCard = React.memo(function ReleaseCountdownCard({ serviceId, onOpenTtd, onPrepareBooking }: ReleaseCountdownCardProps) {
   const [event, setEvent] = useState<TtdReleaseEvent | undefined>(() => getUpcomingReleaseEvent(serviceId));
   const [countdownResult, setCountdownResult] = useState<ReleaseCountdownResult | null>(null);
 
@@ -153,7 +153,7 @@ export function ReleaseCountdownCard({ serviceId, onOpenTtd, onPrepareBooking }:
             <button
               type="button"
               onClick={onOpenTtd}
-              className="flex-1 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer bg-[#54258A] text-white hover:bg-[#6830AA] dark:bg-[#D4A72C] dark:text-[#1F1603] dark:hover:bg-[#E5B83E]"
+              className="flex-1 min-h-[36px] px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer bg-[#54258A] text-white hover:bg-[#6830AA] focus-visible:ring-2 focus-visible:ring-gold-500 focus-visible:outline-none dark:bg-[#D4A72C] dark:text-[#1F1603] dark:hover:bg-[#E5B83E]"
               aria-label="View TTD Updates"
             >
               View TTD Updates ↗
@@ -210,7 +210,7 @@ export function ReleaseCountdownCard({ serviceId, onOpenTtd, onPrepareBooking }:
             <button
               type="button"
               onClick={onOpenTtd}
-              className="flex-1 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer bg-[#54258A] text-white hover:bg-[#6830AA] dark:bg-[#D4A72C] dark:text-[#1F1603] dark:hover:bg-[#E5B83E]"
+              className="flex-1 min-h-[36px] px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer bg-[#54258A] text-white hover:bg-[#6830AA] focus-visible:ring-2 focus-visible:ring-gold-500 focus-visible:outline-none dark:bg-[#D4A72C] dark:text-[#1F1603] dark:hover:bg-[#E5B83E]"
               aria-label="View Official Announcements"
             >
               Check Official Announcement ↗
@@ -320,7 +320,7 @@ export function ReleaseCountdownCard({ serviceId, onOpenTtd, onPrepareBooking }:
           <button
             type="button"
             onClick={onOpenTtd}
-            className="flex-1 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer bg-[#54258A] text-white hover:bg-[#6830AA] dark:bg-[#D4A72C] dark:text-[#1F1603] dark:hover:bg-[#E5B83E]"
+            className="flex-1 min-h-[36px] px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer bg-[#54258A] text-white hover:bg-[#6830AA] focus-visible:ring-2 focus-visible:ring-gold-500 focus-visible:outline-none dark:bg-[#D4A72C] dark:text-[#1F1603] dark:hover:bg-[#E5B83E]"
             aria-label="Open Official Source"
           >
             Open TTD ↗
@@ -330,7 +330,7 @@ export function ReleaseCountdownCard({ serviceId, onOpenTtd, onPrepareBooking }:
           <button
             type="button"
             onClick={onPrepareBooking}
-            className="flex-1 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer border border-[#54258A] text-[#54258A] hover:bg-[#F3EFF8] dark:border-[#D4A72C] dark:text-[#D4A72C] dark:hover:bg-[#2A2416]"
+            className="flex-1 min-h-[36px] px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer border border-[#54258A] text-[#54258A] hover:bg-[#F3EFF8] focus-visible:ring-2 focus-visible:ring-gold-500 focus-visible:outline-none dark:border-[#D4A72C] dark:text-[#D4A72C] dark:hover:bg-[#2A2416]"
             aria-label={t('intelligence.prepareBooking')}
           >
             {t('intelligence.prepareBooking')}
@@ -339,4 +339,4 @@ export function ReleaseCountdownCard({ serviceId, onOpenTtd, onPrepareBooking }:
       </div>
     </div>
   );
-}
+});

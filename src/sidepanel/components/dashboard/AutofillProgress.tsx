@@ -54,7 +54,14 @@ export const AutofillProgress: React.FC<AutofillProgressProps> = ({
       </div>
 
       {/* Progress bar */}
-      <div className="w-full h-2 bg-[#E5E0EB] dark:bg-[#3E1B68]/30 rounded-full overflow-hidden">
+      <div
+        className="w-full h-2 bg-[#E5E0EB] dark:bg-[#3E1B68]/30 rounded-full overflow-hidden"
+        role="progressbar"
+        aria-valuenow={progressPct}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-label={`Autofill progress: ${progressPct}%`}
+      >
         <div
           className="h-full bg-gradient-to-r from-[#54258A] to-[#D4A72C] transition-all duration-300 rounded-full"
           style={{ width: `${progressPct}%` }}

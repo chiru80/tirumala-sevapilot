@@ -14,7 +14,11 @@
     "documents": "ದಾಖಲೆಗಳು",
     "backup": "ಬ್ಯಾಕಪ್",
     "settings": "ಸೆಟ್ಟಿಂಗ್‌ಗಳು",
-    "compatibility": "ಹೊಂದಾಣಿಕೆ"
+    "compatibility": "ಹೊಂದಾಣಿಕೆ",
+    "homeA11y": "ಬುಕಿಂಗ್ ಡ್ಯಾಶ್‌ಬೋರ್ಡ್",
+    "profilesA11y": "ಯಾತ್ರಿಕರ ಗುಂಪುಗಳನ್ನು ನಿರ್ವಹಿಸಿ",
+    "pilgrimsA11y": "ಉಳಿಸಲಾದ ಯಾತ್ರಿಕರ ವಿವರಗಳನ್ನು ನಿರ್ವಹಿಸಿ",
+    "settingsA11y": "ಸೇವಾಪೈಲಟ್ ಅನ್ನು ಕಾನ್ಫಿಗರ್ ಮಾಡಿ"
   },
   "dashboard": {
     "ttdPage": "TTD ಪುಟ",
@@ -105,7 +109,32 @@
     "pilgrimsSelectedCount": "{count} ಭಕ್ತರನ್ನು ಆಯ್ಕೆಮಾಡಲಾಗಿದೆ",
     "oneHundredPercentReady": "100% ಸಿದ್ಧ",
     "fieldsVerified": "{verified} / {total} ಫೀಲ್ಡ್‌ಗಳನ್ನು ಪರಿಶೀಲಿಸಲಾಗಿದೆ",
-    "viewDevoteeDetails": "ಭಕ್ತರ ವಿವರಗಳನ್ನು ವೀಕ್ಷಿಸಿ"
+    "viewDevoteeDetails": "ಭಕ್ತರ ವಿವರಗಳನ್ನು ವೀಕ್ಷಿಸಿ",
+    "openTtdWebsite": "TTD ವೆಬ್‌ಸೈಟ್ ತೆರೆಯಿರಿ ↗",
+    "verifyingStatus": "ಪರಿಶೀಲಿಸಲಾಗುತ್ತಿದೆ…",
+    "fillComplete": "✓ ವಿವರಗಳನ್ನು ಭರ್ತಿ ಮಾಡುವುದು ಪೂರ್ಣಗೊಂಡಿದೆ",
+    "allDetailsVerifiedDesc": "ಗುರುತಿಸಲಾದ ಎಲ್ಲಾ ಕ್ಷೇತ್ರಗಳನ್ನು ಯಶಸ್ವಿಯಾಗಿ ಭರ್ತಿ ಮಾಡಲಾಗಿದೆ ಮತ್ತು ಪರಿಶೀಲಿಸಲಾಗಿದೆ. ಮುಂದುವರಿಯುವ ಮೊದಲು TTD ಪುಟವನ್ನು ಪರಿಶೀಲಿಸಿ.",
+    "ttdConnected": "TTD ಸಂಪರ್ಕಗೊಂಡಿದೆ",
+    "notDetected": "ಗುರುತಿಸಲಾಗಿಲ್ಲ",
+    "connected": "ಸಂಪರ್ಕಗೊಂಡಿದೆ",
+    "supportedBookingPageDetected": "ಬೆಂಬಲಿತ ಬುಕಿಂಗ್ ಪುಟ ಗುರುತಿಸಲಾಗಿದೆ.",
+    "pilgrimsSelected": "{count} {plural} ಆಯ್ಕೆಮಾಡಲಾಗಿದೆ",
+    "reviewDetails": "ವಿವರಗಳನ್ನು ಪರಿಶೀಲಿಸಿ",
+    "openTtd": "TTD ತೆರೆಯಿರಿ",
+    "profileReadyForBooking": "ಈ ಬುಕಿಂಗ್‌ಗಾಗಿ ಪ್ರೊಫೈಲ್ ಸಿದ್ಧವಾಗಿದೆ.",
+    "selectPilgrims": "ಯಾತ್ರಿಕರನ್ನು ಆಯ್ಕೆಮಾಡಿ",
+    "noPilgrimsInProfile": "ಈ ಪ್ರೊಫೈಲ್‌ನಲ್ಲಿ ಇನ್ನೂ ಯಾತ್ರಿಕರಿಲ್ಲ.",
+    "pilgrimProgress": "{total} ರಲ್ಲಿ {current} ಯಾತ್ರಿಕರ ವಿವರಗಳನ್ನು ಭರ್ತಿ ಮಾಡಲಾಗುತ್ತಿದೆ",
+    "pilgrimLabel": "ಯಾತ್ರಿಕ",
+    "managePilgrims": "ಉಳಿಸಲಾದ ಯಾತ್ರಿಕರ ವಿವರಗಳನ್ನು ನಿರ್ವಹಿಸಿ",
+    "readySupporting": "ಮುಂದುವರಿಯುವ ಮೊದಲು ಅರ್ಹ ಕ್ಷೇತ್ರಗಳನ್ನು ಭರ್ತಿ ಮಾಡಿ ಮತ್ತು ಪ್ರತಿ ಮೌಲ್ಯವನ್ನು ಪರಿಶೀಲಿಸಿ.",
+    "pageNotDetectedSupporting": "ಮೊದಲು ಬೆಂಬಲಿತ TTD ಬುಕಿಂಗ್ ಪುಟವನ್ನು ತೆರೆಯಿರಿ.",
+    "notReadySupporting": "ಮೊದಲು ಅಗತ್ಯವಿರುವ ಪ್ರೊಫೈಲ್ ವಿವರಗಳನ್ನು ಪೂರ್ಣಗೊಳಿಸಿ.",
+    "userControlledSubmission": "ಬಳಕೆದಾರ ನಿಯಂತ್ರಿತ ಸಲ್ಲಿಕೆ",
+    "bookingFlow": "ಬುಕಿಂಗ್ ಹರಿವು",
+    "ttdPageRequired": "TTD ಪುಟದ ಅಗತ್ಯವಿದೆ",
+    "profileNeedsAttention": "ಪ್ರೊಫೈಲ್ ಕಡೆಗೆ ಗಮನಹರಿಸುವ ಅಗತ್ಯವಿದೆ",
+    "missingDetails": "ಕಾಣೆಯಾದ ವಿವರಗಳು"
   },
   "profiles": {
     "title": "ಪ್ರೊಫೈಲ್‌ಗಳು",
@@ -150,7 +179,14 @@
     "optional": "ಐಚ್ಛಿಕ",
     "ready": "ಸಿದ್ಧ",
     "incomplete": "ಅಪೂರ್ಣ",
-    "allReady": "✓ 100% ಸಿದ್ಧ"
+    "allReady": "✓ 100% ಸಿದ್ಧ",
+    "subtitle": "ನಿಮ್ಮ ಯಾತ್ರಿಕರ ಗುಂಪುಗಳು ಮತ್ತು ಬುಕಿಂಗ್ ವಿವರಗಳನ್ನು ನಿರ್ವಹಿಸಿ",
+    "printProfile": "ಪ್ರೊಫೈಲ್ ಮುದ್ರಿಸಿ",
+    "deleteProfileConfirm": "ಈ ಪ್ರೊಫೈಲ್ ಅಳಿಸಬೇಕೇ?",
+    "allDetailsComplete": "ಎಲ್ಲಾ ಅಗತ್ಯ ವಿವರಗಳು ಪೂರ್ಣಗೊಂಡಿವೆ",
+    "readyForSpecialEntry": "✓ ವಿಶೇಷ ಪ್ರವೇಶ ದರ್ಶನಕ್ಕೆ ಸಿದ್ಧ",
+    "readyForSriPat": "✓ ಶ್ರೀ ಪದ್ಮಾವತಿ ದರ್ಶನಕ್ಕೆ ಸಿದ್ಧ",
+    "readyForHomam": "✓ ಹೋಮಕ್ಕೆ ಸಿದ್ಧ"
   },
   "pilgrim": {
     "firstName": "ಮೊದಲ ಹೆಸರು",
@@ -181,7 +217,10 @@
     "notes": "ಟಿಪ್ಪಣಿಗಳು",
     "gothram": "ಗೋತ್ರ",
     "optional": "ಐಚ್ಛಿಕ",
-    "required": "ಅಗತ್ಯ"
+    "required": "ಅಗತ್ಯ",
+    "idVerified": "ಗುರುತಿನ ಚೀಟಿ ಪರಿಶೀಲಿಸಲಾಗಿದೆ",
+    "statusReady": "ಸಿದ್ಧ",
+    "statusNeedsAttention": "ಗಮನದ ಅಗತ್ಯವಿದೆ"
   },
   "services": {
     "darshan": "ವಿಶೇಷ ಪ್ರವೇಶ ದರ್ಶನ (₹300)",
@@ -285,7 +324,9 @@
     "confirmClear": "ಅಳಿಸುವಿಕೆಯನ್ನು ದೃಢೀಕರಿಸಿ",
     "floatingHelperDesc": "TTD ಪೋರ್ಟಲ್‌ನಲ್ಲಿ ಫ್ಲೋಟಿಂಗ್ ಸೇವಾಪೈಲಟ್ ತ್ವರಿತ ಬಟನ್",
     "autoScanDesc": "ಪುಟ ಲೋಡ್ ಆದಾಗ ಸ್ವಯಂಚಾಲಿತವಾಗಿ ಫೀಲ್ಡ್‌ಗಳನ್ನು ಸ್ಕ್ಯಾನ್ ಮಾಡಿ",
-    "maskSensitiveDesc": "UI ಮುನ್ನೋಟಗಳಲ್ಲಿ ಆಧಾರ್ ಮತ್ತು ಫೋನ್ ಸಂಖ್ಯೆಗಳನ್ನು ಮರೆಮಾಡಿ"
+    "maskSensitiveDesc": "UI ಮುನ್ನೋಟಗಳಲ್ಲಿ ಆಧಾರ್ ಮತ್ತು ಫೋನ್ ಸಂಖ್ಯೆಗಳನ್ನು ಮರೆಮಾಡಿ",
+    "themeAestheticsDesc": "ಸೇವಾಪೈಲಟ್ ಹೇಗೆ ಕಾಣಬೇಕೆಂದು ಆಯ್ಕೆಮಾಡಿ.",
+    "clearDataModalTitle": "ಸಂಗ್ರಹಿಸಲಾದ ಡೇಟಾವನ್ನು ಅಳಿಸಬೇಕೇ?"
   },
   "bookings": {
     "title": "ಭಕ್ತರ ಗುಂಪು ನಿರ್ವಾಹಕ",
@@ -526,7 +567,37 @@
     "activeBooking": "ಸಕ್ರಿಯ ಬುಕಿಂಗ್",
     "workflow": "ಕಾರ್ಯಪ್ರವಾಹ",
     "devoteesCount": "ಭಕ್ತರು",
-    "allDetailsReady": "100% ಸಿದ್ಧ"
+    "allDetailsReady": "100% ಸಿದ್ಧ",
+    "viewTtdUpdates": "TTD ನವೀಕರಣಗಳನ್ನು ವೀಕ್ಷಿಸಿ ↗",
+    "releaseDateUnavailable": "ಬಿಡುಗಡೆ ದಿನಾಂಕ ಲಭ್ಯವಿಲ್ಲ",
+    "releaseDateUnavailableDesc": "ಇತ್ತೀಚಿನ ಅಧಿಕೃತ TTD ಪ್ರಕಟಣೆಯನ್ನು ಪರಿಶೀಲಿಸಿ.",
+    "countdownIst": "ಕೌಂಟ್‌ಡೌನ್ · IST",
+    "pilgrimDetailsReady": "ಯಾತ್ರಿಕರ ವಿವರಗಳು ಸಿದ್ಧವಾಗಿವೆ",
+    "statusConfirmed": "ದೃಢೀಕರಿಸಲಾಗಿದೆ",
+    "statusExpected": "ನಿರೀಕ್ಷಿಸಲಾಗಿದೆ",
+    "statusEstimated": "ಅಂದಾಜಿಸಲಾಗಿದೆ",
+    "statusUnknown": "ತಿಳಿದಿಲ್ಲ",
+    "statusStale": "ಹಳೆಯ ಮಾಹಿತಿ",
+    "statusExpired": "ಅವಧಿ ಮುಗಿದಿದೆ",
+    "releaseUpdated": "ಬಿಡುಗಡೆ ದಿನಾಂಕ ನವೀಕರಿಸಲಾಗಿದೆ",
+    "previousRelease": "ಹಿಂದಿನ ಬಿಡುಗಡೆ: {previous}",
+    "newRelease": "ಹೊಸ ಬಿಡುಗಡೆ: {new}",
+    "releasesToday": "ಇಂದು {time} ಕ್ಕೆ ಬಿಡುಗಡೆಯಾಗುತ್ತದೆ",
+    "expectedAround": "ಮುಂದಿನ {service} ಬಿಡುಗಡೆ ಸುಮಾರು {date} ರಂದು ನಿರೀಕ್ಷಿಸಲಾಗಿದೆ",
+    "expectedInDays": "~{days} ದಿನಗಳಲ್ಲಿ ನಿರೀಕ್ಷಿಸಲಾಗಿದೆ",
+    "expectedToday": "ಇಂದು ನಿರೀಕ್ಷಿಸಲಾಗಿದೆ",
+    "noConfirmedRelease": "ಯಾವುದೇ ಮುಂಬರುವ ದೃಢೀಕೃತ ಬಿಡುಗಡೆ ಇಲ್ಲ",
+    "infoNeedsRefreshing": "ಬಿಡುಗಡೆ ಮಾಹಿತಿಯನ್ನು ರಿಫ್ರೆಶ್ ಮಾಡಬೇಕಾಗಿದೆ",
+    "viewOfficialTtdUpdate": "ಅಧಿಕೃತ TTD ನವೀಕರಣವನ್ನು ವೀಕ್ಷಿಸಿ",
+    "releasePrepMode": "ಬಿಡುಗಡೆ ಸಿದ್ಧತೆ ಮೋಡ್",
+    "prepTips": {
+      "confirmProfile": "ಯಾತ್ರಿಕರ ಪ್ರೊಫೈಲ್ ದೃಢೀಕರಿಸಿ",
+      "confirmId": "ಗುರುತಿನ ವಿವರಗಳನ್ನು ದೃಢೀಕರಿಸಿ",
+      "selectService": "ಸರಿಯಾದ ಸೇವೆಯನ್ನು ಆಯ್ಕೆಮಾಡಿ",
+      "openPage": "ಅಧಿಕೃತ TTD ಬುಕಿಂಗ್ ಪುಟ ತೆರೆಯಿರಿ",
+      "connection": "ಇಂಟರ್ನೆಟ್ ಸಂಪರ್ಕ ಸ್ಥಿರವಾಗಿರಲಿ",
+      "beReady": "ಬಿಡುಗಡೆ ಸಮಯಕ್ಕಿಂತ ಮೊದಲೇ ಸಿದ್ಧರಾಗಿರಿ"
+    }
   },
   "home": {
     "title": "ಸೇವಾಪೈಲಟ್",
@@ -604,5 +675,3 @@
     "safeModeActive": "ಸುರಕ್ಷಿತ ಕಾಯುವಿಕೆ ಮೋಡ್ ಸಕ್ರಿಯವಾಗಿದೆ (ಸರತಿ ಸಾಲು ಬೈಪಾಸ್ ಇಲ್ಲ)"
   }
 }
-
-

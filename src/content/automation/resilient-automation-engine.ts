@@ -18,6 +18,7 @@ import { DomObservationEngine, DomTraversalEngine } from './dom-observation-engi
 import { FieldOwnershipTracker } from './field-ownership-tracker';
 import { ResilientRetryEngine } from './resilient-retry-engine';
 import { RecoveryEngine } from './recovery-engine';
+import { domCache } from './dom-cache';
 import logger from '@shared/logger';
 
 export interface AutomationExecutionPlan {
@@ -315,6 +316,7 @@ export class ResilientAutomationEngine {
   }
 
   private handleNavigationDetected(context: NavigationContext, reason: string): void {
+    domCache.invalidateAll();
     if (this.activeSession) {
       logger.warn(`[ResilientAutomationEngine] SPA navigation detected (${reason}). Stopping active automation.`);
       this.recoveryEngine.handleRecovery('PAGE_CHANGED', { detail: context.url });
@@ -332,6 +334,7 @@ export class ResilientAutomationEngine {
    * Stops session gracefully.
    */
   public stopSession(reason = 'User stopped session'): void {
+    domCache.invalidateAll();
     if (this.activeSession) {
       this.activeSession.abortController.abort();
       if (this.stateMachine.canTransitionTo('STOPPED')) {

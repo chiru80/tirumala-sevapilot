@@ -5,7 +5,7 @@ interface PrivacyBadgeProps {
   onOpenModal?: () => void;
 }
 
-export const PrivacyBadge: React.FC<PrivacyBadgeProps> = ({ onOpenModal }) => {
+export const PrivacyBadge: React.FC<PrivacyBadgeProps> = React.memo(({ onOpenModal }) => {
   const [showExplanation, setShowExplanation] = useState<boolean>(false);
 
   const handleClick = () => {
@@ -51,4 +51,4 @@ export const PrivacyBadge: React.FC<PrivacyBadgeProps> = ({ onOpenModal }) => {
       )}
     </div>
   );
-};
+});

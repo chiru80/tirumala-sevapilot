@@ -14,7 +14,11 @@
     "documents": "ஆவணங்கள்",
     "backup": "காப்புப்பிரதி",
     "settings": "அமைப்புகள்",
-    "compatibility": "இணக்கத்தன்மை"
+    "compatibility": "இணக்கத்தன்மை",
+    "homeA11y": "முன்பதிவு முகப்புப்பலகை",
+    "profilesA11y": "யாத்ரீகர் குழுக்களை நிர்வகிக்கவும்",
+    "pilgrimsA11y": "சேமிக்கப்பட்ட யாத்ரீகர் விவரங்களை நிர்வகிக்கவும்",
+    "settingsA11y": "சேவாபைலட்டை கட்டமைக்கவும்"
   },
   "dashboard": {
     "ttdPage": "TTD பக்கம்",
@@ -105,7 +109,32 @@
     "pilgrimsSelectedCount": "{count} பக்தர்கள் தேர்ந்தெடுக்கப்பட்டனர்",
     "oneHundredPercentReady": "100% தயார்",
     "fieldsVerified": "{verified} / {total} புலங்கள் சரிபார்க்கப்பட்டன",
-    "viewDevoteeDetails": "பக்தர் விவரங்களைப் பார்க்கவும்"
+    "viewDevoteeDetails": "பக்தர் விவரங்களைப் பார்க்கவும்",
+    "openTtdWebsite": "TTD வலைத்தளத்தைத் திறக்கவும் ↗",
+    "verifyingStatus": "சரிபார்க்கப்படுகிறது…",
+    "fillComplete": "✓ விவரங்கள் நிரப்பப்பட்டது",
+    "allDetailsVerifiedDesc": "கண்டறியப்பட்ட அனைத்து புலங்களும் வெற்றிகரமாக நிரப்பப்பட்டு சரிபார்க்கப்பட்டன. தொடர்வதற்கு முன் TTD பக்கத்தை மதிப்பாய்வு செய்யவும்.",
+    "ttdConnected": "TTD இணைக்கப்பட்டது",
+    "notDetected": "கண்டறியப்படவில்லை",
+    "connected": "இணைக்கப்பட்டது",
+    "supportedBookingPageDetected": "ஆதரிக்கப்படும் முன்பதிவு பக்கம் கண்டறியப்பட்டது.",
+    "pilgrimsSelected": "{count} {plural} தேர்ந்தெடுக்கப்பட்டனர்",
+    "reviewDetails": "விவரங்களை மதிப்பாய்வு செய்க",
+    "openTtd": "TTD திறக்கவும்",
+    "profileReadyForBooking": "இந்த முன்பதிவுக்கு சுயவிவரம் தயாராக உள்ளது.",
+    "selectPilgrims": "யாத்ரீகர்களைத் தேர்ந்தெடுக்கவும்",
+    "noPilgrimsInProfile": "இந்த சுயவிவரத்தில் இன்னும் யாத்ரீகர்கள் இல்லை.",
+    "pilgrimProgress": "{total} இல் {current} யாத்ரீகர் விவரம் நிரப்பப்படுகிறது",
+    "pilgrimLabel": "யாத்ரீகர்",
+    "managePilgrims": "சேமிக்கப்பட்ட யாத்ரீகர் விவரங்களை நிர்வகிக்கவும்",
+    "readySupporting": "தொடர்வதற்கு முன் தகுதியான புலங்களை நிரப்பி ஒவ்வொரு மதிப்பையும் சரிபார்க்கவும்.",
+    "pageNotDetectedSupporting": "முதலில் ஆதரிக்கப்படும் TTD முன்பதிவு பக்கத்தைத் திறக்கவும்.",
+    "notReadySupporting": "முதலில் தேவையான சுயவிவர விவரங்களை முடிக்கவும்.",
+    "userControlledSubmission": "பயனர் கட்டுப்பாட்டு சமர்ப்பிப்பு",
+    "bookingFlow": "முன்பதிவு வரிசை",
+    "ttdPageRequired": "TTD பக்கம் தேவை",
+    "profileNeedsAttention": "சுயவிவரத்தில் கவனம் தேவை",
+    "missingDetails": "விடுபட்ட விவரங்கள்"
   },
   "profiles": {
     "title": "சுயவிவரங்கள்",
@@ -150,7 +179,14 @@
     "optional": "விருப்பத்தேர்வு",
     "ready": "தயார்",
     "incomplete": "முழுமையடையாதது",
-    "allReady": "✓ 100% தயார்"
+    "allReady": "✓ 100% தயார்",
+    "subtitle": "உங்கள் யாத்ரீகர் குழுக்கள் மற்றும் முன்பதிவு விவரங்களை நிர்வகிக்கவும்",
+    "printProfile": "சுயவிவரத்தை அச்சிடவும்",
+    "deleteProfileConfirm": "இந்த சுயவிவரத்தை நீக்கவா?",
+    "allDetailsComplete": "தேவையான அனைத்து விவரங்களும் முடிந்துவிட்டன",
+    "readyForSpecialEntry": "✓ சிறப்பு நுழைவு தரிசனத்திற்கு தயார்",
+    "readyForSriPat": "✓ ஸ்ரீ பத்மாவதி தரிசனத்திற்கு தயார்",
+    "readyForHomam": "✓ ஹோமத்திற்கு தயார்"
   },
   "pilgrim": {
     "firstName": "முதல் பெயர்",
@@ -181,7 +217,10 @@
     "notes": "குறிப்புகள்",
     "gothram": "கோத்திரம்",
     "optional": "விருப்பத்தேர்வு",
-    "required": "தேவை"
+    "required": "தேவை",
+    "idVerified": "அடையாள அட்டை சரிபார்க்கப்பட்டது",
+    "statusReady": "தயார்",
+    "statusNeedsAttention": "கவனம் தேவை"
   },
   "services": {
     "darshan": "சிறப்பு நுழைவு தரிசனம் (₹300)",
@@ -285,7 +324,9 @@
     "confirmClear": "நீக்குதலை உறுதிப்படுத்தவும்",
     "floatingHelperDesc": "TTD போர்ட்டலில் மிதக்கும் சேவாபைலட் விரைவு பொத்தான்",
     "autoScanDesc": "பக்கம் ஏற்றப்படும் போது தானாகவே புலங்களை ஸ்கேன் செய்யவும்",
-    "maskSensitiveDesc": "UI முன்னோட்டங்களில் ஆதார் & தொலைபேசி எண்களை மறைக்கவும்"
+    "maskSensitiveDesc": "UI முன்னோட்டங்களில் ஆதார் & தொலைபேசி எண்களை மறைக்கவும்",
+    "themeAestheticsDesc": "சேவாபைலட் தோற்றத்தை தேர்வு செய்யவும்.",
+    "clearDataModalTitle": "சேமிக்கப்பட்ட தரவை நீக்கவா?"
   },
   "bookings": {
     "title": "பக்தர் குழு மேலாளர்",
@@ -526,7 +567,37 @@
     "activeBooking": "செயலில் உள்ள முன்பதிவு",
     "workflow": "பணிப்பாய்வு",
     "devoteesCount": "பக்தர்கள்",
-    "allDetailsReady": "100% தயார்"
+    "allDetailsReady": "100% தயார்",
+    "viewTtdUpdates": "TTD புதுப்பிப்புகளைப் பார்க்கவும் ↗",
+    "releaseDateUnavailable": "வெளியீட்டு தேதி கிடைக்கவில்லை",
+    "releaseDateUnavailableDesc": "சமீபத்திய அதிகாரப்பூர்வ TTD அறிவிப்பை சரிபார்க்கவும்.",
+    "countdownIst": "கவுண்ட்டவுன் · IST",
+    "pilgrimDetailsReady": "யாத்ரீகர் விவரங்கள் தயாராக உள்ளன",
+    "statusConfirmed": "உறுதிப்படுத்தப்பட்டது",
+    "statusExpected": "எதிர்பார்க்கப்படுகிறது",
+    "statusEstimated": "மதிப்பிடப்பட்டது",
+    "statusUnknown": "தெரியவில்லை",
+    "statusStale": "பழைய தகவல்",
+    "statusExpired": "காலாவதியானது",
+    "releaseUpdated": "வெளியீட்டு தேதி புதுப்பிக்கப்பட்டது",
+    "previousRelease": "முந்தைய வெளியீடு: {previous}",
+    "newRelease": "புதிய வெளியீடு: {new}",
+    "releasesToday": "இன்று {time} மணிக்கு வெளியாகிறது",
+    "expectedAround": "அடுத்த {service} வெளியீடு சுமார் {date} அன்று எதிர்பார்க்கப்படுகிறது",
+    "expectedInDays": "~{days} நாட்களில் எதிர்பார்க்கப்படுகிறது",
+    "expectedToday": "இன்று எதிர்பார்க்கப்படுகிறது",
+    "noConfirmedRelease": "வரவிருக்கும் உறுதிப்படுத்தப்பட்ட வெளியீடு எதுவும் இல்லை",
+    "infoNeedsRefreshing": "வெளியீட்டு தகவலை புதுப்பிக்க வேண்டும்",
+    "viewOfficialTtdUpdate": "அதிகாரப்பூர்வ TTD புதுப்பிப்பைப் பார்க்கவும்",
+    "releasePrepMode": "வெளியீட்டு தயாரிப்பு முறை",
+    "prepTips": {
+      "confirmProfile": "யாத்ரீகர் சுயவிவரத்தை உறுதிப்படுத்தவும்",
+      "confirmId": "அடையாள விவரங்களை உறுதிப்படுத்தவும்",
+      "selectService": "சரியான சேவையைத் தேர்ந்தெடுக்கவும்",
+      "openPage": "அதிகாரப்பூர்வ TTD முன்பதிவு பக்கத்தைத் திறக்கவும்",
+      "connection": "இணைய இணைப்பை சீராக வைத்திருக்கவும்",
+      "beReady": "வெளியீட்டு நேரத்திற்கு முன்பே தயாராக இருக்கவும்"
+    }
   },
   "home": {
     "title": "சேவாபைலட்",
@@ -604,5 +675,3 @@
     "safeModeActive": "பாதுகாப்பான காத்திருப்பு முறை செயலில் உள்ளது (வரிசை புறக்கணிப்பு இல்லை)"
   }
 }
-
-

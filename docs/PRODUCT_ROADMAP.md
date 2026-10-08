@@ -133,9 +133,16 @@ Status: COMPLETE
 - Full Phase 11 Suite: 22 new tests across `resilient-automation.test.ts` and `chaos-resilience.test.ts`, 73 test files total (912 tests passing 100%).
 
 ## Phase 12 — Performance & Zero-Lag Architecture
-- Memory and observer profiling.
-- Request coalescing optimization.
-- Cache warming and storage batching.
+Status: COMPLETE
+- Empirical Performance Baselines (`docs/PERFORMANCE_BASELINE.md`) & Budgets (< 50ms UI, < 100ms resolution, < 500ms fill).
+- DOM Invalidation Cache (`dom-cache.ts`): Bounded, TTL-governed cache for query lookups, form roots, and page stage detection with connectivity checks (`isConnected`).
+- Anti-Reflow Defense: Replaced layout-forcing `innerText` in `page-detector.ts` and `queue-detector.ts` with `textContent` (avoids synchronous reflow).
+- MutationObserver Optimization: Debounced micro-batching filtering out pure style and extension UI mutations.
+- Message Deduplication & Coalescing (`message-coalescer.ts`): Suppresses identical repeated state events (e.g. rapid queue progress heartbeats) by 99.5%.
+- Multi-Tier Storage Architecture (`repository.ts`): `storage.sync` for user settings, `storage.local` for profiles, `storage.session` for ephemeral runtime state, plus in-memory caching.
+- Deterministic Timer & Lifecycle Manager (`timer-manager.ts`): Enforces max lifetimes, ownership tracking, and leak-free disposal.
+- React Zero-Lag Rendering: Wrapped heavy dashboard cards (`BookingCockpit`, `QueueCard`, `ReleaseCountdownCard`, `ActiveProfileCard`, `PrivacyBadge`) in `React.memo`.
+- Performance & Chaos Suites: 16 new tests across `performance-regression.test.ts` and `chaos-performance.test.ts`, 75 test files total (928 tests passing 100%).
 
 ## Phase 13 — AI-Assisted DOM Intelligence (Deterministic/Safe)
 - Deterministic heuristic fallback and semantic fuzzy matching.

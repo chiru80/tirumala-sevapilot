@@ -11,7 +11,7 @@ interface ActiveProfileCardProps {
   onManage?: () => void;
 }
 
-export const ActiveProfileCard: React.FC<ActiveProfileCardProps> = ({
+export const ActiveProfileCard: React.FC<ActiveProfileCardProps> = React.memo(({
   profile,
   selectedCount,
   health,
@@ -101,4 +101,4 @@ export const ActiveProfileCard: React.FC<ActiveProfileCardProps> = ({
       </div>
     </div>
   );
-};
+});

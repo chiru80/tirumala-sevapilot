@@ -14,7 +14,11 @@
     "documents": "दस्तावेज़",
     "backup": "बैकअप",
     "settings": "सेटिंग्स",
-    "compatibility": "अनुकूलता"
+    "compatibility": "अनुकूलता",
+    "homeA11y": "बुकिंग डैशबोर्ड",
+    "profilesA11y": "तीर्थयात्री समूहों का प्रबंधन करें",
+    "pilgrimsA11y": "सहेजे गए तीर्थयात्री विवरण प्रबंधित करें",
+    "settingsA11y": "सेवापायलट कॉन्फ़िगर करें"
   },
   "dashboard": {
     "ttdPage": "TTD पृष्ठ",
@@ -105,7 +109,32 @@
     "pilgrimsSelectedCount": "{count} भक्त चुने गए",
     "oneHundredPercentReady": "100% तैयार",
     "fieldsVerified": "{verified} / {total} फ़ील्ड सत्यापित",
-    "viewDevoteeDetails": "भक्त विवरण देखें"
+    "viewDevoteeDetails": "भक्त विवरण देखें",
+    "openTtdWebsite": "TTD वेबसाइट खोलें ↗",
+    "verifyingStatus": "सत्यापित किया जा रहा है…",
+    "fillComplete": "✓ विवरण भरना पूर्ण",
+    "allDetailsVerifiedDesc": "पहचाने गए सभी फ़ील्ड सफलतापूर्वक भरे और सत्यापित किए गए। आगे बढ़ने से पहले TTD पृष्ठ की समीक्षा करें।",
+    "ttdConnected": "TTD कनेक्टेड",
+    "notDetected": "पहचान नहीं हुई",
+    "connected": "कनेक्टेड",
+    "supportedBookingPageDetected": "समर्थित बुकिंग पृष्ठ पहचाना गया।",
+    "pilgrimsSelected": "{count} {plural} चयनित",
+    "reviewDetails": "विवरण की समीक्षा करें",
+    "openTtd": "TTD खोलें",
+    "profileReadyForBooking": "प्रोफ़ाइल इस बुकिंग के लिए तैयार है।",
+    "selectPilgrims": "तीर्थयात्री चुनें",
+    "noPilgrimsInProfile": "इस प्रोफ़ाइल में अभी कोई तीर्थयात्री नहीं है।",
+    "pilgrimProgress": "{total} में से {current} तीर्थयात्री का विवरण भरा जा रहा है",
+    "pilgrimLabel": "तीर्थयात्री",
+    "managePilgrims": "सहेजे गए तीर्थयात्री विवरण प्रबंधित करें",
+    "readySupporting": "आगे बढ़ने से पहले पात्र फ़ील्ड भरें और प्रत्येक मान को सत्यापित करें।",
+    "pageNotDetectedSupporting": "पहले समर्थित TTD बुकिंग पृष्ठ खोलें।",
+    "notReadySupporting": "पहले आवश्यक प्रोफ़ाइल विवरण पूरे करें।",
+    "userControlledSubmission": "उपयोगकर्ता नियंत्रित सबमिशन",
+    "bookingFlow": "बुकिंग प्रक्रिया",
+    "ttdPageRequired": "TTD पृष्ठ आवश्यक",
+    "profileNeedsAttention": "प्रोफ़ाइल पर ध्यान देने की आवश्यकता है",
+    "missingDetails": "छूटे हुए विवरण"
   },
   "profiles": {
     "title": "प्रोफ़ाइल",
@@ -150,7 +179,14 @@
     "optional": "वैकल्पिक",
     "ready": "तैयार",
     "incomplete": "अपूर्ण",
-    "allReady": "✓ 100% तैयार"
+    "allReady": "✓ 100% तैयार",
+    "subtitle": "अपने तीर्थयात्री समूहों और बुकिंग विवरण का प्रबंधन करें",
+    "printProfile": "प्रोफ़ाइल प्रिंट करें",
+    "deleteProfileConfirm": "क्या इस प्रोफ़ाइल को हटाना चाहते हैं?",
+    "allDetailsComplete": "सभी आवश्यक विवरण पूर्ण",
+    "readyForSpecialEntry": "✓ विशेष प्रवेश दर्शन के लिए तैयार",
+    "readyForSriPat": "✓ श्री पद्मावती दर्शन के लिए तैयार",
+    "readyForHomam": "✓ होमम के लिए तैयार"
   },
   "pilgrim": {
     "firstName": "पहला नाम",
@@ -181,7 +217,10 @@
     "notes": "टिप्पणियाँ",
     "gothram": "गोत्रम्",
     "optional": "वैकल्पिक",
-    "required": "आवश्यक"
+    "required": "आवश्यक",
+    "idVerified": "आईडी सत्यापित",
+    "statusReady": "तैयार",
+    "statusNeedsAttention": "ध्यान देने की आवश्यकता"
   },
   "services": {
     "darshan": "विशेष प्रवेश दर्शन (₹300)",
@@ -285,7 +324,9 @@
     "confirmClear": "हटाने की पुष्टि करें",
     "floatingHelperDesc": "TTD पोर्टल पर फ्लोटिंग सेवापायलट त्वरित बटन",
     "autoScanDesc": "पेज लोड होने पर स्वचालित रूप से फ़ील्ड स्कैन करें",
-    "maskSensitiveDesc": "UI पूर्वावलोकन में आधार और फोन नंबर छुपाएं"
+    "maskSensitiveDesc": "UI पूर्वावलोकन में आधार और फोन नंबर छुपाएं",
+    "themeAestheticsDesc": "चुनें कि सेवापायलट कैसा दिखे।",
+    "clearDataModalTitle": "संग्रहीत डेटा हटाएं?"
   },
   "bookings": {
     "title": "तीर्थयात्री समूह प्रबंधक",
@@ -526,7 +567,37 @@
     "activeBooking": "सक्रिय बुकिंग",
     "workflow": "कार्यप्रवाह",
     "devoteesCount": "तीर्थयात्री",
-    "allDetailsReady": "100% तैयार"
+    "allDetailsReady": "100% तैयार",
+    "viewTtdUpdates": "TTD अपडेट देखें ↗",
+    "releaseDateUnavailable": "रिलीज़ तिथि उपलब्ध नहीं है",
+    "releaseDateUnavailableDesc": "नवीनतम आधिकारिक TTD घोषणा देखें।",
+    "countdownIst": "काउंटडाउन · IST",
+    "pilgrimDetailsReady": "तीर्थयात्री विवरण तैयार हैं",
+    "statusConfirmed": "पुष्ट",
+    "statusExpected": "अपेक्षित",
+    "statusEstimated": "अनुमानित",
+    "statusUnknown": "अज्ञात",
+    "statusStale": "पुराना डेटा",
+    "statusExpired": "समाप्त",
+    "releaseUpdated": "रिलीज़ तिथि अपडेट की गई",
+    "previousRelease": "पिछली रिलीज़: {previous}",
+    "newRelease": "नई रिलीज़: {new}",
+    "releasesToday": "आज {time} पर रिलीज़ होगी",
+    "expectedAround": "अगली {service} रिलीज़ लगभग {date} को अपेक्षित है",
+    "expectedInDays": "~{days} दिनों में अपेक्षित",
+    "expectedToday": "आज अपेक्षित",
+    "noConfirmedRelease": "कोई आगामी पुष्ट रिलीज़ नहीं",
+    "infoNeedsRefreshing": "रिलीज़ जानकारी को रीफ़्रेश करने की आवश्यकता है",
+    "viewOfficialTtdUpdate": "आधिकारिक TTD अपडेट देखें",
+    "releasePrepMode": "रिलीज़ तैयारी मोड",
+    "prepTips": {
+      "confirmProfile": "तीर्थयात्री प्रोफ़ाइल की पुष्टि करें",
+      "confirmId": "आईडी विवरण की पुष्टि करें",
+      "selectService": "सही सेवा चुनें",
+      "openPage": "आधिकारिक TTD बुकिंग पृष्ठ खोलें",
+      "connection": "इंटरनेट कनेक्शन स्थिर रखें",
+      "beReady": "रिलीज़ समय से पहले तैयार रहें"
+    }
   },
   "home": {
     "title": "सेवापायलट",
@@ -604,5 +675,3 @@
     "safeModeActive": "सुरक्षित प्रतीक्षा मोड सक्रिय (शून्य कतार बाईपास)"
   }
 }
-
-
