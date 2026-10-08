@@ -8,6 +8,7 @@ import { generateId, now, deepClone } from '@shared/utils';
 import logger from '@shared/logger';
 import { Gender, IdType } from '@shared/types';
 import type { Profile, Pilgrim, Settings, NotificationItem, SessionHistoryItem, GeneralDetails } from '@shared/types';
+import { validateAndSanitizeProfile, stripPrototypePollution } from '../security/profile-validator';
 
 // ─── Profiles ───
 
@@ -16,13 +17,12 @@ export async function getProfiles(): Promise<Profile[]> {
   const result = await chrome.storage.local.get(STORAGE_KEYS.PROFILES);
   const raw = (result[STORAGE_KEYS.PROFILES] as Profile[] | undefined) ?? [];
   if (!Array.isArray(raw)) return [];
-  return raw
-    .filter((p): p is Profile => p != null && typeof p === 'object')
-    .map(p => ({
-      ...p,
-      pilgrims: Array.isArray(p.pilgrims) ? p.pilgrims : [],
-      selectedPilgrims: p.selectedPilgrims || {},
-    }));
+  const valid: Profile[] = [];
+  for (const item of raw) {
+    const sanitized = validateAndSanitizeProfile(item);
+    if (sanitized) valid.push(sanitized);
+  }
+  return valid;
 }
 
 /** Get a single profile by ID */
@@ -338,14 +338,18 @@ export async function updateSelectedPilgrims(
 /** Get application settings */
 export async function getSettings(): Promise<Settings> {
   const result = await chrome.storage.local.get(STORAGE_KEYS.SETTINGS);
-  return { ...DEFAULT_SETTINGS, ...(result[STORAGE_KEYS.SETTINGS] ?? {}) };
+  const raw = result[STORAGE_KEYS.SETTINGS];
+  if (!raw || typeof raw !== 'object') return { ...DEFAULT_SETTINGS };
+  const cleaned = stripPrototypePollution(raw) as Partial<Settings>;
+  return { ...DEFAULT_SETTINGS, ...cleaned };
 }
 
 /** Save application settings */
 export async function saveSettings(settings: Partial<Settings>): Promise<Settings> {
   return enqueueWrite(async () => {
     const current = await getSettings();
-    const updated = { ...current, ...settings };
+    const cleaned = stripPrototypePollution(settings) as Partial<Settings>;
+    const updated = { ...current, ...cleaned };
     await chrome.storage.local.set({ [STORAGE_KEYS.SETTINGS]: updated });
     logger.debug('Settings saved');
     return updated;
