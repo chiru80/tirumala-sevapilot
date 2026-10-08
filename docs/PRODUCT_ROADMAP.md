@@ -91,12 +91,17 @@ Status: COMPLETE
 - Zero-PII logging guarantee throughout sessions, preflight, and diagnostic reporting.
 - Comprehensive Phase 8 regression suite: 25 new tests in `booking-guardian.test.ts`, 69 test files total (850 tests passing).
 
-## Phase 9 — Security
-- Permission audit.
-- Sensitive-data logging audit.
-- Storage audit.
-- CSP/remote-code audit.
-- Web Store policy review.
+## Phase 9 — Security Hardening
+Status: COMPLETE
+- Manifest permission minimization: host permissions strictly pinned to official TTD origins without `<all_urls>`, web_accessible_resources restricted to icons.
+- URL security & safe navigation engine (`url-security.ts`): enforces strict HTTPS and whitelist of official TTD origins, blocking `javascript:`, `data:`, `blob:`, and embedded credentials.
+- Message trust boundaries & privilege isolation: `isInternalExtensionContext` prevents untrusted content script tab senders from reading or mutating profile storage.
+- Prototype pollution defense: `stripPrototypePollution` recursively removes `__proto__`, `constructor`, and `prototype` keys from inputs and stored data.
+- Stored XSS defense: `sanitizeText` strips HTML brackets and control characters from devotee and release data.
+- Hostile DOM & autofill target defense (`dom-security.ts`): `isForbiddenAutofillTarget` rigorously blocks password, payment, OTP, and CAPTCHA targets even under deceptive labels; respects site controls (`disabled`, `readOnly`, `aria-disabled`).
+- File upload & Data URI validation (`file-security.ts`): 500 KB ceiling, strict JPEG/PNG MIME verification, and dangerous multiple-extension defense.
+- Zero-PII logging policy (`logger.ts`): masked Aadhaar, phone numbers, credentials, card numbers, and base64 image Data URIs.
+- Full Phase 9 security regression suite: 30 new tests in `security-hardening.test.ts`, 70 test files total (880 tests passing 100%).
 
 ## Phase 10 — Regression
 - Service × pilgrim-count matrix.

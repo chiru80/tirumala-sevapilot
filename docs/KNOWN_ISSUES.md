@@ -62,6 +62,9 @@ The declared project version is Tailwind 3.4.x. Utility classes used by the proj
 ### K18 — Server-Side Temporary Lock Handling (RESOLVED in Phase 8)
 **Status: Resolved.** Prioritized `TTD_TEMPORARY_BOOKING_LOCK` with highest safety precedence upon recognizing held pilgrim IDs. Blocks further autofill writes, halts automated retries, avoids aggressive page reloads, and guides the devotee to check booking history or retry manually after the cooldown expires.
 
+### K19 — Extension Context Privilege Escalation & Unsafe Web Navigation (RESOLVED in Phase 9)
+**Status: Resolved.** Enforced `isInternalExtensionContext` in background router to reject profile/settings storage access originating from content scripts (`sender.tab`). Restricted external navigation strictly to official TTD HTTPS origins via `safeOpenUrl` / `url-security.ts`. Fortified autofill target resolution against hostile DOM elements (passwords, OTPs, CVVs, CAPTCHAs, disabled controls) via `dom-security.ts`. Implemented prototype pollution stripping and zero-PII logging redactions across base64 data URIs.
+
 ## Safety constraints
 
 No issue above justifies:

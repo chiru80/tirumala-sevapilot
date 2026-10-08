@@ -2,6 +2,7 @@ import React from 'react';
 import { getSettings } from '@storage/repository';
 import type { PreFlightReport } from '@shared/types';
 import { t } from '@i18n/index';
+import { safeOpenUrl } from '../../security/url-security';
 
 import {
   useProfiles,
@@ -101,11 +102,7 @@ export function Dashboard({ onNavigate }: DashboardProps = {}) {
   const effectiveLock = sessionLock || ttdLock;
 
   const handleCheckBookingHistory = async () => {
-    if (typeof chrome !== 'undefined' && chrome.tabs && chrome.tabs.create) {
-      await chrome.tabs.create({ url: 'https://ttdevasthanams.ap.gov.in/booking-history' });
-    } else {
-      window.open('https://ttdevasthanams.ap.gov.in/booking-history', '_blank', 'noopener,noreferrer');
-    }
+    await safeOpenUrl('https://ttdevasthanams.ap.gov.in/booking-history');
   };
 
   const handleRetryAfterLock = async () => {

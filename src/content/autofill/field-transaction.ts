@@ -11,6 +11,7 @@ import { waitForCondition } from '../smart-wait';
 import { verifyField, verifyDropdownSelection } from './verification';
 import type { VerificationResult } from './verification';
 import logger from '@shared/logger';
+import { isForbiddenAutofillTarget } from '../../security/dom-security';
 
 export interface FieldTransactionResult {
   field: string;
@@ -42,6 +43,12 @@ export async function performTextTransaction(
   }
   if (element.readOnly) {
     throw new Error('Field is readOnly — cannot fill without overriding website control state');
+  }
+  if (element.getAttribute('aria-disabled') === 'true') {
+    throw new Error('Field is aria-disabled — cannot fill without overriding website control state');
+  }
+  if (isForbiddenAutofillTarget(element)) {
+    throw new Error('Field is a forbidden autofill target (password/payment/otp/captcha)');
   }
 
   const trimmed = value.trim();
@@ -121,6 +128,10 @@ export async function performDropdownTransaction(
   fieldKey: string,
   doc: Document = document,
 ): Promise<void> {
+  if (control.getAttribute('aria-disabled') === 'true' || (control as HTMLSelectElement).disabled || control.hasAttribute('disabled')) {
+    throw new Error('Dropdown is disabled — cannot select without overriding website control state');
+  }
+
   // Differential check: if dropdown is already verified to targetValue, skip opening and selecting
   try {
     const currentVerification = verifyDropdownSelection(control, targetValue, fieldKey, doc);

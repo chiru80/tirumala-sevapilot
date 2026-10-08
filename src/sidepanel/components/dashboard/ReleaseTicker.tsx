@@ -5,6 +5,7 @@ import {
   type TtdReleaseEvent,
 } from '../../../services/ttd-information/ttd-release-calendar';
 import { t } from '@i18n/index';
+import { safeOpenUrl } from '../../../security/url-security';
 
 interface ReleaseTickerProps {
   onOpenSource?: (url: string) => void;
@@ -131,10 +132,8 @@ export const ReleaseTicker: React.FC<ReleaseTickerProps> = ({ onOpenSource }) =>
   const handleClick = (url: string) => {
     if (onOpenSource) {
       onOpenSource(url);
-    } else if (typeof chrome !== 'undefined' && chrome.tabs && chrome.tabs.create) {
-      chrome.tabs.create({ url });
     } else {
-      window.open(url, '_blank', 'noopener,noreferrer');
+      safeOpenUrl(url);
     }
   };
 

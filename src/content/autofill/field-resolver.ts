@@ -7,6 +7,9 @@
 import logger from '@shared/logger';
 import { getFieldContract, SRIVARI_SEVA_CONTRACTS } from './field-contracts';
 import { findLabelText } from '../form-scanner';
+import { isForbiddenAutofillTarget } from '../../security/dom-security';
+
+export { isForbiddenAutofillTarget };
 
 // ─── Types ───
 
@@ -511,6 +514,14 @@ function scoreElement(
   container: HTMLElement,
   doc: Document,
 ): { confidence: number; reasons: string[]; strategy: string } {
+  if (isForbiddenAutofillTarget(el, { allowComboboxReadOnly: true, allowDynamicDisabled: true })) {
+    return {
+      confidence: 0,
+      reasons: ['Forbidden autofill target (password/payment/otp/captcha/hidden)'],
+      strategy: 'rejected',
+    };
+  }
+
   const signals = FIELD_SIGNALS[fieldType];
   let score = 0;
   const reasons: string[] = [];
@@ -730,7 +741,9 @@ export function resolveFieldsInContainer<T extends LogicalFieldType>(
     ? 'input:not([type="hidden"]):not([type="submit"]):not([type="button"]):not([type="radio"]), select, mat-select, [role="combobox"], [role="listbox"], p-dropdown, ng-select, textarea, [role="checkbox"]'
     : 'input:not([type="hidden"]):not([type="submit"]):not([type="button"]):not([type="radio"]):not([type="checkbox"]), select, mat-select, [role="combobox"], [role="listbox"], p-dropdown, ng-select, textarea';
 
-  const candidates = Array.from(container.querySelectorAll<HTMLElement>(selector)).filter(el => isElementVisible(el));
+  const candidates = Array.from(container.querySelectorAll<HTMLElement>(selector)).filter(el =>
+    isElementVisible(el) && !isForbiddenAutofillTarget(el, { allowComboboxReadOnly: true, allowDynamicDisabled: true })
+  );
 
   // Also find radio button groups (for gender)
   const radioGroups = findRadioGroups(container);
