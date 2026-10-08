@@ -62,7 +62,7 @@ Status: COMPLETE
 
 ## Phase 7 — Release Intelligence
 Status: COMPLETE
-- Canonical release model (`ReleaseEvent`) with explicit status: `CONFIRMED`, `EXPECTED`, `ESTIMATED`, `UNKNOWN`, `STALE`.
+- Canonical release model (`ReleaseEvent`) with explicit status: `CONFIRMED`, `EXPECTED`, `ESTIMATED`, `UNKNOWN`, `STALE`, `EXPIRED`.
 - Explicit confidence levels: `OFFICIAL`, `HIGH`, `MEDIUM`, `LOW`, `UNKNOWN`.
 - Strict calendar-validated date parser (`release-date-parser.ts`) rejecting impossible dates (Feb 30, Oct 32).
 - Strict time parser normalizing to `HH:mm` in Asia/Kolkata (IST); timezone canonicalization.
@@ -70,10 +70,12 @@ Status: COMPLETE
 - Official confirmed data always overrides expected data immediately (`reconcileReleaseEvents`).
 - Change detection engine (`release-change-detector.ts`) with rescheduling alerts and `previousReleaseDate`/`previousReleaseTime` tracking.
 - Bounded, versioned schema cache (`ttd-cache.ts`) with automatic staleness detection (K01 resolved).
+- Request coalescing and background fetch coordination (`ttd-fetch-coordinator.ts`).
+- State notification transitions (`RELEASE_UPCOMING`, `RELEASE_TODAY`, `RELEASE_UPDATED`, `RELEASE_STARTED`, `RELEASE_PASSED`) with polling deduplication (`release-state-notifier.ts`).
 - Future event filtering and nearest release selection; zero fabricated dates/times.
 - Release Day Mode and preparation guidance without automating submissions, CAPTCHAs, OTPs, or payments.
 - Multilingual UI support with English and Telugu translations across ticker and countdown cards.
-- Comprehensive Phase 7 regression suite: 21 new tests, 68 test files total (812 tests passing).
+- Comprehensive Phase 7 regression suite: 30 new tests in `release-intelligence.test.ts`, 68 test files total (825 tests passing).
 
 ## Phase 8 — Booking Guardian
 - Detect unexpected rerenders, changed fields, invalid state, temporary lock and workflow ambiguity.

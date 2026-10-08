@@ -19,7 +19,8 @@ export type ReleaseStatus =
   | 'EXPECTED'
   | 'ESTIMATED'
   | 'UNKNOWN'
-  | 'STALE';
+  | 'STALE'
+  | 'EXPIRED';
 
 /**
  * Authoritative release confidence.
@@ -48,6 +49,7 @@ export interface ReleaseEvent {
   serviceName?: string;
   displayName?: string;
   bookingType?: string;
+  bookingDates?: string;
   targetBookingDates?: string;
   targetMonth?: string;
 

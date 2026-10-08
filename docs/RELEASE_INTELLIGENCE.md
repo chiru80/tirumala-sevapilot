@@ -65,6 +65,7 @@ export interface ReleaseEvent {
   serviceName?: string;
   displayName?: string;
   bookingType?: string;
+  bookingDates?: string;
   targetBookingDates?: string;
   targetMonth?: string;
 
@@ -76,7 +77,7 @@ export interface ReleaseEvent {
 
   timezone: 'Asia/Kolkata';
 
-  status?: ReleaseStatus;       // 'CONFIRMED' | 'EXPECTED' | 'ESTIMATED' | 'UNKNOWN' | 'STALE'
+  status?: ReleaseStatus;       // 'CONFIRMED' | 'EXPECTED' | 'ESTIMATED' | 'UNKNOWN' | 'STALE' | 'EXPIRED'
   confidence?: ReleaseConfidence; // 'OFFICIAL' | 'HIGH' | 'MEDIUM' | 'LOW' | 'UNKNOWN'
 
   source?: string;
@@ -115,6 +116,7 @@ export interface ReleaseEvent {
 - **`ESTIMATED`**: Weaker inference with limited historical data.
 - **`UNKNOWN`**: Insufficient or ambiguous information.
 - **`STALE`**: Previously known information whose freshness window has expired.
+- **`EXPIRED`**: Release time or booking window has elapsed.
 
 ### Confidence
 - **`OFFICIAL`**: Directly confirmed by whitelisted official TTD source.
@@ -173,7 +175,28 @@ Implemented in `src/services/ttd-information/ttd-cache.ts`:
 
 ---
 
-## 10. UI & Accessibility Integration
+## 10. Request Control & Fetch Coordination
+Implemented in `src/services/ttd-information/ttd-fetch-coordinator.ts`:
+- **Request Coalescing**: Multiple concurrent fetch requests for the same source/key share the in-flight Promise to eliminate duplicate network requests across popup and sidepanel.
+- **Bounded Cooldown**: Minimum 5-minute interval between network fetches to eliminate aggressive polling.
+- **Cache-First Lookups**: Reads fresh cached entries directly to prevent unnecessary network traffic.
+- **Network Resilience**: Seamless fallback to cached data if network encounters connectivity issues.
+
+---
+
+## 11. Notification State Transitions
+Implemented in `src/services/ttd-information/release-state-notifier.ts`:
+- **State Lifecycle Transitions**:
+  - `RELEASE_UPCOMING`: Future verified release.
+  - `RELEASE_TODAY`: Release scheduled for current calendar day in Asia/Kolkata (IST).
+  - `RELEASE_UPDATED`: Schedule changed/rescheduled by TTD.
+  - `RELEASE_STARTED`: Release time reached (active window).
+  - `RELEASE_PASSED`: Booking release window elapsed (> 2 hours).
+- **Deduplicated Polling**: Remembers previous transition state for each event ID and suppresses duplicate alerts during background checks.
+
+---
+
+## 12. UI & Accessibility Integration
 - **Release Ticker (`ReleaseTicker.tsx`)**:
   - Concise tags: `CONFIRMED`, `EXPECTED`, `RELEASE UPDATED`, `STALE`.
   - Free from internal jargon (no mention of "regex", "TTL", or "epoch").
@@ -187,12 +210,12 @@ Implemented in `src/services/ttd-information/ttd-cache.ts`:
 
 ---
 
-## 11. Security & Zero PII Guarantee
+## 13. Security & Zero PII Guarantee
 - Release intelligence processing and cache handle only public TTD quotas.
 - Zero pilgrim details (Aadhaar, IDs, phone, addresses, names, photos) are ever passed to release parsers, caches, or diagnostics logs.
 
 ---
 
-## 12. Known Limitations & Phase 8 Hand-Off
+## 14. Known Limitations & Phase 8 Hand-Off
 - Live dynamic portal scraping is intentionally blocked against active government login/queue endpoints to ensure strict compliance with anti-bot policies.
 - Phase 8 (Booking Guardian) will introduce runtime DOM mutation observers and anomaly detection on the live booking page without bypassing queues.

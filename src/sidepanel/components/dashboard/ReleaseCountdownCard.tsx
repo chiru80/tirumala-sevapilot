@@ -307,6 +307,7 @@ export function ReleaseCountdownCard({ serviceId, onOpenTtd, onPrepareBooking }:
           <ul className="mt-1.5 space-y-1 text-[11px] text-[#4A3E54] dark:text-[#C5B8D1]">
             <li className="flex items-center gap-1.5">✓ {t('intelligence.prepTips.confirmProfile')}</li>
             <li className="flex items-center gap-1.5">✓ {t('intelligence.prepTips.confirmId')}</li>
+            <li className="flex items-center gap-1.5">✓ {t('intelligence.prepTips.selectService')}</li>
             <li className="flex items-center gap-1.5">✓ {t('intelligence.prepTips.openPage')}</li>
             <li className="flex items-center gap-1.5">✓ {t('intelligence.prepTips.beReady')}</li>
           </ul>
