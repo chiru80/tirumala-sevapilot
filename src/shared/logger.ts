@@ -37,6 +37,10 @@ const REDACT_PATTERNS: Array<{ pattern: RegExp; replacement: string }> = [
   { pattern: /(?:pin|pincode|zip)\s*:?\s*\d{6}\b/gi, replacement: 'PIN:******' },
   // Credentials / Sensitive tokens
   { pattern: /(?:otp|cvv|pwd|password|token)\s*[:=]\s*[^\s,]+/gi, replacement: '[REDACTED]' },
+  // Bearer authentication tokens
+  { pattern: /Bearer\s+[A-Za-z0-9\-._~+/]+=*/gi, replacement: 'Bearer [REDACTED]' },
+  // Base64 Data URIs (photos / documents)
+  { pattern: /data:image\/[a-zA-Z+]+;base64,[A-Za-z0-9+/=]+/gi, replacement: '[IMAGE_DATA_URI:REDACTED]' },
   // Payment card numbers (15-16 digits)
   { pattern: /\b(?:\d[ -]?){15,16}\b/g, replacement: 'CARD:****' },
 ];
