@@ -12,7 +12,7 @@ export interface TtdCacheEntry<T> {
   fetchedAt: string; // ISO timestamp
   expiresAt: string; // ISO timestamp
   verified: boolean;
-  status: 'FRESH' | 'STALE' | 'UNVERIFIED';
+  status: 'FRESH' | 'STALE' | 'EXPIRED' | 'UNVERIFIED';
   data: T;
   lastVerifiedAt?: string;
 }

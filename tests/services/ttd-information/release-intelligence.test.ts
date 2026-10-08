@@ -33,6 +33,9 @@ import {
   clearTtdCache,
 } from '../../../src/services/ttd-information/ttd-cache';
 import { parseTtdAnnouncement } from '../../../src/services/ttd-information/ttd-announcement-parser';
+import { releaseStateNotifier } from '../../../src/services/ttd-information/release-state-notifier';
+import { ttdFetchCoordinator } from '../../../src/services/ttd-information/ttd-fetch-coordinator';
+import type { ReleaseEvent } from '../../../src/services/ttd-information/release-types';
 import { t, setLanguage } from '../../../src/i18n';
 
 describe('Phase 7 — Release Intelligence & Verified TTD Calendar', () => {
@@ -481,6 +484,209 @@ describe('Phase 7 — Release Intelligence & Verified TTD Calendar', () => {
       expect(serialized).not.toContain('idNumber');
       expect(serialized).not.toContain('mobile');
       expect(serialized).not.toContain('photo');
+    });
+  });
+
+  // ─── P. State Transitions & Notification Deduping ───
+  describe('P. State Transitions & Notification Deduping', () => {
+    beforeEach(() => {
+      releaseStateNotifier.reset();
+    });
+
+    it('emits RELEASE_UPCOMING for future releases', () => {
+      const event: ReleaseEvent = {
+        id: 'sed-upcoming',
+        serviceId: 'special-entry-darshan-300',
+        serviceName: 'Special Entry Darshan',
+        releaseDate: '2026-10-24',
+        releaseTime: '10:00',
+        timezone: IST_TIMEZONE,
+        sourceUrl: 'https://news.tirumala.org/sed',
+        verified: true,
+      };
+
+      const nowMs = getReleaseEpochMs('2026-10-20', '10:00');
+      const notif = releaseStateNotifier.evaluateTransition(event, nowMs);
+
+      expect(notif).not.toBeNull();
+      expect(notif?.state).toBe('RELEASE_UPCOMING');
+      expect(notif?.headline).toContain('Upcoming Release');
+
+      // Repeated evaluation without state change returns null (deduped)
+      const repeatNotif = releaseStateNotifier.evaluateTransition(event, nowMs + 60000);
+      expect(repeatNotif).toBeNull();
+    });
+
+    it('emits RELEASE_TODAY when release date matches IST current date', () => {
+      const event: ReleaseEvent = {
+        id: 'sed-today',
+        serviceId: 'special-entry-darshan-300',
+        releaseDate: '2026-10-24',
+        releaseTime: '10:00',
+        timezone: IST_TIMEZONE,
+        sourceUrl: 'https://news.tirumala.org/sed',
+        verified: true,
+      };
+
+      // 2026-10-24 06:00 IST (same day, 4 hours before release)
+      const nowMs = getReleaseEpochMs('2026-10-24', '06:00');
+      const notif = releaseStateNotifier.evaluateTransition(event, nowMs);
+
+      expect(notif).not.toBeNull();
+      expect(notif?.state).toBe('RELEASE_TODAY');
+      expect(notif?.message).toContain('releases today');
+    });
+
+    it('emits RELEASE_STARTED when release time is reached', () => {
+      const event: ReleaseEvent = {
+        id: 'sed-started',
+        serviceId: 'special-entry-darshan-300',
+        releaseDate: '2026-10-24',
+        releaseTime: '10:00',
+        timezone: IST_TIMEZONE,
+        sourceUrl: 'https://news.tirumala.org/sed',
+        verified: true,
+      };
+
+      // 2026-10-24 10:05 IST (5 minutes after release)
+      const nowMs = getReleaseEpochMs('2026-10-24', '10:05');
+      const notif = releaseStateNotifier.evaluateTransition(event, nowMs);
+
+      expect(notif).not.toBeNull();
+      expect(notif?.state).toBe('RELEASE_STARTED');
+      expect(notif?.headline).toContain('Quota Released Now');
+    });
+
+    it('emits RELEASE_PASSED when > 2 hours past release time', () => {
+      const event: ReleaseEvent = {
+        id: 'sed-passed',
+        serviceId: 'special-entry-darshan-300',
+        releaseDate: '2026-10-24',
+        releaseTime: '10:00',
+        timezone: IST_TIMEZONE,
+        sourceUrl: 'https://news.tirumala.org/sed',
+        verified: true,
+      };
+
+      // 2026-10-24 13:00 IST (3 hours after release)
+      const nowMs = getReleaseEpochMs('2026-10-24', '13:00');
+      const notif = releaseStateNotifier.evaluateTransition(event, nowMs);
+
+      expect(notif).not.toBeNull();
+      expect(notif?.state).toBe('RELEASE_PASSED');
+      expect(notif?.headline).toContain('Quota Release Closed');
+    });
+
+    it('emits RELEASE_UPDATED when release was rescheduled', () => {
+      const event: ReleaseEvent = {
+        id: 'sed-rescheduled',
+        serviceId: 'special-entry-darshan-300',
+        releaseDate: '2026-10-26',
+        releaseTime: '10:00',
+        timezone: IST_TIMEZONE,
+        sourceUrl: 'https://news.tirumala.org/sed',
+        isUpdated: true,
+        previousReleaseDate: '2026-10-24',
+        changeNotes: 'Rescheduled by TTD from 2026-10-24 to 2026-10-26.',
+        verified: true,
+      };
+
+      const nowMs = getReleaseEpochMs('2026-10-20', '10:00');
+      const notif = releaseStateNotifier.evaluateTransition(event, nowMs);
+
+      expect(notif).not.toBeNull();
+      expect(notif?.state).toBe('RELEASE_UPDATED');
+      expect(notif?.headline).toContain('Release Updated');
+    });
+  });
+
+  // ─── Q. Request Coalescing & Cooldown Coordination ───
+  describe('Q. Request Coalescing & Cooldown Coordination (TtdFetchCoordinator)', () => {
+    beforeEach(() => {
+      ttdFetchCoordinator.reset();
+    });
+
+    it('coalesces concurrent requests to the same key into a single fetch execution', async () => {
+      let callCount = 0;
+      const mockFetcher = async () => {
+        callCount++;
+        await new Promise(r => setTimeout(r, 50));
+        return { schedule: 'SED-Quota' };
+      };
+
+      // Trigger two concurrent fetches simultaneously
+      const [res1, res2] = await Promise.all([
+        ttdFetchCoordinator.coordinateFetch('coalesce_key', mockFetcher, {
+          sourceUrl: 'https://news.tirumala.org/announcements',
+        }),
+        ttdFetchCoordinator.coordinateFetch('coalesce_key', mockFetcher, {
+          sourceUrl: 'https://news.tirumala.org/announcements',
+        }),
+      ]);
+
+      expect(callCount).toBe(1); // Exactly one network execution
+      expect(res1.data).toEqual({ schedule: 'SED-Quota' });
+      expect(res2.data).toEqual({ schedule: 'SED-Quota' });
+    });
+
+    it('returns cached data when cache is fresh without invoking fetcher', async () => {
+      await setCachedTtdData('cached_key', { quota: 'SED-Fresh' }, {
+        sourceUrl: 'https://news.tirumala.org/sed',
+        expiresInMs: 60000,
+      });
+
+      let invoked = false;
+      const res = await ttdFetchCoordinator.coordinateFetch('cached_key', async () => {
+        invoked = true;
+        return { quota: 'Network-Data' };
+      }, {
+        sourceUrl: 'https://news.tirumala.org/sed',
+      });
+
+      expect(invoked).toBe(false);
+      expect(res.fromCache).toBe(true);
+      expect(res.data).toEqual({ quota: 'SED-Fresh' });
+    });
+
+    it('rejects unofficial sources and does not invoke fetcher', async () => {
+      let invoked = false;
+      const res = await ttdFetchCoordinator.coordinateFetch('untrusted_key', async () => {
+        invoked = true;
+        return { data: 'should-not-run' };
+      }, {
+        sourceUrl: 'https://unofficial-blog.com/fake-news',
+      });
+
+      expect(invoked).toBe(false);
+      expect(res.data).toBeNull();
+      expect(res.error).toContain('Fetch rejected for unofficial source');
+    });
+  });
+
+  // ─── R. Canonical ReleaseEvent & Status Completeness ───
+  describe('R. Canonical ReleaseEvent & Status Completeness', () => {
+    it('supports EXPIRED status in ReleaseStatus and bookingDates alias in ReleaseEvent', () => {
+      const expiredEvent: ReleaseEvent = {
+        id: 'ev-exp',
+        serviceId: 'special-entry-darshan-300',
+        serviceName: 'Special Entry Darshan',
+        bookingDates: 'November 2026',
+        releaseDate: '2026-10-01',
+        releaseTime: '10:00',
+        timezone: IST_TIMEZONE,
+        status: 'EXPIRED',
+        confidence: 'OFFICIAL',
+        source: 'Official Press Release',
+        sourceUrl: 'https://news.tirumala.org/press',
+        publishedAt: '2026-09-25T00:00:00.000Z',
+        fetchedAt: '2026-09-26T00:00:00.000Z',
+        expiresAt: '2026-10-02T00:00:00.000Z',
+        verified: true,
+      };
+
+      expect(expiredEvent.status).toBe('EXPIRED');
+      expect(expiredEvent.bookingDates).toBe('November 2026');
+      expect(expiredEvent.timezone).toBe('Asia/Kolkata');
     });
   });
 });

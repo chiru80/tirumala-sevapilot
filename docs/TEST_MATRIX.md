@@ -95,6 +95,11 @@ Phase 6 Hardening suite: [`tests/services/srivari-seva-hardening.test.ts`](file:
 - [x] recurring pattern engine produces EXPECTED status
 - [x] official confirmed data wins over expected pattern data
 - [x] change detection identifies rescheduled date/time and preserves previous dates
+- [x] state transitions: RELEASE_UPCOMING, RELEASE_TODAY, RELEASE_UPDATED, RELEASE_STARTED, RELEASE_PASSED
+- [x] notification deduplication suppresses repeated polling alerts
+- [x] request coalescing merges concurrent fetches into single execution
+- [x] cache-first and cooldown coordination
+- [x] EXPIRED status and canonical ReleaseEvent completeness
 - [x] zero PII leakage into release logs or cache
 - [x] i18n English and Telugu verified across release intelligence
 
