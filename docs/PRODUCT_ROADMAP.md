@@ -76,9 +76,18 @@ Status: COMPLETE
 - Comprehensive Phase 7 regression suite: 21 new tests, 68 test files total (812 tests passing).
 
 ## Phase 8 — Booking Guardian
-- Detect unexpected rerenders, changed fields, invalid state, temporary lock and workflow ambiguity.
-- Stop safely rather than guess.
-- Preserve booking context.
+Status: COMPLETE
+- Canonical Guardian State Model (`src/services/guardian/types.ts`) with 21 orchestration states and 15 page stages.
+- Multi-signal live DOM page classifier (`page-detector.ts`) detecting CAPTCHA, OTP, payment gateway, review page, booking success (definitive confirmation markers only), session expiration, and temporary locks.
+- 10-point Preflight Verification Engine (`preflight-engine.ts`) enforcing service limits (SED/Padmavathi: 1–6, Homam: exact 2, Srivari: exact 1), required devotee data, required attachments, and concurrency limits.
+- Authoritative Autofill Orchestrator (`booking-guardian.ts`) coordinating `AutofillManager` handoff and post-fill verification.
+- Human Control Boundary Enforcement: strictly prohibits auto-solving CAPTCHA, auto-entering OTP, auto-submitting payments, or auto-clicking final booking submission.
+- Transitions to `SUBMISSION_MANUAL` upon successful autofill verification for human review.
+- Temporary TTD Booking Lock detection (`TTD_TEMPORARY_BOOKING_LOCK`) with cooldown guidance and user-initiated retry.
+- Emergency Stop mechanism (`emergencyStop()`) aborting active autofill without wiping user-entered values.
+- Stale session invalidation on page or route transitions (`PAGE_CHANGED`).
+- Zero-PII logging guarantee throughout sessions, preflight, and diagnostic reporting.
+- Comprehensive Phase 8 regression suite: 25 new tests in `booking-guardian.test.ts`, 69 test files total (850 tests passing).
 
 ## Phase 9 — Security
 - Permission audit.

@@ -56,6 +56,12 @@ The declared project version is Tailwind 3.4.x. Utility classes used by the proj
 ### K16 — Zero PII logging in Srivari workflow & autofill diagnostics (RESOLVED in Phase 6)
 **Status: Resolved.** Masked logging implemented across Srivari enrollment flow. Sensitive values (Aadhaar, ID numbers, mobile, DOB, addresses, base64 photo data) are never output in raw form to console logs, diagnostics, or test outputs.
 
+### K17 — Fragmented Booking State Orchestration (RESOLVED in Phase 8)
+**Status: Resolved.** Unified fragmented stage detection and autofill trigger pathways into a canonical, bounded `BookingGuardian` state machine. Established clear preflight validation (10 checks), human-control boundaries (CAPTCHA, OTP, payment, review), single-session concurrency guards, and stale session invalidation on route changes.
+
+### K18 — Server-Side Temporary Lock Handling (RESOLVED in Phase 8)
+**Status: Resolved.** Prioritized `TTD_TEMPORARY_BOOKING_LOCK` with highest safety precedence upon recognizing held pilgrim IDs. Blocks further autofill writes, halts automated retries, avoids aggressive page reloads, and guides the devotee to check booking history or retry manually after the cooldown expires.
+
 ## Safety constraints
 
 No issue above justifies:
