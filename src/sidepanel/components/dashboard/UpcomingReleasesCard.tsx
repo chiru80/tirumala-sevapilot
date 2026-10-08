@@ -5,6 +5,7 @@ import {
   type TtdReleaseEvent,
 } from '../../../services/ttd-information/ttd-release-calendar';
 import { t } from '@i18n/index';
+import { safeOpenUrl } from '../../../security/url-security';
 
 interface UpcomingReleasesCardProps {
   onOpenSource?: (url: string) => void;
@@ -42,10 +43,8 @@ export const UpcomingReleasesCard: React.FC<UpcomingReleasesCardProps> = ({ onOp
   const handleOpen = (url: string) => {
     if (onOpenSource) {
       onOpenSource(url);
-    } else if (typeof chrome !== 'undefined' && chrome.tabs && chrome.tabs.create) {
-      chrome.tabs.create({ url });
     } else {
-      window.open(url, '_blank', 'noopener,noreferrer');
+      safeOpenUrl(url);
     }
   };
 
