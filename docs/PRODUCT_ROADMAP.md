@@ -61,11 +61,19 @@ Status: COMPLETE
 - Full verification suite: 27 new tests, 67 test files total (791 tests passing).
 
 ## Phase 7 — Release Intelligence
-- Official TTD source pipeline.
-- Freshness and expiry.
-- No fabricated dates.
-- Compact verified release ticker.
-- Future-only event selection.
+Status: COMPLETE
+- Canonical release model (`ReleaseEvent`) with explicit status: `CONFIRMED`, `EXPECTED`, `ESTIMATED`, `UNKNOWN`, `STALE`.
+- Explicit confidence levels: `OFFICIAL`, `HIGH`, `MEDIUM`, `LOW`, `UNKNOWN`.
+- Strict calendar-validated date parser (`release-date-parser.ts`) rejecting impossible dates (Feb 30, Oct 32).
+- Strict time parser normalizing to `HH:mm` in Asia/Kolkata (IST); timezone canonicalization.
+- Recurring pattern engine (`recurring-pattern-engine.ts`) generating `EXPECTED` events from verified historical schedules.
+- Official confirmed data always overrides expected data immediately (`reconcileReleaseEvents`).
+- Change detection engine (`release-change-detector.ts`) with rescheduling alerts and `previousReleaseDate`/`previousReleaseTime` tracking.
+- Bounded, versioned schema cache (`ttd-cache.ts`) with automatic staleness detection (K01 resolved).
+- Future event filtering and nearest release selection; zero fabricated dates/times.
+- Release Day Mode and preparation guidance without automating submissions, CAPTCHAs, OTPs, or payments.
+- Multilingual UI support with English and Telugu translations across ticker and countdown cards.
+- Comprehensive Phase 7 regression suite: 21 new tests, 68 test files total (812 tests passing).
 
 ## Phase 8 — Booking Guardian
 - Detect unexpected rerenders, changed fields, invalid state, temporary lock and workflow ambiguity.

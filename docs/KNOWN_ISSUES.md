@@ -2,8 +2,8 @@
 
 ## P0 — Correctness / architecture
 
-### K01 — Release data freshness (Open — Phase 2/3)
-The release calendar contains static verified-event data. Even with stale/expiry checks, static entries can age into misleading product content. The source → parser → normalized event → cache pipeline needs a strict freshness policy and future-event filtering.
+### K01 — Release data freshness (RESOLVED in Phase 7)
+**Status: Resolved.** Production-grade release intelligence pipeline implemented: `SOURCE → PARSER → NORMALIZED EVENT → VALIDATION → CACHE → FRESHNESS → UI`. Built non-locale calendar-validated parser (`release-date-parser.ts`), authoritative release status (`CONFIRMED`, `EXPECTED`, `ESTIMATED`, `UNKNOWN`, `STALE`), recurring pattern engine (`recurring-pattern-engine.ts`), change detection with postponement/rescheduling alerts (`release-change-detector.ts`), bounded schema-versioned cache (`ttd-cache.ts`), future event filtering, and strict Asia/Kolkata timezone normalization. Zero fabricated dates/times.
 
 ### K02 — Srivari rule duplication (RESOLVED in Phase 1)
 **Status: Resolved.** Single source of truth established in `CANONICAL_SRIVARI_SEVA` (`maxPilgrims: 1, exactPilgrims: 1`). Legacy adapter `srivariSevaAdapter` now derives its limits directly from canonical service definition.

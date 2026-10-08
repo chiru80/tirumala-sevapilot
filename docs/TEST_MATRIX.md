@@ -80,16 +80,23 @@ Phase 6 Hardening suite: [`tests/services/srivari-seva-hardening.test.ts`](file:
 - [ ] User can retry manually
 - [ ] Lock remains dedicated if still present
 
-## Release-data tests
+## Release-data tests (Phase 7 Complete)
 
-- [ ] Official domain accepted
-- [ ] non-official domain rejected
-- [ ] stale event rejected/hidden
-- [ ] expired event rejected/hidden
-- [ ] unconfirmed event has no countdown
-- [ ] exact confirmed event shows release time in IST
-- [ ] future event selection works
-- [ ] past events do not appear as upcoming
+- [x] Official domain accepted (`news.tirumala.org`, `tirumala.org`, `ttdevasthanams.ap.gov.in`)
+- [x] non-official domain rejected
+- [x] stale event marked STALE and triggers refresh guidance
+- [x] expired event filtered from upcoming verified releases
+- [x] unconfirmed event has no countdown
+- [x] exact confirmed event shows release time in IST
+- [x] future event selection works and selects nearest release
+- [x] past events do not appear as upcoming
+- [x] strict date parsing rejects invalid calendar dates (Feb 30, Oct 32)
+- [x] strict time parsing normalizes 12/24hr formats and rejects invalid times
+- [x] recurring pattern engine produces EXPECTED status
+- [x] official confirmed data wins over expected pattern data
+- [x] change detection identifies rescheduled date/time and preserves previous dates
+- [x] zero PII leakage into release logs or cache
+- [x] i18n English and Telugu verified across release intelligence
 
 ## UI tests
 
