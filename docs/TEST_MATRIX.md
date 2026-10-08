@@ -149,6 +149,29 @@ Automated suite: [`tests/security/security-hardening.test.ts`](file:///tests/sec
 - [x] Base64 image Data URIs strictly validated
 - [x] Zero-PII logger redaction verified (Aadhaar, mobile, secrets, image Data URIs)
 
+## Queue Intelligence tests (Phase 10 Complete)
+
+Automated suite: [`tests/services/queue/queue-intelligence.test.ts`](file:///tests/services/queue/queue-intelligence.test.ts) (18/18 tests passing)
+
+- [x] `QUEUE_NOT_PRESENT` recognized on standard non-queue booking pages
+- [x] `QUEUE_WAITING` recognized upon multi-signal waiting room presence
+- [x] `QUEUE_PROGRESSING` verified with official numeric queue position
+- [x] `QUEUE_ERROR` recognized upon explicit TTD queue failure messages
+- [x] `TTD_TEMPORARY_BOOKING_LOCK` precedence enforced (`QUEUE_BLOCKED`)
+- [x] Human boundary: `QUEUE_CAPTCHA_REQUIRED` detected; zero automated CAPTCHA solving
+- [x] Human boundary: `QUEUE_SESSION_EXPIRED` detected; manual re-login guidance
+- [x] Truth Boundary: authentic extraction of official queue position without guessing
+- [x] Truth Boundary: authentic extraction of explicit wait time without synthetic estimates
+- [x] Missing wait time/position handled gracefully without fabricating numbers
+- [x] Queue lifecycle: session start and passive `MutationObserver` attachment
+- [x] Queue completion: detects queue disappearance (`QUEUE_COMPLETED`) and triggers callbacks for Booking Guardian hand-off
+- [x] User cancellation: `stopMonitoring()` cleans up observers and timers safely
+- [x] Emergency Stop: `emergencyStop()` immediately invalidates monitoring without reloading page or closing tab
+- [x] Multi-tab isolation: distinct session IDs across separate browser tab instances
+- [x] Security: queue tokens never logged, stored, or exposed in diagnostics
+- [x] Security: malicious DOM scripts or unescaped HTML safely ignored as untrusted text
+- [x] Zero Queue Bypass: strictly no queue circumvention, no token forgery, no automated refresh loops
+
 ## UI tests
 
 - [ ] first-time Home
