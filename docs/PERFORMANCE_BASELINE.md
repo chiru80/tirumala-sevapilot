@@ -42,7 +42,34 @@ Measured on standard environment (Chrome MV3 / Node v20+ / jsdom benchmark suite
 
 ---
 
-## 4. Key Performance Pillars for Phase 12
+---
+
+## 4. Bottlenecks Identified During Pre-Optimization Audit
+
+During the initial code and runtime audit across the repository, the following architectural bottlenecks were identified:
+
+1. **Synchronous Layout Reflow in Queue & Stage Detectors**:
+   - `page-detector.ts` and `queue-detector.ts` read `document.body.innerText`, forcing the browser's layout engine to synchronously recalculate layout and styles across the entire page DOM.
+   - On complex TTD pages (hundreds of elements), this single property access cost 12ms to 16ms per evaluation tick.
+
+2. **Uncached Redundant Form Subtree Traversal**:
+   - Every mutation tick or verification step queried candidate elements via multiple `document.querySelectorAll()` iterations without caching references to previously resolved form roots or fields.
+
+3. **MutationObserver Cascading Overload**:
+   - Extension UI rendering (tooltips, status badges) and third-party style updates triggered mutation events that looped back into the observer without adequate filtering or micro-batching.
+
+4. **Frequent Identical Messaging to Sidepanel**:
+   - Background worker and content script broadcasted state events (such as queue waiting heartbeats) without coalescing, causing unnecessary deserialization and component re-evaluation in the sidepanel.
+
+5. **Storage Deserialization Overhead**:
+   - Reading user preferences and settings performed fresh queries against disk-backed storage instead of leveraging an in-memory cache and `chrome.storage.sync`.
+
+6. **React Re-render Propagation in Cockpit Dashboard**:
+   - A 1-second countdown interval in `ReleaseCountdownCard` triggered cascading re-renders across the parent dashboard and sibling components (`BookingCockpit`, `ActiveProfileCard`) due to unmemoized component boundaries.
+
+---
+
+## 5. Key Performance Pillars for Phase 12
 
 1. **DOM Invalidation Cache**:
    - Cache resolved input, select, and container elements keyed by `serviceId` + `documentId`.
@@ -50,18 +77,19 @@ Measured on standard environment (Chrome MV3 / Node v20+ / jsdom benchmark suite
 
 2. **MutationObserver Filter Pipeline**:
    - Filter out style changes, irrelevant text mutations, and non-form mutations before triggering field evaluation.
-   - Ignore mutations inside extension's own UI containers.
+   - Ignore mutations inside extension's own UI containers (`#sp-*`, `.sp-*`, `[data-sevapilot]`).
 
 3. **Message Deduplication & Coalescing**:
-   - Deduplicate sequential identical queue states (e.g. repetitive `QUEUE_PROGRESSING` updates) to avoid UI re-render storms.
+   - Deduplicate sequential identical queue states (e.g. repetitive `QUEUE_PROGRESSING` updates) within 150ms window.
 
 4. **React Rendering Optimization**:
-   - Memoize heavyweight dashboard cards (`ReleaseCountdownCard`, `QueueCard`, `BookingCockpit`).
+   - Memoize heavyweight dashboard cards (`ReleaseCountdownCard`, `QueueCard`, `BookingCockpit`, `ActiveProfileCard`, `PrivacyBadge`).
    - Use stable callbacks and selector-based subscriptions so unrelated storage updates do not cause whole-dashboard renders.
 
 5. **Storage Architecture Separation**:
    - Route lightweight UI settings (`language`, `theme`, `compactView`) to `chrome.storage.sync` with automatic fallback to `chrome.storage.local`.
-   - Debounce rapid preference writes.
+   - Ephemeral runtime state routed to `chrome.storage.session`.
 
 6. **Deterministic Memory Cleanup**:
-   - Audit all `setTimeout`, `setInterval`, `addEventListener`, `MutationObserver`, and `AbortController` references to guarantee deterministic cleanup.
+   - Audit all `setTimeout`, `setInterval`, `addEventListener`, `MutationObserver`, and `AbortController` references to guarantee deterministic cleanup via `TimerManager`.
+
