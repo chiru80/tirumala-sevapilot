@@ -223,7 +223,7 @@ describe('Phase 10: TTD Queue Intelligence & Safe Waiting', () => {
       const afterResult = qManager.evaluateAndStart(document, 'https://ttdevasthanams.ap.gov.in/slot-selection');
       expect(afterResult.state).toBe('QUEUE_NOT_PRESENT');
       expect(completionFired).toBe(true);
-      expect(completedSession?.state).toBe('QUEUE_COMPLETED');
+      expect((completedSession as QueueSession | null)?.state).toBe('QUEUE_COMPLETED');
       expect(qManager.isMonitoring()).toBe(false);
     });
 
