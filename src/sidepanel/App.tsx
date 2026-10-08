@@ -8,12 +8,13 @@ import { Bookings } from './pages/Bookings';
 import { Documents } from './pages/Documents';
 import { Backup } from './pages/Backup';
 import { Onboarding } from './pages/Onboarding';
+import { More } from './pages/More';
 import { getSettings } from '@storage/repository';
 import { EXTENSION_VERSION } from '@shared/constants';
 import { setLanguage, useI18n, type Language } from '@i18n/index';
 import type { Settings as SettingsType } from '@shared/types';
 
-type Page = 'dashboard' | 'profiles' | 'pilgrims' | 'bookings' | 'validation' | 'documents' | 'backup' | 'settings';
+type Page = 'dashboard' | 'profiles' | 'more' | 'pilgrims' | 'bookings' | 'validation' | 'documents' | 'backup' | 'settings';
 
 export default function App() {
   const { language: activeLanguage } = useI18n();
@@ -113,6 +114,13 @@ export default function App() {
       <main className="flex-1 overflow-y-auto">
         {currentPage === 'dashboard' && <Dashboard onNavigate={(page) => setCurrentPage(page as Page)} />}
         {(currentPage === 'profiles' || currentPage === 'pilgrims') && <Profiles />}
+        {currentPage === 'more' && (
+          <More
+            onNavigate={(page) => setCurrentPage(page as Page)}
+            onThemeToggle={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+            isDark={theme === 'dark'}
+          />
+        )}
         {currentPage === 'bookings' && <Bookings />}
         {currentPage === 'documents' && <Documents />}
         {currentPage === 'validation' && <Validation />}
