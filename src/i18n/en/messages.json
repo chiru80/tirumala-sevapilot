@@ -631,6 +631,45 @@
     "completeIdPrompt": "Complete your pilgrim's ID details.",
     "completeGeneralPrompt": "Complete general contact details.",
     "openTtdPrompt": "Open the supported TTD booking page."
+  },
+  "intelligence": {
+    "statusConfirmed": "CONFIRMED",
+    "statusExpected": "EXPECTED",
+    "statusEstimated": "ESTIMATED",
+    "statusUnknown": "UNKNOWN",
+    "statusStale": "STALE",
+    "releaseUpdated": "RELEASE UPDATED",
+    "previousRelease": "Previous release: {previous}",
+    "newRelease": "New release: {new}",
+    "releasesToday": "Releases today at {time}",
+    "expectedAround": "Next {service} release is expected around {date}",
+    "expectedInDays": "Expected in ~{days} days",
+    "expectedToday": "Expected today",
+    "noConfirmedRelease": "No confirmed upcoming release",
+    "infoNeedsRefreshing": "Release information needs refreshing",
+    "viewOfficialTtdUpdate": "View official TTD update",
+    "openTtd": "Open TTD ↗",
+    "prepareBooking": "Prepare Booking",
+    "bookingPreparation": "BOOKING PREPARATION",
+    "profileSelected": "Profile selected & complete",
+    "pilgrimsComplete": "Required pilgrims complete",
+    "idDetailsVerified": "ID details verified",
+    "generalDetailsComplete": "General details complete",
+    "specialRequirementsComplete": "Special requirements complete",
+    "quotaSupported": "Quota supported",
+    "sourceVerified": "Official source verified",
+    "readyForTtd": "READY FOR TTD",
+    "releasePrepMode": "RELEASE PREP MODE",
+    "releaseTimeReached": "RELEASE TIME REACHED",
+    "quotaReleased": "QUOTA RELEASED",
+    "countdownIst": "COUNTDOWN · IST",
+    "prepTips": {
+      "confirmProfile": "Confirm pilgrim profile",
+      "confirmId": "Confirm ID details",
+      "openPage": "Open TTD booking page",
+      "connection": "Keep connection stable",
+      "beReady": "Be ready before release time"
+    }
   }
 }
 

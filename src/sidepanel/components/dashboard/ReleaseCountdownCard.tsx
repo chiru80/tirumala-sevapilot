@@ -86,16 +86,19 @@ export function ReleaseCountdownCard({ serviceId, onOpenTtd, onPrepareBooking }:
     return null;
   }
 
-  const isConfirmed = event.isConfirmed !== false && Boolean(event.releaseDate && event.releaseTime);
-  const isUnconfirmed = !isConfirmed || countdownResult.state === 'NOT_CONFIRMED';
+  const isConfirmed = event.status === 'CONFIRMED' || (event.isConfirmed !== false && Boolean(event.releaseDate && event.releaseTime));
+  const isExpected = event.status === 'EXPECTED' || countdownResult.state === 'EXPECTED_APPROACHING';
+  const isStale = countdownResult.state === 'STALE' || event.status === 'STALE';
+  const isUnconfirmed = !isConfirmed && !isExpected && (countdownResult.state === 'NOT_CONFIRMED' || !event.isConfirmed);
   const isUnverified = countdownResult.state === 'UNVERIFIED' || !event.verified || isUnconfirmed;
   const isReached = countdownResult.state === 'RELEASE_TIME_REACHED';
   const isPassed = countdownResult.state === 'PASSED';
   const isVerified = countdownResult.isVerified;
   const releasePatternLabel = formatReleasePattern(event.releasePattern, event.advanceMonths);
+  const isReleaseApproaching = isConfirmed && countdownResult.days === 0 && !isPassed;
 
-  // ─── UNVERIFIED / UNCONFIRMED STATE: No fabricated countdown ───
-  if (isUnverified || isUnconfirmed) {
+  // ─── UNVERIFIED / UNCONFIRMED / STALE STATE: No fabricated countdown ───
+  if (isUnverified || isUnconfirmed || isStale) {
     return (
       <div
         className="p-4 rounded-2xl border bg-white dark:bg-[#1E1B24] border-[#E5DEEB] dark:border-[#382F45] shadow-xs"
@@ -107,10 +110,14 @@ export function ReleaseCountdownCard({ serviceId, onOpenTtd, onPrepareBooking }:
             NEXT RELEASE
           </span>
           <span
-            className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#FFF8E1] text-[#B78103] dark:bg-[#3E2E04] dark:text-[#FFE082]"
+            className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${
+              isStale
+                ? 'bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-300'
+                : 'bg-[#FFF8E1] text-[#B78103] dark:bg-[#3E2E04] dark:text-[#FFE082]'
+            }`}
           >
             <span className="w-1.5 h-1.5 rounded-full bg-current" aria-hidden="true" />
-            Source needs verification
+            {isStale ? t('intelligence.statusStale') : 'Source needs verification'}
           </span>
         </div>
 
@@ -127,10 +134,12 @@ export function ReleaseCountdownCard({ serviceId, onOpenTtd, onPrepareBooking }:
 
         <div className="mt-3 p-3 rounded-xl bg-[#FFF8E1] dark:bg-[#3E2E04]">
           <span className="block text-xs font-bold text-[#B78103] dark:text-[#FFE082]">
-            Release date unavailable
+            {isStale ? t('intelligence.infoNeedsRefreshing') : 'Release date unavailable'}
           </span>
           <p className="text-xs text-[#8B6914] dark:text-[#E5C84E] mt-1 leading-relaxed">
-            Check the latest official TTD announcement. Official release date not yet confirmed.
+            {isStale
+              ? 'Release schedule information has aged past its verification window. Refresh for current TTD official announcements.'
+              : 'Check the latest official TTD announcement. Official release date not yet confirmed.'}
           </p>
           <p className="text-[11px] text-[#8B6914] dark:text-[#E5C84E] mt-0.5 opacity-80">
             {event.advanceMonths
@@ -155,7 +164,64 @@ export function ReleaseCountdownCard({ serviceId, onOpenTtd, onPrepareBooking }:
     );
   }
 
-  // ─── VERIFIED STATE: Full countdown + release intelligence ───
+  // ─── EXPECTED STATE: Recurring pattern guidance without false second-by-second countdown ───
+  if (isExpected) {
+    return (
+      <div
+        className="p-4 rounded-2xl border bg-white dark:bg-[#1E1B24] border-[#E5DEEB] dark:border-[#382F45] shadow-xs"
+        role="region"
+        aria-label="EXPECTED TTD RELEASE"
+      >
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-[11px] font-bold tracking-wider text-[#6F6477] dark:text-[#A89CB5] uppercase">
+            EXPECTED RELEASE
+          </span>
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-indigo-100 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-300">
+            <span className="w-1.5 h-1.5 rounded-full bg-current" aria-hidden="true" />
+            {t('intelligence.statusExpected')}
+          </span>
+        </div>
+
+        <div className="mt-1">
+          <h3 className="text-sm font-bold text-[#1E1427] dark:text-[#F3EFF8]">
+            {event.displayName || 'Special Entry Darshan — ₹300'}
+          </h3>
+          {releasePatternLabel && (
+            <p className="text-[10px] font-semibold tracking-wider text-[#8B7C99] dark:text-[#A89CB5] uppercase mt-0.5">
+              Release pattern: {releasePatternLabel}
+            </p>
+          )}
+          <p className="text-xs text-[#6F6477] dark:text-[#A89CB5] mt-1">
+            Expected Date: {event.releaseDate ? `${event.releaseDate} (${event.releaseTime || '10:00'} IST)` : 'Approximate recurring date'}
+          </p>
+        </div>
+
+        <div className="mt-3 p-3 rounded-xl bg-indigo-50/80 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/50">
+          <span className="block text-xs font-bold text-indigo-900 dark:text-indigo-200">
+            {countdownResult.formattedCountdown}
+          </span>
+          <p className="text-[11px] text-indigo-800 dark:text-indigo-300 mt-1">
+            Derived from recurring monthly TTD schedule. Not yet confirmed by official announcement.
+          </p>
+        </div>
+
+        <div className="mt-3 flex gap-2">
+          {onOpenTtd && (
+            <button
+              type="button"
+              onClick={onOpenTtd}
+              className="flex-1 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer bg-[#54258A] text-white hover:bg-[#6830AA] dark:bg-[#D4A72C] dark:text-[#1F1603] dark:hover:bg-[#E5B83E]"
+              aria-label="View Official Announcements"
+            >
+              Check Official Announcement ↗
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // ─── CONFIRMED VERIFIED STATE: Full countdown + release intelligence ───
   return (
     <div
       className="p-4 rounded-2xl border bg-white dark:bg-[#1E1B24] border-[#E5DEEB] dark:border-[#382F45] shadow-xs"
@@ -177,6 +243,21 @@ export function ReleaseCountdownCard({ serviceId, onOpenTtd, onPrepareBooking }:
           {isVerified ? 'Official source verified' : 'Source needs verification'}
         </span>
       </div>
+
+      {/* Change detection alert banner if release was updated */}
+      {event.isUpdated && (
+        <div className="mb-2.5 p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-xs">
+          <div className="font-bold text-amber-800 dark:text-amber-300 flex items-center gap-1">
+            <span>⚠</span> {t('intelligence.releaseUpdated')}
+          </div>
+          <div className="text-[11px] text-amber-700 dark:text-amber-400 mt-0.5">
+            {event.previousReleaseDate && (
+              <span>Previous: {event.previousReleaseDate} {event.previousReleaseTime || ''} → </span>
+            )}
+            <span>New: {event.releaseDate} {event.releaseTime || ''}</span>
+          </div>
+        </div>
+      )}
 
       <div className="mt-1">
         <h3 className="text-sm font-bold text-[#1E1427] dark:text-[#F3EFF8]">
@@ -216,6 +297,21 @@ export function ReleaseCountdownCard({ serviceId, onOpenTtd, onPrepareBooking }:
           </span>
         </div>
       </div>
+
+      {/* Release Day Preparation Mode */}
+      {isReleaseApproaching && (
+        <div className="mt-3 p-2.5 rounded-xl bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800">
+          <span className="block text-[11px] font-bold text-[#54258A] dark:text-[#D4A72C] uppercase tracking-wider">
+            {t('intelligence.releasePrepMode')}
+          </span>
+          <ul className="mt-1.5 space-y-1 text-[11px] text-[#4A3E54] dark:text-[#C5B8D1]">
+            <li className="flex items-center gap-1.5">✓ {t('intelligence.prepTips.confirmProfile')}</li>
+            <li className="flex items-center gap-1.5">✓ {t('intelligence.prepTips.confirmId')}</li>
+            <li className="flex items-center gap-1.5">✓ {t('intelligence.prepTips.openPage')}</li>
+            <li className="flex items-center gap-1.5">✓ {t('intelligence.prepTips.beReady')}</li>
+          </ul>
+        </div>
+      )}
 
       {/* Action buttons */}
       <div className="mt-3 flex gap-2">

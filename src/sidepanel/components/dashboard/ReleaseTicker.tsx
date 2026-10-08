@@ -10,7 +10,15 @@ interface ReleaseTickerProps {
   onOpenSource?: (url: string) => void;
 }
 
-function formatReleaseTickerItem(event: TtdReleaseEvent): { text: string; isPast: boolean } {
+interface FormattedTickerItem {
+  text: string;
+  badge: string;
+  badgeClass: string;
+  isPast: boolean;
+  isUpdated: boolean;
+}
+
+function formatReleaseTickerItem(event: TtdReleaseEvent): FormattedTickerItem {
   const countdown = calculateReleaseCountdown(event);
   const isPast = countdown.state === 'PASSED' || countdown.state === 'RELEASE_TIME_REACHED';
   const name = event.displayName || event.serviceName || 'TTD Quota';
@@ -18,41 +26,95 @@ function formatReleaseTickerItem(event: TtdReleaseEvent): { text: string; isPast
 
   if (isPast) {
     return {
-      text: `${name} • ${target} quota released`,
+      text: `${name} • ${target ? `${target} ` : ''}${t('intelligence.quotaReleased')}`,
+      badge: t('intelligence.quotaReleased'),
+      badgeClass: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
       isPast: true,
+      isUpdated: false,
     };
   }
 
-  if (event.releaseDate && event.releaseTime) {
+  // Format date and time
+  let dateFormatted = event.releaseDate || '';
+  if (event.releaseDate) {
     const [, monthStr, dayStr] = event.releaseDate.split('-');
     const months = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     const month = parseInt(monthStr, 10);
     const day = parseInt(dayStr, 10);
-    const dateFormatted = !isNaN(day) && !isNaN(month) && months[month] ? `${day} ${months[month]}` : event.releaseDate;
+    dateFormatted = !isNaN(day) && !isNaN(month) && months[month] ? `${day} ${months[month]}` : event.releaseDate;
+  }
 
+  let timeFormatted = event.releaseTime || '';
+  if (event.releaseTime) {
     const [hourStr, minStr] = event.releaseTime.split(':');
     const hour = parseInt(hourStr, 10);
     const min = minStr || '00';
     const ampm = !isNaN(hour) && hour >= 12 ? 'PM' : 'AM';
     const displayHour = !isNaN(hour) ? (hour % 12 || 12) : event.releaseTime;
-    const timeFormatted = `${displayHour}:${min} ${ampm} IST`;
+    timeFormatted = `${displayHour}:${min} ${ampm} IST`;
+  }
 
-    if (target && !target.toLowerCase().includes('pending')) {
+  // 1. Updated / Postponed / Rescheduled announcement
+  if (event.isUpdated) {
+    return {
+      text: `${name} • ${t('intelligence.newRelease', { new: `${dateFormatted} ${timeFormatted}` })} (${t('intelligence.previousRelease', { previous: event.previousReleaseDate || '' })})`,
+      badge: t('intelligence.releaseUpdated'),
+      badgeClass: 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 font-bold',
+      isPast: false,
+      isUpdated: true,
+    };
+  }
+
+  // 2. Stale release information
+  if (countdown.state === 'STALE' || event.status === 'STALE') {
+    return {
+      text: `${name} • ${t('intelligence.infoNeedsRefreshing')}`,
+      badge: t('intelligence.statusStale'),
+      badgeClass: 'bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-300 font-bold',
+      isPast: false,
+      isUpdated: false,
+    };
+  }
+
+  // 3. Expected release from recurring pattern
+  if (event.status === 'EXPECTED') {
+    return {
+      text: t('intelligence.expectedAround', { service: name, date: dateFormatted }),
+      badge: t('intelligence.statusExpected'),
+      badgeClass: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-300 font-semibold',
+      isPast: false,
+      isUpdated: false,
+    };
+  }
+
+  // 4. Confirmed release
+  if (event.releaseDate && event.releaseTime) {
+    if (countdown.days === 0 && !isPast) {
       return {
-        text: `${name} • Tickets for ${target} • Release ${dateFormatted} at ${timeFormatted}`,
+        text: `${name} • ${t('intelligence.releasesToday', { time: timeFormatted })}`,
+        badge: t('intelligence.statusConfirmed'),
+        badgeClass: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300 font-bold',
         isPast: false,
+        isUpdated: false,
       };
     }
 
     return {
-      text: `${name} • Next verified release: ${dateFormatted} at ${timeFormatted}`,
+      text: `${name} • Tickets release ${dateFormatted} at ${timeFormatted}`,
+      badge: t('intelligence.statusConfirmed'),
+      badgeClass: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300 font-bold',
       isPast: false,
+      isUpdated: false,
     };
   }
 
+  // 5. Unknown
   return {
-    text: `${name} • TTD release date not announced yet`,
+    text: `${name} • ${t('intelligence.noConfirmedRelease')}`,
+    badge: t('intelligence.statusUnknown'),
+    badgeClass: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
     isPast: false,
+    isUpdated: false,
   };
 }
 
@@ -124,16 +186,18 @@ export const ReleaseTicker: React.FC<ReleaseTickerProps> = ({ onOpenSource }) =>
             }}
           >
             {events.map((event) => {
-              const { text, isPast } = formatReleaseTickerItem(event);
+              const { text, badge, badgeClass, isPast } = formatReleaseTickerItem(event);
               return (
                 <button
                   key={event.id}
                   onClick={() => handleClick(event.sourceUrl)}
                   className="inline-flex items-center gap-1.5 text-xs text-[#30213A] dark:text-[#F8EFD8] hover:text-[#54258A] dark:hover:text-[#F0CC63] font-medium transition-colors cursor-pointer group"
                   title="Open official TTD announcement"
-                  aria-label={`${text}. Click to open official update.`}
+                  aria-label={`${badge}: ${text}. Click to open official update.`}
                 >
-                  <span className={`text-[10px] ${isPast ? 'text-gray-400' : 'text-[#D4A72C]'}`}>●</span>
+                  <span className={`px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wider ${badgeClass}`}>
+                    {badge}
+                  </span>
                   <span>{text}</span>
                   <span className="text-[10px] text-[#54258A] dark:text-[#D4A72C] opacity-60 group-hover:opacity-100 transition-opacity">
                     ↗
