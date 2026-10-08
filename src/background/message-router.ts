@@ -9,6 +9,7 @@ import * as repo from '@storage/repository';
 import logger from '@shared/logger';
 
 import { isSupportedDomain } from '@shared/utils';
+import { isInternalExtensionContext, sanitizeMessagePayload } from '@shared/message-security';
 
 /**
  * Safely send a message to a specific target tab's content script.
@@ -214,15 +215,26 @@ export async function handleMessage(
         break;
       }
 
-      // ─── Profile operations ───
+      // ─── Profile operations (Internal extension context only) ───
       case MessageType.GET_PROFILES: {
+        if (!isInternalExtensionContext(sender)) {
+          logger.warn('[MessageRouter] Blocked GET_PROFILES from untrusted tab/content script');
+          sendResponse({ success: false, error: 'Unauthorized: Content scripts cannot read profile storage' });
+          break;
+        }
         const profiles = await repo.getProfiles();
         sendResponse({ success: true, data: profiles });
         break;
       }
 
       case MessageType.SAVE_PROFILE: {
-        const { id, ...updates } = (message.payload || {}) as Record<string, unknown>;
+        if (!isInternalExtensionContext(sender)) {
+          logger.warn('[MessageRouter] Blocked SAVE_PROFILE from untrusted tab/content script');
+          sendResponse({ success: false, error: 'Unauthorized: Content scripts cannot write profile storage' });
+          break;
+        }
+        const sanitized = sanitizeMessagePayload(message.payload || {}) as Record<string, unknown>;
+        const { id, ...updates } = sanitized;
         if (id) {
           const profile = await repo.updateProfile(id as string, updates);
           sendResponse({ success: true, data: profile });
@@ -233,6 +245,11 @@ export async function handleMessage(
       }
 
       case MessageType.DELETE_PROFILE: {
+        if (!isInternalExtensionContext(sender)) {
+          logger.warn('[MessageRouter] Blocked DELETE_PROFILE from untrusted tab/content script');
+          sendResponse({ success: false, error: 'Unauthorized: Content scripts cannot delete profiles' });
+          break;
+        }
         const { profileId } = (message.payload || {}) as { profileId: string };
         if (profileId) {
           await repo.deleteProfile(profileId);
@@ -243,17 +260,26 @@ export async function handleMessage(
         break;
       }
 
-      // ─── Settings ───
+      // ─── Settings (Internal extension context only) ───
       case MessageType.GET_SETTINGS: {
+        if (!isInternalExtensionContext(sender)) {
+          logger.warn('[MessageRouter] Blocked GET_SETTINGS from untrusted tab/content script');
+          sendResponse({ success: false, error: 'Unauthorized: Content scripts cannot read settings' });
+          break;
+        }
         const settings = await repo.getSettings();
         sendResponse({ success: true, data: settings });
         break;
       }
 
       case MessageType.SAVE_SETTINGS: {
-        const updated = await repo.saveSettings(
-          (message.payload || {}) as Record<string, unknown>,
-        );
+        if (!isInternalExtensionContext(sender)) {
+          logger.warn('[MessageRouter] Blocked SAVE_SETTINGS from untrusted tab/content script');
+          sendResponse({ success: false, error: 'Unauthorized: Content scripts cannot modify settings' });
+          break;
+        }
+        const sanitizedSettings = sanitizeMessagePayload(message.payload || {}) as Record<string, unknown>;
+        const updated = await repo.saveSettings(sanitizedSettings);
         sendResponse({ success: true, data: updated });
         break;
       }

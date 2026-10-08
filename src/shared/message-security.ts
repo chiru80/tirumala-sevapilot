@@ -75,6 +75,30 @@ export function isTrustedExtensionSender(sender: chrome.runtime.MessageSender): 
 }
 
 /**
+ * Checks if the message sender originates strictly from internal extension pages
+ * (e.g. side panel, popup, options), and NOT from an untrusted web page content script.
+ */
+export function isInternalExtensionContext(sender: chrome.runtime.MessageSender): boolean {
+  if (!sender) return false;
+  // Content scripts always run within a tab; internal extension pages (sidepanel, popup, options) do not have sender.tab
+  if (sender.tab) return false;
+
+  if (typeof chrome !== 'undefined' && chrome.runtime?.id) {
+    if (sender.id && sender.id !== chrome.runtime.id) {
+      return false;
+    }
+    if (sender.url && typeof chrome.runtime.getURL === 'function') {
+      const extBase = chrome.runtime.getURL('');
+      if (!sender.url.startsWith(extBase)) {
+        return false;
+      }
+    }
+  }
+
+  return true;
+}
+
+/**
  * Strips potentially dangerous string payloads (e.g. javascript: URLs, script tags).
  */
 export function sanitizeMessagePayload<T>(payload: T): T {
