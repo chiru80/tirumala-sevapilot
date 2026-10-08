@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Gender, IdType } from '@shared/types';
 import type { Pilgrim } from '@shared/types';
 import { t } from '@i18n/index';
+import { validateDevoteePhotoFile } from '../../../security/file-security';
 
 export interface QuickPilgrimFormProps {
   onSave: (pilgrim: Omit<Pilgrim, 'id' | 'createdAt' | 'updatedAt'>) => void;
@@ -30,6 +31,12 @@ export function QuickPilgrimForm({ onSave, onCancel, targetServiceId }: QuickPil
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    const validation = validateDevoteePhotoFile(file);
+    if (!validation.valid) {
+      setFormError(validation.error || 'Invalid file format or size');
+      return;
+    }
+    setFormError(null);
     const reader = new FileReader();
     reader.onload = (event) => {
       setPhoto(event.target?.result as string);
@@ -299,7 +306,7 @@ export function QuickPilgrimForm({ onSave, onCancel, targetServiceId }: QuickPil
             <label className="sp-label text-xs mb-0.5">Pilgrim Photo (Optional upload)</label>
             <input
               type="file"
-              accept="image/*"
+              accept=".jpg,.jpeg,.png,image/jpeg,image/png"
               onChange={handlePhotoUpload}
               className="text-[11px] text-[#6B5A70] dark:text-[#A692B4] file:mr-2 file:py-0.5 file:px-2 file:rounded file:border-0 file:text-[11px] file:bg-[#5B2A86]/10 file:text-[#5B2A86]"
             />

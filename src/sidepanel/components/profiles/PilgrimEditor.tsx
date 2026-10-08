@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Gender, IdType } from '@shared/types';
 import type { Pilgrim } from '@shared/types';
+import { validateDevoteePhotoFile } from '../../../security/file-security';
 
 export function maskIdDisplay(val?: string): string {
   if (!val) return '—';
@@ -50,9 +51,17 @@ export function PilgrimEditorModal({
     { id: 'photo', label: '6. Photo & Notes' },
   ];
 
+  const [photoError, setPhotoError] = useState<string | null>(null);
+
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    const validation = validateDevoteePhotoFile(file);
+    if (!validation.valid) {
+      setPhotoError(validation.error || 'Invalid file');
+      return;
+    }
+    setPhotoError(null);
     const reader = new FileReader();
     reader.onload = (event) => {
       const dataUrl = event.target?.result as string;
@@ -488,10 +497,13 @@ export function PilgrimEditorModal({
                 <div className="flex-1 space-y-1">
                   <input
                     type="file"
-                    accept="image/*"
+                    accept=".jpg,.jpeg,.png,image/jpeg,image/png"
                     onChange={handlePhotoUpload}
                     className="text-xs text-[#6B5A70] dark:text-[#A692B4] file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-[#5B2A86]/10 file:text-[#5B2A86] dark:file:bg-gold-500/20 dark:file:text-gold-300 hover:file:bg-[#5B2A86]/20 cursor-pointer"
                   />
+                  {photoError && (
+                    <p className="text-[10px] text-red-500 font-medium">{photoError}</p>
+                  )}
                   {pilgrim.photo && (
                     <button
                       type="button"
