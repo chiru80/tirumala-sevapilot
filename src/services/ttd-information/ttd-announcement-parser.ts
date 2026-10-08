@@ -1,7 +1,8 @@
 // ─────────────────────────────────────────────────────────────
-// Tirumala SevaPilot — TTD Official Announcement Parser (Phase 5)
+// Tirumala SevaPilot — TTD Official Announcement Parser (Phase 7)
 // Extracts verified release dates and quota timings from official
 // press release summaries (e.g. news.tirumala.org).
+// Defensive, deterministic, non-locale, zero-guessing.
 // ─────────────────────────────────────────────────────────────
 
 import { validateTtdSource } from './ttd-source-validator';
@@ -11,6 +12,10 @@ import {
   registerOfficialAnnouncement,
 } from './ttd-release-calendar';
 import { getServiceConfig } from './ttd-service-rules';
+import {
+  parseStrictReleaseDate,
+  parseStrictReleaseTime,
+} from './release-date-parser';
 
 export interface AnnouncementParseInput {
   title: string;
@@ -23,151 +28,84 @@ export interface AnnouncementParseInput {
 
 /**
  * Service pattern signatures to detect service from announcement titles/text
+ * Includes both English and Telugu keywords for official TTD press releases.
  */
-const SERVICE_SIGNATURES: Array<{
+export const SERVICE_SIGNATURES: Array<{
   serviceId: string;
   keywords: string[];
   defaultTime: string;
 }> = [
   {
     serviceId: 'special-entry-300',
-    keywords: ['special entry', 'sed', '₹300', '300 rs', 'rs.300', 'see darshan'],
+    keywords: [
+      'special entry', 'sed', '₹300', '300 rs', 'rs.300', 'rs 300',
+      'see darshan', 'seeghra darshan', 'రూ. 300', 'రూ.300',
+      'ప్రత్యేక ప్రవేశ దర్శనం', 'ప్రత్యేక ప్రవేశ'
+    ],
     defaultTime: '10:00',
   },
   {
     serviceId: 'padmavathi-special-entry-200',
-    keywords: ['padmavathi', 'ammavari', '₹200', '200 rs', 'tiruchanoor'],
+    keywords: [
+      'padmavathi', 'ammavari', '₹200', '200 rs', 'rs.200', 'tiruchanoor',
+      'రూ. 200', 'రూ.200', 'పద్మావతి', 'అమ్మవారి'
+    ],
     defaultTime: '10:00',
   },
   {
     serviceId: 'sri-srinivasa-divyanugraha-homam',
-    keywords: ['homam', 'srinivasa divyanugraha', 'vishesha homam', 'alipiri homam'],
+    keywords: [
+      'homam', 'srinivasa divyanugraha', 'vishesha homam', 'alipiri homam',
+      'దివ్యానుగ్రహ', 'హోమం'
+    ],
+    defaultTime: '15:00',
+  },
+  {
+    serviceId: 'srivari-seva',
+    keywords: [
+      'srivari seva', 'srivariseva', 'voluntary seva', 'general seva',
+      'navaneetha seva', 'parakamani seva', 'శ్రీవారి సేవ', 'సేవకులు'
+    ],
     defaultTime: '15:00',
   },
   {
     serviceId: 'arjitha-sevas',
-    keywords: ['arjitha seva', 'kalyanotsavam', 'electronic dip', 'arjitha'],
+    keywords: [
+      'arjitha seva', 'kalyanotsavam', 'electronic dip', 'arjitha',
+      'ఆర్జిత సేవ', 'కళ్యాణోత్సవం'
+    ],
     defaultTime: '10:00',
   },
   {
     serviceId: 'accommodation',
-    keywords: ['accommodation', 'rooms', 'cottages'],
+    keywords: [
+      'accommodation', 'rooms', 'cottages', 'గదులు', 'వసతి'
+    ],
     defaultTime: '15:00',
   },
   {
     serviceId: 'srivani',
-    keywords: ['srivani', 'trust donor', 'sri vani'],
+    keywords: [
+      'srivani', 'trust donor', 'sri vani', 'శ్రీవాణి'
+    ],
     defaultTime: '11:00',
   },
   {
     serviceId: 'angapradakshinam',
-    keywords: ['angapradakshinam', 'anga pradakshinam'],
+    keywords: [
+      'angapradakshinam', 'anga pradakshinam', 'అంగప్రదక్షిణం'
+    ],
     defaultTime: '14:00',
   },
   {
     serviceId: 'senior-citizen',
-    keywords: ['senior citizen', 'differently abled', 'physically challenged'],
+    keywords: [
+      'senior citizen', 'differently abled', 'physically challenged',
+      'వయోవృద్ధుల', 'దివ్యాంగుల'
+    ],
     defaultTime: '15:00',
   },
 ];
-
-/**
- * Month names lookup
- */
-const MONTHS_MAP: Record<string, string> = {
-  jan: '01', january: '01',
-  feb: '02', february: '02',
-  mar: '03', march: '03',
-  apr: '04', april: '04',
-  may: '05',
-  jun: '06', june: '06',
-  jul: '07', july: '07',
-  aug: '08', august: '08',
-  sep: '09', sept: '09', september: '09',
-  oct: '10', october: '10',
-  nov: '11', november: '11',
-  dec: '12', december: '12',
-};
-
-/**
- * Extracts date pattern (e.g. "24th September 2026", "24-09-2026", "September 24")
- */
-function extractReleaseDate(text: string): { releaseDate: string; targetMonth: string } | null {
-  const normalized = text.toLowerCase();
-
-  // Pattern 1: e.g. "24th September 2026" or "24 September 2026" or "24 Oct"
-  const dateRegex1 = /\b(\d{1,2})(?:st|nd|rd|th)?\s+(january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sep|sept|oct|nov|dec)\b(?:\s+(\d{4}))?/i;
-  const match1 = text.match(dateRegex1);
-
-  if (match1) {
-    const day = match1[1].padStart(2, '0');
-    const monthStr = match1[2].toLowerCase();
-    const month = MONTHS_MAP[monthStr] || '10';
-    const year = match1[3] || '2026';
-    return {
-      releaseDate: `${year}-${month}-${day}`,
-      targetMonth: `${monthStr.toUpperCase()} ${year}`,
-    };
-  }
-
-  // Pattern 2: e.g. "September 24, 2026"
-  const dateRegex2 = /\b(january|february|march|april|may|june|july|august|september|october|november|december)\s+(\d{1,2})(?:st|nd|rd|th)?,?\s*(\d{4})?\b/i;
-  const match2 = text.match(dateRegex2);
-
-  if (match2) {
-    const monthStr = match2[1].toLowerCase();
-    const month = MONTHS_MAP[monthStr] || '10';
-    const day = match2[2].padStart(2, '0');
-    const year = match2[3] || '2026';
-    return {
-      releaseDate: `${year}-${month}-${day}`,
-      targetMonth: `${monthStr.toUpperCase()} ${year}`,
-    };
-  }
-
-  // Fallback: look for ISO-like dates e.g. 2026-10-24
-  const isoMatch = text.match(/\b(202\d)-(\d{2})-(\d{2})\b/);
-  if (isoMatch) {
-    return {
-      releaseDate: `${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}`,
-      targetMonth: `${isoMatch[1]}-${isoMatch[2]}`,
-    };
-  }
-
-  return null;
-}
-
-/**
- * Extracts release time (e.g. "10:00 AM", "10 AM", "15:00 hrs")
- */
-function extractReleaseTime(text: string, defaultTime: string): string {
-  // e.g. 10:00 AM or 10 AM or 3:00 PM or 3 PM
-  const timeRegex = /\b(\d{1,2})(?::(\d{2}))?\s*(am|pm)\b/i;
-  const match = text.match(timeRegex);
-
-  if (match) {
-    let hours = parseInt(match[1], 10);
-    const minutes = match[2] || '00';
-    const meridian = match[3].toLowerCase();
-
-    if (meridian === 'pm' && hours < 12) {
-      hours += 12;
-    } else if (meridian === 'am' && hours === 12) {
-      hours = 0;
-    }
-
-    return `${String(hours).padStart(2, '0')}:${minutes}`;
-  }
-
-  // 24-hour pattern e.g. 10:00 or 15:00
-  const militaryRegex = /\b([01]?\d|2[0-3]):([0-5]\d)\b/;
-  const militaryMatch = text.match(militaryRegex);
-  if (militaryMatch) {
-    return `${militaryMatch[1].padStart(2, '0')}:${militaryMatch[2]}`;
-  }
-
-  return defaultTime;
-}
 
 /**
  * Extracts release pattern and advance months from announcement text if specified.
@@ -213,8 +151,10 @@ export function extractAdvancePattern(text: string): { releasePattern: string; a
 
 /**
  * Parses announcement into structured release events.
- * If the latest official TTD announcement changes the pattern,
- * the official announcement overrides the stored default.
+ * Defensive & strict:
+ * - Uses parseStrictReleaseDate (never new Date())
+ * - Uses parseStrictReleaseTime (rejects malformed times)
+ * - Returns empty array if no service or valid date is identified
  */
 export function parseTtdAnnouncement(input: AnnouncementParseInput): TtdReleaseEvent[] {
   const fullText = `${input.title} \n ${input.content}`;
@@ -227,44 +167,54 @@ export function parseTtdAnnouncement(input: AnnouncementParseInput): TtdReleaseE
     );
 
     if (isServiceMentioned) {
-      const extracted = extractReleaseDate(fullText);
-      if (extracted) {
-        const time = extractReleaseTime(fullText, sig.defaultTime);
+      // 1. Strict date parsing
+      const parsedDate = parseStrictReleaseDate(fullText);
+      if (parsedDate) {
+        // 2. Strict time parsing from text
+        const parsedTime = parseStrictReleaseTime(fullText);
+        const time = parsedTime ? parsedTime.time : sig.defaultTime;
+
         const config = getServiceConfig(sig.serviceId);
         const textPattern = extractAdvancePattern(fullText);
 
-        // If the official TTD announcement changes/specifies the pattern,
-        // the official announcement overrides the stored default.
         const releasePattern =
-          input.releasePattern || textPattern?.releasePattern || config?.releasePattern;
+          input.releasePattern || textPattern?.releasePattern || config?.releasePattern || 'MONTHLY_QUOTA_RELEASE';
         const advanceMonths =
           input.advanceMonths !== undefined
             ? input.advanceMonths
             : textPattern?.advanceMonths !== undefined
             ? textPattern.advanceMonths
-            : config?.advanceMonths;
+            : config?.advanceMonths !== undefined
+            ? config.advanceMonths
+            : 0;
+
+        const isOfficialSource = validation.isValid;
 
         events.push({
-          id: `announcement-${sig.serviceId}-${extracted.releaseDate}`,
+          id: `announcement-${sig.serviceId}-${parsedDate.date}`,
           serviceId: sig.serviceId,
           serviceName: config?.displayName || sig.serviceId,
           displayName: config?.displayName || sig.serviceId,
           bookingType: config?.category || 'Quota Release',
-          targetBookingDates: extracted.targetMonth,
-          targetMonth: extracted.targetMonth,
-          releaseDate: extracted.releaseDate,
+          targetBookingDates: parsedDate.formattedDisplay,
+          targetMonth: parsedDate.formattedDisplay,
+          releaseDate: parsedDate.date,
           releaseTime: time,
           timezone: IST_TIMEZONE,
+          status: isOfficialSource ? 'CONFIRMED' : 'UNKNOWN',
+          confidence: isOfficialSource ? 'OFFICIAL' : 'UNKNOWN',
+          source: isOfficialSource ? 'Official TTD Press Release' : 'External Source',
+          sourceUrl: input.sourceUrl,
+          sourceDate: input.publishedDate || new Date().toISOString().slice(0, 10),
           releasePattern,
           advanceMonths,
           releaseType: config?.releaseType || 'MONTHLY_QUOTA_RELEASE',
-          sourceUrl: input.sourceUrl,
-          sourceDate: input.publishedDate || new Date().toISOString().slice(0, 10),
-          verificationStatus: validation.isValid ? 'VERIFIED_OFFICIAL' : 'UNVERIFIED',
-          verified: validation.isValid,
-          isConfirmed: validation.isValid && Boolean(extracted.releaseDate),
+          verificationStatus: isOfficialSource ? 'VERIFIED_OFFICIAL' : 'UNVERIFIED',
+          verified: isOfficialSource,
+          isConfirmed: isOfficialSource && Boolean(parsedDate.date),
           publishedTimestamp: input.publishedDate ? new Date(input.publishedDate).toISOString() : new Date().toISOString(),
           fetchedAt: new Date().toISOString(),
+          expiresAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
         });
       }
     }
