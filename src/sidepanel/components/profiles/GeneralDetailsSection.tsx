@@ -40,8 +40,8 @@ export function GeneralDetailsSection({
   const [mobile, setMobile] = useState(profile.general?.mobile || '');
   const [email, setEmail] = useState(profile.general?.email || profile?.pilgrims?.[0]?.email || '');
   const [city, setCity] = useState(profile.general?.city || profile?.pilgrims?.[0]?.city || '');
-  const [state, setState] = useState(profile.general?.state || profile?.pilgrims?.[0]?.state || 'Andhra Pradesh');
-  const [country, setCountry] = useState(profile.general?.country || profile?.pilgrims?.[0]?.country || 'India');
+  const [state, setState] = useState(profile.general?.state || profile?.pilgrims?.[0]?.state || '');
+  const [country, setCountry] = useState(profile.general?.country || profile?.pilgrims?.[0]?.country || '');
   const [pinCode, setPinCode] = useState(profile.general?.pinCode || profile?.pilgrims?.[0]?.pinCode || '');
   const [savedMsg, setSavedMsg] = useState(false);
 
@@ -50,8 +50,8 @@ export function GeneralDetailsSection({
     setMobile(profile.general?.mobile || '');
     setEmail(profile.general?.email || profile?.pilgrims?.[0]?.email || '');
     setCity(profile.general?.city || profile?.pilgrims?.[0]?.city || '');
-    setState(profile.general?.state || profile?.pilgrims?.[0]?.state || 'Andhra Pradesh');
-    setCountry(profile.general?.country || profile?.pilgrims?.[0]?.country || 'India');
+    setState(profile.general?.state || profile?.pilgrims?.[0]?.state || '');
+    setCountry(profile.general?.country || profile?.pilgrims?.[0]?.country || '');
     setPinCode(profile.general?.pinCode || profile?.pilgrims?.[0]?.pinCode || '');
   }, [profile]);
 
@@ -61,8 +61,8 @@ export function GeneralDetailsSection({
       mobile: mobile.replace(/\D/g, '').slice(0, 10) || undefined,
       email: email.trim() || undefined,
       city: city.trim() || undefined,
-      state: state || undefined,
-      country: country.trim() || 'India',
+      state: state.trim() || undefined,
+      country: country.trim() || undefined,
       pinCode: pinCode.replace(/\D/g, '').slice(0, 6) || undefined,
     });
     setSavedMsg(true);

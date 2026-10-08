@@ -586,7 +586,8 @@ export async function setPhotoIdProofDropdown(
   idTypeValue: string,
   doc: Document = document,
 ): Promise<boolean> {
-  const normIdType = (idTypeValue || 'Aadhaar Card').trim().toLowerCase();
+  if (!idTypeValue?.trim()) return false;
+  const normIdType = idTypeValue.trim().toLowerCase();
 
   // Case 1: Native <select>
   if (control instanceof HTMLSelectElement) {
@@ -668,8 +669,11 @@ export async function setPhotoIdProofDropdown(
 
   // Fallback for custom input
   if (control instanceof HTMLInputElement) {
-    setNativeValue(control, idTypeValue || 'Aadhaar Card');
-    return true;
+    if (idTypeValue?.trim()) {
+      setNativeValue(control, idTypeValue.trim());
+      return true;
+    }
+    return false;
   }
 
   return false;
@@ -784,20 +788,25 @@ export async function autofillPilgrimRow(
   if (genderControl) {
     usedElements.add(genderControl);
     fieldsStatus.gender.detected = true;
-    const genderVal = pilgrim.gender || 'Male';
-    const selected = await setGenderDropdown(genderControl, genderVal, doc);
-    fieldsStatus.gender.filled = selected;
-    fieldsStatus.gender.validated = selected;
-    fieldsStatus.gender.maskedValue = genderVal;
+    const genderVal = pilgrim.gender?.trim() || '';
+    if (genderVal) {
+      const selected = await setGenderDropdown(genderControl, genderVal, doc);
+      fieldsStatus.gender.filled = selected;
+      fieldsStatus.gender.validated = selected;
+      fieldsStatus.gender.maskedValue = genderVal;
+    } else {
+      errors.push(`Pilgrim ${pIndex + 1}: Gender is required but empty in profile`);
+      fieldsStatus.gender.error = 'Gender is empty in profile';
+    }
   } else {
     // Check for radio buttons in this row container
     const radios = Array.from(group.container.querySelectorAll<HTMLInputElement>('input[type="radio"]'))
       .filter(r => !usedElements.has(r));
-    const targetRadio = radios.find(r => {
+    const targetRadio = pilgrim.gender ? radios.find(r => {
       const val = (r.value || '').toLowerCase();
-      const normG = (pilgrim.gender || 'male').toLowerCase();
+      const normG = (pilgrim.gender || '').toLowerCase();
       return val.includes(normG) || (normG.startsWith('m') && val === 'm') || (normG.startsWith('f') && val === 'f');
-    });
+    }) : undefined;
     if (targetRadio) {
       usedElements.add(targetRadio);
       fieldsStatus.gender.detected = true;
@@ -805,10 +814,10 @@ export async function autofillPilgrimRow(
       targetRadio.dispatchEvent(new Event('change', { bubbles: true }));
       fieldsStatus.gender.filled = true;
       fieldsStatus.gender.validated = true;
-      fieldsStatus.gender.maskedValue = pilgrim.gender || 'Male';
+      fieldsStatus.gender.maskedValue = pilgrim.gender;
     } else {
       errors.push(`Pilgrim ${pIndex + 1}: Gender control not detected in row`);
-      fieldsStatus.gender.error = 'Control not detected';
+      fieldsStatus.gender.error = pilgrim.gender ? 'Control not detected' : 'Gender is empty in profile';
     }
   }
 
@@ -824,11 +833,16 @@ export async function autofillPilgrimRow(
   if (photoIdProofControl) {
     usedElements.add(photoIdProofControl);
     fieldsStatus.photoIdProof.detected = true;
-    const idTypeVal = pilgrim.idType || 'Aadhaar Card';
-    const selected = await setPhotoIdProofDropdown(photoIdProofControl, idTypeVal, doc);
-    fieldsStatus.photoIdProof.filled = selected;
-    fieldsStatus.photoIdProof.validated = selected;
-    fieldsStatus.photoIdProof.maskedValue = idTypeVal;
+    const idTypeVal = pilgrim.idType?.trim() || '';
+    if (idTypeVal) {
+      const selected = await setPhotoIdProofDropdown(photoIdProofControl, idTypeVal, doc);
+      fieldsStatus.photoIdProof.filled = selected;
+      fieldsStatus.photoIdProof.validated = selected;
+      fieldsStatus.photoIdProof.maskedValue = idTypeVal;
+    } else {
+      errors.push(`Pilgrim ${pIndex + 1}: ID Proof Type is required but empty in profile`);
+      fieldsStatus.photoIdProof.error = 'ID Proof Type is empty in profile';
+    }
   } else {
     errors.push(`Pilgrim ${pIndex + 1}: Photo ID Proof dropdown not detected in row`);
     fieldsStatus.photoIdProof.error = 'Dropdown not detected';
@@ -971,7 +985,11 @@ export async function autofillPilgrim(
   }, doc, container);
 
   if (genderControl) {
-    genderSelected = await setGenderDropdown(genderControl, pilgrim.gender || 'Male', doc);
+    if (pilgrim.gender?.trim()) {
+      genderSelected = await setGenderDropdown(genderControl, pilgrim.gender.trim(), doc);
+    } else {
+      errors.push(`Gender is empty in profile for pilgrim ${index + 1}`);
+    }
   } else {
     errors.push(`Gender dropdown not found for pilgrim ${index + 1}`);
   }
@@ -987,7 +1005,11 @@ export async function autofillPilgrim(
   }, doc, container);
 
   if (photoIdProofControl) {
-    photoIdProofSelected = await setPhotoIdProofDropdown(photoIdProofControl, pilgrim.idType || 'Aadhaar Card', doc);
+    if (pilgrim.idType?.trim()) {
+      photoIdProofSelected = await setPhotoIdProofDropdown(photoIdProofControl, pilgrim.idType.trim(), doc);
+    } else {
+      errors.push(`Photo ID Proof type is empty in profile for pilgrim ${index + 1}`);
+    }
   } else {
     errors.push(`Photo ID Proof dropdown not found for pilgrim ${index + 1}`);
   }
@@ -1442,7 +1464,7 @@ export async function autofillGeneralDetails(
   const mobileVal = (g.mobile || primaryPilgrim.mobile || profile?.mobile || '').replace(/\D/g, '').slice(0, 10);
   const cityVal = g.city || primaryPilgrim.city || profile?.city || '';
   const stateVal = g.state || primaryPilgrim.state || profile?.state || '';
-  const countryVal = g.country || primaryPilgrim.country || profile?.country || 'India';
+  const countryVal = g.country || primaryPilgrim.country || profile?.country || '';
   const pincodeVal = (g.pincode || g.pinCode || primaryPilgrim.pinCode || primaryPilgrim.pincode || profile?.pinCode || '').replace(/\D/g, '').slice(0, 6);
 
   let emailFilled = false;
@@ -1537,8 +1559,10 @@ export async function autofillGeneralDetails(
 
   if (countryControl) {
     if (DEBUG_AUTOFILL) logger.info('Country control found');
-    countrySelected = await setSelectOrInputValue(countryControl, countryVal || 'India', doc);
-    if (DEBUG_AUTOFILL) logger.info('Country selected');
+    if (countryVal) {
+      countrySelected = await setSelectOrInputValue(countryControl, countryVal, doc);
+      if (DEBUG_AUTOFILL) logger.info('Country selected');
+    }
   } else {
     errors.push('Country control not found');
   }

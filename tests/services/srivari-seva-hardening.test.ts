@@ -34,6 +34,11 @@ import {
   classifyError,
 } from '../../src/services/error-classification';
 import { generateVerhoeffChecksum } from '../../src/validation/aadhaar';
+import {
+  setPhotoIdProofDropdown,
+  autofillPilgrimRow,
+} from '../../src/content/ttd-pilgrim-autofill';
+import { resolveGeneralDetails } from '../../src/shared/utils';
 
 describe('Phase 6 — Srivari Seva Hardening & Verification', () => {
   beforeEach(() => {
@@ -232,6 +237,58 @@ describe('Phase 6 — Srivari Seva Hardening & Verification', () => {
       const evalResult = ReadinessEngine.evaluate(profile, ServiceType.SRIVARI_SEVA, 'srivari-seva');
       expect(evalResult.isBookingReady).toBe(false);
       expect(evalResult.missingFields.some(f => f.toLowerCase().includes('street') || f.toLowerCase().includes('address'))).toBe(true);
+    });
+
+    it('resolveGeneralDetails does not invent Andhra Pradesh or India for empty address', () => {
+      const emptyProfile = {
+        id: 'prof-empty',
+        name: 'Empty Profile',
+        pilgrims: [],
+        createdAt: '2026-01-01',
+      } as unknown as Profile;
+
+      const details = resolveGeneralDetails(emptyProfile);
+      expect(details.state).toBe('');
+      expect(details.country).toBe('');
+    });
+
+    it('setPhotoIdProofDropdown returns false and does nothing when idTypeValue is empty', async () => {
+      const select = document.createElement('select');
+      select.innerHTML = '<option value="">Select ID</option><option value="aadhaar">Aadhaar Card</option>';
+      document.body.appendChild(select);
+
+      const result = await setPhotoIdProofDropdown(select, '');
+      expect(result).toBe(false);
+      expect(select.value).toBe('');
+    });
+
+    it('autofillPilgrimRow rejects missing gender and idType without inventing Male or Aadhaar', async () => {
+      const rowContainer = document.createElement('div');
+      rowContainer.innerHTML = `
+        <input aria-label="Devotee Name" value="" />
+        <select aria-label="Gender"><option value="">Select</option><option value="Male">Male</option></select>
+        <select aria-label="Photo ID Proof"><option value="">Select</option><option value="Aadhaar Card">Aadhaar Card</option></select>
+      `;
+      document.body.appendChild(rowContainer);
+
+      const missingPilgrim: Pilgrim = {
+        ...baseValidPilgrim,
+        gender: '' as any,
+        idType: '' as any,
+      };
+
+      const result = await autofillPilgrimRow(
+        { container: rowContainer, index: 0 },
+        missingPilgrim,
+        new Set(),
+        document,
+      );
+
+      expect(result.errors.length).toBeGreaterThan(0);
+      expect(result.fields.gender.error).toContain('empty in profile');
+      expect(result.fields.photoIdProof.error).toContain('empty in profile');
+      expect(result.fields.gender.filled).toBe(false);
+      expect(result.fields.photoIdProof.filled).toBe(false);
     });
   });
 

@@ -36,7 +36,7 @@ export function PilgrimEditor({ initialPilgrim, onSave, onCancel }: PilgrimEdito
     state: initialPilgrim?.state,
     district: initialPilgrim?.district,
     pinCode: initialPilgrim?.pinCode,
-    country: initialPilgrim?.country || 'India',
+    country: initialPilgrim?.country || '',
     photo: initialPilgrim?.photo,
     srivariSeva: initialPilgrim?.srivariSeva,
     createdAt: (initialPilgrim as Pilgrim)?.createdAt || new Date().toISOString(),

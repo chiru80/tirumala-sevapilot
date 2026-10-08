@@ -227,8 +227,8 @@ export function resolveGeneralDetails(profile: any): {
     email: (g.email || profile?.email || p0.email || '').trim(),
     mobile: (g.mobile || profile?.mobile || p0.mobile || '').trim(),
     city: (g.city || addr.city || '').trim(),
-    state: (g.state || addr.state || 'Andhra Pradesh').trim(),
-    country: (g.country || addr.country || 'India').trim(),
+    state: (g.state || addr.state || '').trim(),
+    country: (g.country || addr.country || '').trim(),
     pinCode: (g.pinCode || addr.pinCode || '').trim(),
   };
 }

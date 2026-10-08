@@ -199,7 +199,7 @@ export function mergePilgrims(primary: Pilgrim, secondary: Pilgrim): Pilgrim {
     city: choose(primary.city, secondary.city),
     district: choose(primary.district, secondary.district),
     state: choose(primary.state, secondary.state),
-    country: choose(primary.country, secondary.country) || 'India',
+    country: choose(primary.country, secondary.country) || '',
     pinCode: choose(primary.pinCode, secondary.pinCode),
     photo: choose(primary.photo, secondary.photo),
     passportNumber: choose(primary.passportNumber, secondary.passportNumber),

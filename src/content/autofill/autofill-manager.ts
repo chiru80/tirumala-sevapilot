@@ -1093,7 +1093,25 @@ async function fillPilgrimRow(
   progress.currentField = `Pilgrim ${pilgrimIndex + 1}: Photo ID Proof`;
   emit();
   const idProofRes = getRes('photoIdProof');
-  const idType = pilgrim.idType || 'Aadhaar Card';
+  const idType = pilgrim.idType?.trim() || '';
+
+  if (!idType) {
+    pp.results.push({
+      field: 'photoIdProof',
+      pilgrimIndex,
+      status: 'failed',
+      attempts: 0,
+      durationMs: 0,
+      error: `Pilgrim ${pilgrimIndex + 1}: ID Proof Type is required but empty in profile`,
+      detected: Boolean(idProofRes),
+      confidence: idProofRes?.confidence || 0,
+      strategy: idProofRes?.strategy || 'none',
+      filled: false,
+      verified: false,
+    });
+    bookingSessionManager.emitDiagnostic('FIELD_FAILED', { field: 'photoIdProof', pilgrimIndex });
+    return;
+  }
 
   if (bookingSessionManager.isUserModified('photoIdProof', pilgrimIndex)) {
     logger.info(`Pilgrim ${pilgrimIndex + 1}: Photo ID Proof was manually entered by user. Preserving user value.`);
@@ -2228,7 +2246,8 @@ async function repairSinglePilgrimField(
       };
     }
     case 'photoIdProof': {
-      const idType = pilgrim.idType || 'Aadhaar Card';
+      const idType = pilgrim.idType?.trim() || '';
+      if (!idType) return null;
       const res = await retryWithVerification({
         fieldType: 'photoIdProof',
         element: el,

@@ -306,9 +306,10 @@ export function PilgrimEditorModal({
                 <label className="sp-label">State *</label>
                 <select
                   className="sp-input text-xs"
-                  value={pilgrim.state || 'Andhra Pradesh'}
+                  value={pilgrim.state || ''}
                   onChange={e => setPilgrim({ ...pilgrim, state: e.target.value })}
                 >
+                  <option value="">-- Select State --</option>
                   {INDIAN_STATES.map(s => (
                     <option key={s} value={s}>{s}</option>
                   ))}
@@ -333,8 +334,8 @@ export function PilgrimEditorModal({
               <input
                 type="text"
                 className="sp-input text-xs"
-                placeholder="India"
-                value={pilgrim.country || 'India'}
+                placeholder="e.g. India"
+                value={pilgrim.country || ''}
                 onChange={e => setPilgrim({ ...pilgrim, country: e.target.value })}
               />
             </div>
