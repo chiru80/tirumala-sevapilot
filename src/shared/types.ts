@@ -245,6 +245,9 @@ export interface ScanResult {
   formFingerprint: string;
   timestamp: string;
   temporaryLock?: TtdTemporaryLockState;
+  stage?: string;
+  isQueuePresent?: boolean;
+  queueInfo?: any;
 }
 
 /** Validation result for a single check */

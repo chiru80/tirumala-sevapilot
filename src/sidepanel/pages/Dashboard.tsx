@@ -32,7 +32,10 @@ import {
   TemporaryLockCard,
   BookingCockpit,
   WhatShouldIDoNow,
+  QueueCard,
 } from '../components/dashboard';
+
+import { queueManager, type QueueSession, type QueueDetectionResult } from '../../services/queue';
 
 import { PreFlightModal } from '../components/PreFlightModal';
 import { CommandCenter } from '../components/CommandCenter';
@@ -123,6 +126,50 @@ export function Dashboard({ onNavigate }: DashboardProps = {}) {
     clearAllNotifications,
     clearAllHistory,
   } = useSessionHistory();
+
+  // ─── Queue Intelligence State & Observer ───
+  const [queueSession, setQueueSession] = React.useState<QueueSession | null>(() => queueManager.getActiveSession());
+
+  React.useEffect(() => {
+    const unsubscribe = queueManager.onStateChange((session) => {
+      setQueueSession({ ...session });
+    });
+    return unsubscribe;
+  }, []);
+
+  React.useEffect(() => {
+    const sr = scanResult as any;
+    if (sr?.isQueuePresent || sr?.stage === 'DIGITAL_QUEUE') {
+      const active = queueManager.getActiveSession();
+      if (!active || active.state === 'QUEUE_UNKNOWN' || active.state === 'QUEUE_NOT_PRESENT') {
+        const detection: QueueDetectionResult = sr?.queueInfo || {
+          state: 'QUEUE_WAITING',
+          isQueuePresent: true,
+          confidence: 100,
+          reasons: ['guardian_stage'],
+          isCaptchaPresent: false,
+          isSessionExpired: false,
+          isTemporaryLock: false,
+        };
+        queueManager.recordDetection(detection);
+      }
+    }
+  }, [scanResult]);
+
+  const handleFullEmergencyStop = () => {
+    queueManager.emergencyStop();
+    setQueueSession(null);
+    handleEmergencyStop();
+  };
+
+  const handleQueueStopMonitoring = () => {
+    queueManager.stopMonitoring();
+    setQueueSession(null);
+  };
+
+  const handleQueueManualRefresh = async () => {
+    await scanPage();
+  };
 
   // ─── Primary Fill & Verify Action Handler ───
   const handlePrimaryAction = async () => {
@@ -352,10 +399,19 @@ export function Dashboard({ onNavigate }: DashboardProps = {}) {
             allVerified={cockpit.allVerified}
             isTemporaryLock={cockpit.isLocked}
             onClick={cockpit.primaryAction.onClick}
-            onStop={handleEmergencyStop}
+            onStop={handleFullEmergencyStop}
             disabledReason={cockpit.primaryAction.supportingText}
           />
         </div>
+
+        {/* TTD DIGITAL QUEUE CARD (SAFE WAITING ROOM) */}
+        {queueSession && queueSession.state !== 'QUEUE_NOT_PRESENT' && queueSession.state !== 'QUEUE_EXITED' && (
+          <QueueCard
+            session={queueSession}
+            onStopMonitoring={handleQueueStopMonitoring}
+            onRefreshManually={handleQueueManualRefresh}
+          />
+        )}
 
         {/* 4. SIMPLE "HOW IT WORKS" (COMPACT 4-STEP CARD) */}
         <div id="sp-how-it-works-section">
@@ -396,7 +452,7 @@ export function Dashboard({ onNavigate }: DashboardProps = {}) {
             isComplete={cockpit.isComplete}
             allVerified={cockpit.allVerified}
             onFillClick={cockpit.primaryAction.onClick}
-            onStopClick={handleEmergencyStop}
+            onStopClick={handleFullEmergencyStop}
             onNavigateProfiles={() => onNavigate?.('profiles')}
             pilgrimReports={pilgrimReports}
           />
@@ -434,7 +490,7 @@ export function Dashboard({ onNavigate }: DashboardProps = {}) {
             currentPilgrim={currentProgressPilgrim}
             totalPilgrims={selectedPilgrims.length}
             currentField={currentProgressField}
-            onCancel={handleEmergencyStop}
+            onCancel={handleFullEmergencyStop}
           />
         )}
 

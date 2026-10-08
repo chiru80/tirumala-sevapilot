@@ -113,6 +113,10 @@ export class BookingGuardian {
     } else if (pageDetection.isOtpPresent) {
       guardianState = 'OTP_REQUIRED';
       actionMessage = 'Enter the OTP manually.';
+    } else if (pageDetection.stage === 'DIGITAL_QUEUE') {
+      guardianState = 'USER_ACTION_REQUIRED';
+      const posText = pageDetection.queuePosition ? ` (Position: ${pageDetection.queuePosition})` : '';
+      actionMessage = `TTD Digital Queue detected${posText}. Please wait in the virtual waiting room without refreshing.`;
     } else if (pageDetection.stage === 'SRIVARI_INSTRUCTIONS') {
       guardianState = 'USER_ACTION_REQUIRED';
       actionMessage = 'Please review Srivari Seva instructions and confirm the declaration checkbox.';

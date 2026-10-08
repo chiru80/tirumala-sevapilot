@@ -656,6 +656,25 @@
     "completeIdPrompt": "Complete your pilgrim's ID details.",
     "completeGeneralPrompt": "Complete general contact details.",
     "openTtdPrompt": "Open the supported TTD booking page."
+  },
+  "queue": {
+    "title": "TTD Digital Queue",
+    "detected": "TTD Digital Queue detected",
+    "waitingDescription": "You are currently waiting in the official TTD virtual queue.",
+    "position": "Queue position shown by TTD: {position}",
+    "noPosition": "TTD is processing your request in the waiting room.",
+    "officialWaitTime": "Official estimated wait: {time}",
+    "keepPageOpen": "Please keep this TTD page open. Do not refresh unnecessarily.",
+    "noRefreshAdvice": "Do not refresh or close this tab. Refreshing may reset your queue spot.",
+    "completeCaptcha": "Complete the CAPTCHA on the TTD page.",
+    "sessionExpired": "Your TTD session has expired. Manual login is required.",
+    "completed": "Queue completed. TTD has admitted your session.",
+    "transitioning": "SevaPilot is checking the booking page...",
+    "interrupted": "Queue monitoring paused or page changed.",
+    "error": "TTD queue encountered an issue. Follow on-screen portal guidance.",
+    "stopMonitoring": "Stop Monitoring",
+    "refreshManually": "Refresh Manually",
+    "safeModeActive": "Safe Waiting Mode Active (Zero Queue Bypass)"
   }
 }
 

@@ -15,3 +15,5 @@ export * from './HowItWorksCard';
 export * from './UpcomingReleasesCard';
 export * from './BookingCockpit';
 export * from './WhatShouldIDoNow';
+export * from './QueueCard';
+

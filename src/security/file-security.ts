@@ -54,8 +54,21 @@ export function validateDevoteePhotoFile(file: File | null | undefined): FileVal
     };
   }
 
-  // 3. Extension check
+  // 3. Reject suspicious multiple or executable extensions (e.g. photo.jpg.exe, photo.exe.jpg)
   const fileName = file.name || '';
+  const sanitizedName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
+  const dotCount = (sanitizedName.match(/\./g) || []).length;
+  if (dotCount > 1) {
+    const parts = sanitizedName.split('.').slice(1);
+    const DANGEROUS_EXTS = ['exe', 'bat', 'cmd', 'sh', 'php', 'js', 'vbs', 'scr', 'bin', 'com', 'msi', 'jar', 'py', 'pl'];
+    const hasDangerousPart = parts.some(part => DANGEROUS_EXTS.includes(part.toLowerCase()));
+    if (hasDangerousPart || dotCount > 2) {
+      logger.warn('[FileSecurity] Rejected file with suspicious multiple extensions:', fileName);
+      return { valid: false, error: 'Suspicious multiple file extensions detected.' };
+    }
+  }
+
+  // 4. Extension check
   const ext = fileName.toLowerCase().slice(fileName.lastIndexOf('.'));
   const isExtAllowed = ALLOWED_IMAGE_EXTENSIONS.some(e => e === ext);
   if (!isExtAllowed) {
@@ -64,19 +77,6 @@ export function validateDevoteePhotoFile(file: File | null | undefined): FileVal
       valid: false,
       error: 'Invalid file extension. Only .jpg, .jpeg, and .png are allowed.',
     };
-  }
-
-  // 4. Reject suspicious double/executable extensions (e.g. photo.exe.jpg, photo.jpg.exe)
-  const sanitizedName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
-  const dotCount = (sanitizedName.match(/\./g) || []).length;
-  if (dotCount > 1) {
-    const parts = sanitizedName.split('.').slice(1);
-    const DANGEROUS_EXTS = ['exe', 'bat', 'cmd', 'sh', 'php', 'js', 'vbs', 'scr', 'bin', 'com', 'msi', 'jar', 'py', 'pl'];
-    const hasDangerousPart = parts.some(part => DANGEROUS_EXTS.includes(part.toLowerCase()));
-    if (hasDangerousPart) {
-      logger.warn('[FileSecurity] Rejected file with suspicious executable extension part:', fileName);
-      return { valid: false, error: 'Suspicious multiple file extensions detected.' };
-    }
   }
 
   return { valid: true, sanitizedName };

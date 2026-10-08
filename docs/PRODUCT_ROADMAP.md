@@ -103,13 +103,20 @@ Status: COMPLETE
 - Zero-PII logging policy (`logger.ts`): masked Aadhaar, phone numbers, credentials, card numbers, and base64 image Data URIs.
 - Full Phase 9 security regression suite: 30 new tests in `security-hardening.test.ts`, 70 test files total (880 tests passing 100%).
 
-## Phase 10 — Regression
-- Service × pilgrim-count matrix.
-- Angular rerender tests.
-- lock-state tests.
-- General Details tests.
-- Srivari user-action tests.
-- release-data tests.
+## Phase 10 — Queue Intelligence + Safe Waiting
+Status: COMPLETE
+- Canonical Queue State Model (`src/services/queue/types.ts`) with 16 distinct waiting room states.
+- Multi-signal detection engine (`queue-detector.ts`) combining URL markers, stable DOM selectors, and semantic text tokens.
+- Strict Zero Queue Bypass policy: zero synthetic requests, zero token manipulation or replay, zero automatic refresh loops.
+- Truth Boundary: authentic extraction of official queue position and explicit wait times; never fabricates numbers or estimates.
+- Priority Boundaries: Temporary Booking Lock (`QUEUE_BLOCKED`), Session Expiration (`QUEUE_SESSION_EXPIRED`), and CAPTCHA (`QUEUE_CAPTCHA_REQUIRED`) take safety precedence over queue waiting.
+- Safe Waiting Mode: comforts devotee with guidance, clear no-refresh warnings, and manual refresh controls.
+- Passive Observation Lifecycle (`queue-manager.ts`): debounced `MutationObserver` (250ms) with bounded 6-second heartbeat fallback. Zero polling network overhead.
+- Seamless Transition & Handoff: detects queue disappearance (`QUEUE_COMPLETED`), cleans up observers, and transfers authoritative control to Booking Guardian for preflight verification.
+- Multi-Tab Isolation: distinct session identities prevent state collision across multiple browser tabs.
+- Emergency Stop: immediate cancellation of observers and timers without reloading or closing tabs.
+- Accessible Queue Card UI (`QueueCard.tsx`) with English and Telugu translations.
+- Full Phase 10 regression suite: 18 new tests in `queue-intelligence.test.ts`, 71 test files total (890 tests passing 100%).
 
 ## Phase 11 — Performance / polish
 - Real timing instrumentation.

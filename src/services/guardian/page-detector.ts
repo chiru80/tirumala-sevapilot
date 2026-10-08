@@ -16,6 +16,7 @@ import {
   detectSrivariSevaEnrollment,
 } from '../workflows/step-detectors';
 import { detectTtdTemporaryLock } from '../ttd-information/ttd-lock-detector';
+import { detectQueueState } from '../queue/queue-detector';
 import type { GuardianPageStage, PageDetectionResult } from './types';
 
 /**
@@ -238,6 +239,30 @@ export function detectGuardianPageStage(
       isSuccessPresent: true,
       isLocked: false,
       isSessionExpired: false,
+    };
+  }
+
+  // 3b. Digital Queue / Virtual Waiting Room (Safe waiting mode)
+  const queueRes = detectQueueState(doc, targetUrl);
+  if (['QUEUE_WAITING', 'QUEUE_PROGRESSING', 'QUEUE_CAPTCHA_REQUIRED', 'QUEUE_DETECTED'].includes(queueRes.state)) {
+    reasons.push(...queueRes.reasons);
+    return {
+      stage: 'DIGITAL_QUEUE',
+      confidence: queueRes.confidence,
+      reasons,
+      url: targetUrl,
+      hasInteractiveForm: false,
+      isCaptchaPresent: queueRes.isCaptchaPresent,
+      isOtpPresent: false,
+      isPaymentPresent: false,
+      isReviewPresent: false,
+      isSuccessPresent: false,
+      isLocked: false,
+      isSessionExpired: false,
+      isQueuePresent: true,
+      queueState: queueRes.state,
+      queuePosition: queueRes.progress?.position,
+      queueWaitTime: queueRes.progress?.officialWaitTime,
     };
   }
 

@@ -65,6 +65,9 @@ The declared project version is Tailwind 3.4.x. Utility classes used by the proj
 ### K19 — Extension Context Privilege Escalation & Unsafe Web Navigation (RESOLVED in Phase 9)
 **Status: Resolved.** Enforced `isInternalExtensionContext` in background router to reject profile/settings storage access originating from content scripts (`sender.tab`). Restricted external navigation strictly to official TTD HTTPS origins via `safeOpenUrl` / `url-security.ts`. Fortified autofill target resolution against hostile DOM elements (passwords, OTPs, CVVs, CAPTCHAs, disabled controls) via `dom-security.ts`. Implemented prototype pollution stripping and zero-PII logging redactions across base64 data URIs.
 
+### K20 — TTD Digital Waiting Room Awareness & Zero Queue Bypass (RESOLVED in Phase 10)
+**Status: Resolved.** Engineered production-grade passive Queue Intelligence layer (`detectQueueState`, `QueueManager`, `QueueCard`). Enforces strict Zero Queue Bypass, zero token manipulation or replay, zero synthetic requests, zero aggressive refresh loops, and zero fake position/wait-time estimation. Implements safe waiting guidance, multi-tab isolation, priority ordering (Temporary Lock > Expiration > CAPTCHA > Queue), and seamless handoff to Booking Guardian upon queue admission.
+
 ## Safety constraints
 
 No issue above justifies:
