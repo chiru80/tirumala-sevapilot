@@ -828,5 +828,5 @@ export async function clearAllData(): Promise<void> {
       // Fallback
     }
   }
-  logger.warn('All local data cleared');
+  logger.info('All local data cleared');
 }
