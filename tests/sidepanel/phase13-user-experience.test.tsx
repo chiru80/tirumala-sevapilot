@@ -180,7 +180,7 @@ describe('Phase 13: Professional UI/UX & User-First Booking Experience', () => {
       expect(action.primaryAction.actionType).toBe('STOP');
     });
 
-    it('presents BLOCKED state on temporary booking lock with history & retry actions', () => {
+    it('presents BLOCKED state on temporary booking lock with history action and NO retry action while active', () => {
       const action = computeNextAction({
         activeProfile: mockProfile,
         selectedPilgrims: [mockPilgrim],
@@ -195,7 +195,64 @@ describe('Phase 13: Professional UI/UX & User-First Booking Experience', () => {
       expect(action.badgeVariant).toBe('blocked');
       expect(action.headline).toBe('Previous booking attempt is still active');
       expect(action.primaryAction.label).toBe('CHECK BOOKING HISTORY');
-      expect(action.secondaryAction?.label).toBe('TRY AGAIN');
+      expect(action.secondaryAction).toBeUndefined();
+    });
+
+    it('maps queue states in strict safety priority order (CAPTCHA, session expired, completed)', () => {
+      const captchaAction = computeNextAction({
+        activeProfile: mockProfile,
+        selectedPilgrims: [mockPilgrim],
+        serviceDisplayName: 'Special Entry Darshan ₹300',
+        pageDetected: true,
+        productState: 'WORKING',
+        queueSession: {
+          sessionId: 'q-1',
+          startTime: Date.now(),
+          isQueuePresent: true,
+          state: 'QUEUE_CAPTCHA_REQUIRED',
+        } as any,
+        readiness: { isReady: true, checks: [] } as any,
+      });
+      expect(captchaAction.category).toBe('USER_ACTION_REQUIRED');
+      expect(captchaAction.badgeVariant).toBe('actionRequired');
+      expect(captchaAction.headline).toBe('Solve CAPTCHA on TTD');
+      expect(captchaAction.primaryAction.actionType).toBe('OPEN_TTD');
+
+      const expiredAction = computeNextAction({
+        activeProfile: mockProfile,
+        selectedPilgrims: [mockPilgrim],
+        serviceDisplayName: 'Special Entry Darshan ₹300',
+        pageDetected: true,
+        productState: 'WORKING',
+        queueSession: {
+          sessionId: 'q-2',
+          startTime: Date.now(),
+          isQueuePresent: true,
+          state: 'QUEUE_SESSION_EXPIRED',
+        } as any,
+        readiness: { isReady: true, checks: [] } as any,
+      });
+      expect(expiredAction.category).toBe('BLOCKED');
+      expect(expiredAction.badgeVariant).toBe('blocked');
+      expect(expiredAction.headline).toBe('Queue Session Expired');
+
+      const completedAction = computeNextAction({
+        activeProfile: mockProfile,
+        selectedPilgrims: [mockPilgrim],
+        serviceDisplayName: 'Special Entry Darshan ₹300',
+        pageDetected: true,
+        productState: 'WORKING',
+        queueSession: {
+          sessionId: 'q-3',
+          startTime: Date.now(),
+          isQueuePresent: true,
+          state: 'QUEUE_COMPLETED',
+        } as any,
+        readiness: { isReady: true, checks: [] } as any,
+      });
+      expect(completedAction.category).toBe('COMPLETED');
+      expect(completedAction.badgeVariant).toBe('completed');
+      expect(completedAction.headline).toBe('Queue Complete — Ready to Book');
     });
   });
 
@@ -240,6 +297,68 @@ describe('Phase 13: Professional UI/UX & User-First Booking Experience', () => {
       expect(gothramCheck).toBeDefined();
       expect(gothramCheck?.passed).toBe(false);
       expect(result.isReady).toBe(false);
+    });
+
+    it('fails closed when given an unknown service ID', () => {
+      const result = testProfileReadiness(mockProfile, [mockPilgrim], 'unknown-unrecognized-service');
+      expect(result.isReady).toBe(false);
+      expect(result.isUnknownService).toBe(true);
+      expect(result.headline).toBe('Requirements Unavailable');
+      expect(result.checklist.some(c => c.id === 'unknown-service-requirements' && c.passed === false)).toBe(true);
+      expect(result.missingItems).toContain('Service Requirements Unavailable');
+    });
+
+    it('enforces Srivari Seva age limit (18 to 60)', () => {
+      const underAgePilgrim = { ...mockPilgrim, age: 16 };
+      const overAgePilgrim = { ...mockPilgrim, age: 65 };
+      const validAgePilgrim = { ...mockPilgrim, age: 30 };
+
+      const underResult = testProfileReadiness(mockProfile, [underAgePilgrim], 'srivari-seva');
+      expect(underResult.isReady).toBe(false);
+      expect(underResult.pilgrimValidationItems[0].isValid).toBe(false);
+      expect(underResult.pilgrimValidationItems[0].errors).toContain('Srivari Seva requires age between 18 and 60 years');
+
+      const overResult = testProfileReadiness(mockProfile, [overAgePilgrim], 'srivari-seva');
+      expect(overResult.isReady).toBe(false);
+      expect(overResult.pilgrimValidationItems[0].isValid).toBe(false);
+      expect(overResult.pilgrimValidationItems[0].errors).toContain('Srivari Seva requires age between 18 and 60 years');
+
+      const validResult = testProfileReadiness(mockProfile, [validAgePilgrim], 'srivari-seva');
+      expect(validResult.pilgrimValidationItems[0].errors).not.toContain('Srivari Seva requires age between 18 and 60 years');
+    });
+
+    it('validates non-Aadhaar IDs according to selected ID format requirements', () => {
+      const badPanPilgrim = { ...mockPilgrim, idType: IdType.PAN, idNumber: '12345' };
+      const badVoterPilgrim = { ...mockPilgrim, idType: IdType.VOTER_ID, idNumber: 'AB' };
+      const validPanPilgrim = { ...mockPilgrim, idType: IdType.PAN, idNumber: 'ABCDE1234F' };
+
+      const resBadPan = testProfileReadiness(mockProfile, [badPanPilgrim], 'special-entry-darshan-300');
+      expect(resBadPan.isReady).toBe(false);
+      expect(resBadPan.pilgrimValidationItems[0].isValid).toBe(false);
+
+      const resBadVoter = testProfileReadiness(mockProfile, [badVoterPilgrim], 'special-entry-darshan-300');
+      expect(resBadVoter.isReady).toBe(false);
+      expect(resBadVoter.pilgrimValidationItems[0].isValid).toBe(false);
+
+      const resGoodPan = testProfileReadiness(mockProfile, [validPanPilgrim], 'special-entry-darshan-300');
+      expect(resGoodPan.pilgrimValidationItems[0].isValid).toBe(true);
+    });
+
+    it('correctly calculates additional missing count without overstating by one', () => {
+      const incompleteProfile: Profile = {
+        ...mockProfile,
+        general: {
+          ...mockProfile.general,
+          email: '',
+          city: '',
+          state: '',
+          pinCode: '',
+        },
+      };
+      const result = testProfileReadiness(incompleteProfile, [mockPilgrim], 'special-entry-darshan-300');
+      const missingCount = result.missingItems.length;
+      expect(missingCount).toBeGreaterThan(1);
+      expect(result.summary).toContain(`${missingCount - 1} more item(s) needed`);
     });
   });
 

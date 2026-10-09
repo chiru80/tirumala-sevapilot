@@ -19,6 +19,7 @@ import { Badge, Button, Icon, Card } from '../design-system';
 import { computeNextAction } from '../presentation/next-action';
 import { testProfileReadiness } from '../presentation/profile-readiness-tester';
 import { NextActionCard } from '../components/dashboard/NextActionCard';
+import { BookingActionArea } from '../components/dashboard/BookingActionArea';
 import { BookingReadinessSummary } from '../components/dashboard/BookingReadinessSummary';
 import { BookingModeView } from '../components/dashboard/BookingModeView';
 import { ServiceSelectorModal } from '../components/dashboard/ServiceSelectorModal';
@@ -52,7 +53,7 @@ export function Dashboard({ onNavigate }: DashboardProps = {}) {
   } = useTtdPage();
 
   const [selectedServiceId, setSelectedServiceId] = useState<string>(
-    serviceId || scanResult?.serviceId || 'special-entry-darshan-300'
+    serviceId || scanResult?.serviceId || ''
   );
   const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
   const [isTestProfileOpen, setIsTestProfileOpen] = useState(false);
@@ -68,14 +69,19 @@ export function Dashboard({ onNavigate }: DashboardProps = {}) {
     }
   }, [serviceId, scanResult?.serviceId]);
 
-  const activeWorkflow = getWorkflowById(selectedServiceId);
-  const effectiveDisplayName = serviceName || activeWorkflow?.serviceName || 'Special Entry Darshan ₹300';
+  const activeWorkflow = selectedServiceId ? getWorkflowById(selectedServiceId) : undefined;
+  const effectiveDisplayName =
+    serviceName ||
+    activeWorkflow?.serviceName ||
+    (selectedServiceId ? selectedServiceId : (t('readiness.unknownServiceName') || 'TTD Portal Service (Unspecified)'));
 
   const {
+    profiles,
     activeProfile,
     health: profileHealth,
     selectedPilgrims,
     selectAllPilgrims,
+    switchProfile,
   } = useProfiles(serviceType, selectedServiceId, activeWorkflow?.maxPilgrims);
 
   const readiness = useReadiness(
@@ -352,19 +358,7 @@ export function Dashboard({ onNavigate }: DashboardProps = {}) {
               size="sm"
               onClick={() => safeOpenUrl('https://ttdevasthanams.ap.gov.in/booking-history')}
             >
-              CHECK BOOKING HISTORY
-            </Button>
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={async () => {
-                setFillStatus(null);
-                await scanPage();
-                clearSessionLock();
-                clearTtdLock();
-              }}
-            >
-              TRY AGAIN
+              {t('nextAction.checkBookingHistory') || 'CHECK BOOKING HISTORY'}
             </Button>
           </div>
         </div>
@@ -424,7 +418,30 @@ export function Dashboard({ onNavigate }: DashboardProps = {}) {
         />
       </div>
 
-      {/* 5. ACTIVE PROFILE CARD */}
+      {/* 5. BOOKING ACTION AREA (Command Center with Select Profile, Fill Details, Review Fields, Save Profile) */}
+      <BookingActionArea
+        serviceDisplayName={effectiveDisplayName}
+        ticketPrice={activeWorkflow?.ticketPrice}
+        maxPilgrims={activeWorkflow?.maxPilgrims || 6}
+        isUnknownService={readinessReport.isUnknownService}
+        onOpenServiceSelector={() => setIsServiceModalOpen(true)}
+        profiles={profiles}
+        activeProfile={activeProfile}
+        selectedPilgrims={selectedPilgrims}
+        onSelectProfile={switchProfile}
+        onManageProfiles={() => onNavigate?.('profiles')}
+        onCreateProfile={() => onNavigate?.('profiles')}
+        readinessReport={readinessReport}
+        pageDetected={pageDetected}
+        isFilling={isFilling}
+        fillStage={fillStage}
+        onPrimaryFill={handlePrimaryActionTrigger}
+        onEmergencyStop={handleFullEmergencyStop}
+        onOpenTtdPortal={openTtdWebsite}
+        onEditProfile={() => onNavigate?.('profiles')}
+      />
+
+      {/* 6. ACTIVE PROFILE CARD */}
       <ActiveProfileCard
         profile={activeProfile}
         selectedCount={selectedPilgrims.length}

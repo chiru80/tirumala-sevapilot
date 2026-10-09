@@ -1,13 +1,14 @@
 /**
- * Tirumala SevaPilot — Profile Readiness Tester (Phase 13)
+ * Tirumala SevaPilot — Profile Readiness Tester (Phase 13 / 14A)
  * Pure, service-aware pre-booking validator based strictly on
  * CanonicalServiceRegistry and ReadinessEngine.
  * Never invents user data; never duplicates service rules.
+ * Fails closed on unknown services; validates full ID requirements.
  */
 
 import type { Profile, Pilgrim } from '@shared/types';
-import { getCanonicalService, CANONICAL_SPECIAL_ENTRY_300 } from '../../services/canonical-service-registry';
-import { validateAadhaar } from '../../validation/aadhaar';
+import { getCanonicalService, SAFE_CANONICAL_UNKNOWN_SERVICE } from '../../services/canonical-service-registry';
+import { validateIdProof } from '../../validation/id-proof';
 import { t } from '@i18n/index';
 
 export interface ReadinessItemCheck {
@@ -18,17 +19,31 @@ export interface ReadinessItemCheck {
   message?: string;
 }
 
+export interface PilgrimValidationItem {
+  pilgrimId: string;
+  pilgrimIndex: number;
+  name: string;
+  age?: number;
+  gender?: string;
+  idType?: string;
+  idNumberMasked?: string;
+  isValid: boolean;
+  errors: string[];
+}
+
 export interface ProfileReadinessReport {
   serviceId: string;
   serviceName: string;
   ticketPrice?: number;
   isReady: boolean;
+  isUnknownService?: boolean;
   totalChecks: number;
   passedChecks: number;
   headline: string;
   summary: string;
   checklist: ReadinessItemCheck[];
   missingItems: string[];
+  pilgrimValidationItems: PilgrimValidationItem[];
   pilgrimCountSummary: {
     min: number;
     max: number;
@@ -43,9 +58,25 @@ export function testProfileReadiness(
   selectedPilgrims: Pilgrim[],
   serviceId = 'special-entry-darshan-300'
 ): ProfileReadinessReport {
-  const service = getCanonicalService(serviceId) || CANONICAL_SPECIAL_ENTRY_300;
+  const canonical = getCanonicalService(serviceId);
+  const isUnknownService = !canonical;
+  const service = canonical || SAFE_CANONICAL_UNKNOWN_SERVICE;
   const checklist: ReadinessItemCheck[] = [];
   const missingItems: string[] = [];
+
+  // 0. Unknown service fail-closed check
+  if (isUnknownService) {
+    checklist.push({
+      id: 'unknown-service-requirements',
+      category: 'special',
+      label: t('readiness.serviceRequirementsUnavailable') || 'Service Requirements Unavailable',
+      passed: false,
+      message:
+        t('readiness.unknownServiceDesc') ||
+        'Service requirements cannot be determined for unknown service ID. Select or navigate to a recognized TTD service.',
+    });
+    missingItems.push(t('readiness.serviceRequirementsUnavailable') || 'Service requirements unavailable');
+  }
 
   const minPilgrims = service.minPilgrims || 1;
   const maxPilgrims = service.maxPilgrims || 6;
@@ -74,16 +105,63 @@ export function testProfileReadiness(
     missingItems.push(exactPilgrims ? `Exactly ${exactPilgrims} pilgrims needed` : 'Pilgrim selection');
   }
 
-  // 2. Pilgrim details (Name, Age, Gender)
+  // 2. Per-Pilgrim Validation items with actionable errors
+  const isSrivariSeva = service.serviceId === 'srivari-seva';
+
+  const pilgrimValidationItems: PilgrimValidationItem[] = selectedPilgrims.map((p, idx) => {
+    const errors: string[] = [];
+    const name = (p.fullName || `${p.firstName || ''} ${p.lastName || ''}`).trim();
+    if (!name || name.length < 2) {
+      errors.push(t('readiness.errNameRequired') || 'Full name is required (at least 2 characters)');
+    }
+
+    if (typeof p.age !== 'number' || p.age < 1 || p.age > 120) {
+      errors.push(t('readiness.errAgeRange') || 'Age must be between 1 and 120');
+    } else if (isSrivariSeva && (p.age < 18 || p.age > 60)) {
+      errors.push(t('readiness.errSrivariAgeRange') || 'Srivari Seva requires age between 18 and 60 years');
+    }
+
+    if (!p.gender) {
+      errors.push(t('readiness.errGenderRequired') || 'Gender selection is required');
+    }
+    if (!p.idType) {
+      errors.push(t('readiness.errIdTypeRequired') || 'Photo ID type is required');
+    }
+    if (!p.idNumber || p.idNumber.trim().length === 0) {
+      errors.push(t('readiness.errIdNumberRequired') || 'Photo ID number is required');
+    } else {
+      const num = p.idNumber.trim();
+      const idResult = validateIdProof(p.idType, num);
+      if (!idResult.valid) {
+        errors.push(idResult.error || t('readiness.invalidIdProof') || 'Invalid Photo ID number');
+      }
+    }
+
+    if (service.specialRequirements?.photo && !p.photo) {
+      errors.push(t('readiness.errPhotoRequired') || 'Recent photo upload is required for this service');
+    }
+
+    const masked = p.idNumber ? ('•••• ' + p.idNumber.trim().slice(-4)) : '—';
+
+    return {
+      pilgrimId: p.id,
+      pilgrimIndex: idx,
+      name: name || `Pilgrim ${idx + 1}`,
+      age: p.age,
+      gender: p.gender,
+      idType: p.idType,
+      idNumberMasked: masked,
+      isValid: errors.length === 0,
+      errors,
+    };
+  });
+
+  // 3. Pilgrim details overall check (Name, Age, Gender)
   const allPilgrimsHaveDetails =
     selectedCount > 0 &&
-    selectedPilgrims.every((p) => {
-      const name = p.fullName || `${p.firstName || ''} ${p.lastName || ''}`.trim();
-      const hasName = Boolean(name && name.length >= 2);
-      const hasAge = typeof p.age === 'number' && p.age > 0 && p.age <= 120;
-      const hasGender = Boolean(p.gender);
-      return hasName && hasAge && hasGender;
-    });
+    pilgrimValidationItems.every(
+      (item) => !item.errors.some((e) => e.includes('name') || e.includes('Age') || e.includes('Gender'))
+    );
 
   checklist.push({
     id: 'pilgrim-details',
@@ -98,17 +176,12 @@ export function testProfileReadiness(
     missingItems.push(t('readiness.pilgrimDetails') || 'Pilgrim details');
   }
 
-  // 3. ID Details (Type, Number, Validity)
+  // 4. ID Details (Type, Number, Validity)
   const allPilgrimsHaveValidId =
     selectedCount > 0 &&
-    selectedPilgrims.every((p) => {
-      if (!p.idType || !p.idNumber) return false;
-      const num = p.idNumber.trim();
-      if (p.idType.toUpperCase() === 'AADHAAR') {
-        return validateAadhaar(num).valid;
-      }
-      return num.length >= 4;
-    });
+    pilgrimValidationItems.every(
+      (item) => !item.errors.some((e) => e.includes('ID') || e.includes('Aadhaar') || e.includes('Passport') || e.includes('PAN'))
+    );
 
   checklist.push({
     id: 'id-details',
@@ -123,8 +196,8 @@ export function testProfileReadiness(
     missingItems.push(t('readiness.idDetails') || 'Photo ID details');
   }
 
-  // 4. General Details Step (Address, Email, Pincode) — ONLY if required by this service!
-  if (service.hasGeneralDetailsStep) {
+  // 5. General Details Step (Address, Email, Pincode) — ONLY if required by this canonical service!
+  if (service.hasGeneralDetailsStep && !isUnknownService) {
     const general = profile?.general;
     const hasEmail = Boolean(general?.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(general.email));
     const hasAddress = Boolean(general?.city && general?.state);
@@ -158,8 +231,8 @@ export function testProfileReadiness(
     if (!hasPincode) missingItems.push(t('readiness.pincode') || 'Pincode');
   }
 
-  // 5. Special Service Requirements (e.g. Gothram for Homam)
-  if (service.fieldRules.generalFields?.gothram === 'REQUIRED') {
+  // 6. Special Service Requirements (e.g. Gothram for Homam)
+  if (!isUnknownService && service.fieldRules.generalFields?.gothram === 'REQUIRED') {
     const gothram = profile?.general?.gothram || profile?.gothram;
     const hasGothram = Boolean(gothram && gothram.trim().length >= 2);
     checklist.push({
@@ -175,25 +248,39 @@ export function testProfileReadiness(
   // Calculate totals
   const totalChecks = checklist.length;
   const passedChecks = checklist.filter((c) => c.passed).length;
-  const isReady = passedChecks === totalChecks;
+  // Unknown service FAILS CLOSED: isReady is strictly false
+  const isReady =
+    !isUnknownService &&
+    passedChecks === totalChecks &&
+    (selectedCount > 0 ? pilgrimValidationItems.every((p) => p.isValid) : false);
+
+  const headline = isUnknownService
+    ? (t('readiness.requirementsUnavailable') || 'Requirements Unavailable')
+    : isReady
+    ? (t('readiness.readyForBooking') || 'Ready for Booking')
+    : (t('readiness.actionRequired') || 'Action Required');
+
+  const summary = isUnknownService
+    ? (t('readiness.unknownServiceSummary') || 'Service requirements cannot be determined for this service. Please select a recognized service.')
+    : isReady
+    ? (t('readiness.allItemsReady', { passed: passedChecks, total: totalChecks }) || `${passedChecks}/${totalChecks} required items ready`)
+    : missingItems.length === 1
+    ? (t('readiness.singleItemMissing', { item: missingItems[0] }) || `⚠️ ${missingItems[0]} is missing`)
+    : (t('readiness.multipleItemsMissing', { count: missingItems.length - 1, item: missingItems[0] }) || `⚠️ ${missingItems[0]} and ${missingItems.length - 1} more item(s) needed`);
 
   return {
-    serviceId: service.serviceId,
-    serviceName: service.displayName,
-    ticketPrice: service.ticketPrice,
+    serviceId: isUnknownService ? serviceId : service.serviceId,
+    serviceName: isUnknownService ? (t('readiness.unknownServiceName') || 'TTD Portal Service (Unspecified)') : service.displayName,
+    ticketPrice: isUnknownService ? undefined : service.ticketPrice,
     isReady,
+    isUnknownService,
     totalChecks,
     passedChecks,
-    headline: isReady
-      ? (t('readiness.readyForBooking') || 'Ready for Booking')
-      : (t('readiness.actionRequired') || 'Action Required'),
-    summary: isReady
-      ? (t('readiness.allItemsReady', { passed: passedChecks, total: totalChecks }) || `${passedChecks}/${totalChecks} required items ready`)
-      : missingItems.length === 1
-      ? (t('readiness.singleItemMissing', { item: missingItems[0] }) || `⚠️ ${missingItems[0]} is missing`)
-      : (t('readiness.multipleItemsMissing', { count: missingItems.length, item: missingItems[0] }) || `⚠️ ${missingItems[0]} and ${missingItems.length - 1} more item(s) needed`),
+    headline,
+    summary,
     checklist,
     missingItems,
+    pilgrimValidationItems,
     pilgrimCountSummary: {
       min: minPilgrims,
       max: maxPilgrims,
