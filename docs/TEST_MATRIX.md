@@ -278,4 +278,34 @@ Automated suite:
 - [x] mobile/side-panel responsive (supports 360px-400px widths, truncated text, responsive grids)
 - [x] keyboard accessibility (ARIA landmarks, progressbar, alert semantics, focus rings)
 
+## Phase 14 — Browser E2E Testing & Real-World Reliability Lab
+
+Automated Playwright suites (executed in persistent Chromium context loading `./dist`):
+- [`tests/e2e/01-onboarding-and-navigation.spec.ts`](file:///tests/e2e/01-onboarding-and-navigation.spec.ts) (3/3 passing)
+- [`tests/e2e/02-service-readiness-correctness.spec.ts`](file:///tests/e2e/02-service-readiness-correctness.spec.ts) (3/3 passing)
+- [`tests/e2e/03-autofill-pipeline-and-dom.spec.ts`](file:///tests/e2e/03-autofill-pipeline-and-dom.spec.ts) (3/3 passing)
+- [`tests/e2e/04-safety-human-boundaries.spec.ts`](file:///tests/e2e/04-safety-human-boundaries.spec.ts) (4/4 passing)
+- [`tests/e2e/05-queue-and-temporary-lock.spec.ts`](file:///tests/e2e/05-queue-and-temporary-lock.spec.ts) (2/2 passing)
+- [`tests/e2e/06-tab-isolation-and-lifecycle.spec.ts`](file:///tests/e2e/06-tab-isolation-and-lifecycle.spec.ts) (2/2 passing)
+- [`tests/e2e/07-accessibility-and-performance.spec.ts`](file:///tests/e2e/07-accessibility-and-performance.spec.ts) (3/3 passing)
+
+Key Invariants Verified:
+- [x] Production MV3 extension bundle loaded into real Chromium browser
+- [x] Unknown service fails closed with `Requirements Unavailable` / `Generic Mode`
+- [x] Homam enforces exactly 2 householder devotees and required Gothram
+- [x] Srivari Seva enforces single pilgrim count and 18-60 age boundary
+- [x] SED form autofill and input event dispatch on local TTD fixtures
+- [x] User-edited values preserved without destructive overwriting
+- [x] Dynamic DOM replacement safely handled with MutationObserver
+- [x] Invariant defense: zero CAPTCHA autofill, zero OTP touch, zero auto-checking of declarations, zero payment automation
+- [x] Zero PII logged to browser console (Aadhaar, phone, email masked or absent)
+- [x] Temporary lock presents BLOCKED state with history link and NO retry/try-again buttons
+- [x] Queue progression distinguishes waiting, action required, expired session; emergency stop cancels monitoring cleanly
+- [x] Multi-tab context isolation: sessions and service contexts do not leak across tabs
+- [x] MV3 storage persistence survives sidepanel reloads
+- [x] 5-language translation parity verified across EN, TE, HI, TA, KN
+- [x] Keyboard focus management via Tab navigation verified
+- [x] Real browser performance benchmarked (median ~0-1ms, p95 < 4ms)
+
+
 

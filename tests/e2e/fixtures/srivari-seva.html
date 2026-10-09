@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>TTD — Srivari Seva Voluntary Service Enrollment</title>
+  <style>
+    body { font-family: sans-serif; background: #faf7f2; padding: 24px; color: #333; }
+    .card { background: white; border: 1px solid #ddd; border-radius: 8px; padding: 16px; margin-bottom: 16px; max-width: 700px; }
+    h1, h2 { color: #54258a; }
+    .row { display: flex; gap: 12px; margin-bottom: 12px; }
+    .field { flex: 1; display: flex; flex-direction: column; }
+    label { font-size: 12px; font-weight: bold; margin-bottom: 4px; }
+    input, select { padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
+    .boundary-section { background: #fff8e1; border: 1px solid #ffe082; padding: 12px; border-radius: 6px; margin-top: 16px; }
+  </style>
+</head>
+<body>
+  <div class="card" id="srivariSevaForm">
+    <h1>Srivari Seva Voluntary Service</h1>
+    <p>Sri Venkateswara Swamy Temple, Tirumala — Voluntary Seva (Age: 18 to 60 only)</p>
+
+    <h2>Personal Details (1 Sevak Only)</h2>
+    <div class="row">
+      <div class="field">
+        <label for="name_0">Name *</label>
+        <input type="text" id="name_0" name="name" placeholder="Full name" />
+      </div>
+      <div class="field">
+        <label for="age_0">Age (18 - 60) *</label>
+        <input type="number" id="age_0" name="age" min="18" max="60" />
+      </div>
+      <div class="field">
+        <label for="gender_0">Gender *</label>
+        <select id="gender_0" name="gender">
+          <option value="">Gender</option>
+          <option value="Male">Male</option>
+          <option value="Female">Female</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="field">
+        <label for="dob_0">Date of Birth *</label>
+        <input type="date" id="dob_0" name="dateOfBirth" />
+      </div>
+      <div class="field">
+        <label for="mobile_0">Mobile Number *</label>
+        <input type="tel" id="mobile_0" name="mobile" placeholder="10-digit mobile" />
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="field">
+        <label for="idType_0">Photo ID Type *</label>
+        <select id="idType_0" name="idProofType">
+          <option value="Aadhaar">Aadhaar</option>
+          <option value="Voter ID">Voter ID</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="idNumber_0">Photo ID Number *</label>
+        <input type="text" id="idNumber_0" name="idProofNumber" />
+      </div>
+    </div>
+
+    <h2>Residential Address</h2>
+    <div class="row">
+      <div class="field">
+        <label for="doorNumber_0">Door Number *</label>
+        <input type="text" id="doorNumber_0" name="doorNumber" />
+      </div>
+      <div class="field">
+        <label for="street_0">Street / Area *</label>
+        <input type="text" id="street_0" name="street" />
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="field">
+        <label for="district_0">District *</label>
+        <input type="text" id="district_0" name="district" />
+      </div>
+      <div class="field">
+        <label for="city_0">City / Village *</label>
+        <input type="text" id="city_0" name="city" />
+      </div>
+      <div class="field">
+        <label for="pincode_0">Pincode *</label>
+        <input type="text" id="pincode_0" name="pincode" maxlength="6" />
+      </div>
+    </div>
+
+    <!-- Human Fitness and Declaration Boundaries (MUST NEVER BE AUTO-CHECKED) -->
+    <div class="boundary-section">
+      <h3>Sevak Undertaking & Fitness Declarations (Human Controlled)</h3>
+      <div class="row">
+        <label>
+          <input type="checkbox" id="physicallyFit" name="physicallyFit" />
+          I am physically fit to perform voluntary service for 7 continuous days.
+        </label>
+      </div>
+      <div class="row">
+        <label>
+          <input type="checkbox" id="mentallyFit" name="mentallyFit" />
+          I am mentally fit and willing to follow all rules and guidelines.
+        </label>
+      </div>
+      <div class="row">
+        <label>
+          <input type="checkbox" id="declaration" name="declaration" />
+          I solemnly declare that all personal and address information provided is accurate.
+        </label>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
