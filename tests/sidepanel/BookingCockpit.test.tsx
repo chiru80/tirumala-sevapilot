@@ -177,7 +177,7 @@ describe('Phase 2 — Booking Cockpit / Premium Home UX', () => {
     expect(actionBtn).toBeTruthy();
 
     // Price badge is rendered in cockpit banner
-    expect(screen.getByText('₹300')).toBeTruthy();
+    expect(screen.getAllByText(/₹300/).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/Special Entry Darshan ₹300/i).length).toBeGreaterThan(0);
 
     // Clean status pill
@@ -201,7 +201,7 @@ describe('Phase 2 — Booking Cockpit / Premium Home UX', () => {
     expect(selectBtn).toBeTruthy();
   });
 
-  it('5. Temporary lock state: renders non-auto-retry TRY AGAIN and CHECK BOOKING HISTORY', async () => {
+  it('5. Temporary lock state: renders CHECK BOOKING HISTORY and removes TRY AGAIN while lock is active', async () => {
     (globalThis as any).chrome.runtime.sendMessage = vi.fn(async (msg: any) => {
       if (msg?.type === 'GET_PAGE_STATE' || msg?.type === 'PAGE_SCAN' || msg?.type === 'GET_ACTIVE_STEP') {
         return {
@@ -230,12 +230,10 @@ describe('Phase 2 — Booking Cockpit / Premium Home UX', () => {
     expect(screen.getByText(/Temporary TTD lock/i)).toBeTruthy();
     expect(screen.getByText(/Server-side hold/i)).toBeTruthy();
 
-    // Dominant action buttons provide TRY AGAIN and CHECK BOOKING HISTORY
-    const tryAgainBtn = screen.getByRole('button', { name: /TRY AGAIN/i });
-    expect(tryAgainBtn).toBeTruthy();
-
+    // Primary action provides CHECK BOOKING HISTORY, and TRY AGAIN is safely removed
     const historyBtn = screen.getByRole('button', { name: /CHECK BOOKING HISTORY/i });
     expect(historyBtn).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /TRY AGAIN/i })).toBeNull();
   });
 
   it('6. Settings diagnostics: System Diagnostics inspector opens safely on demand', async () => {

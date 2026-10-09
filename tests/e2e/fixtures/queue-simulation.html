@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>TTD — Virtual Queue Waiting Room</title>
+  <style>
+    body { font-family: sans-serif; background: #faf7f2; padding: 24px; color: #333; text-align: center; }
+    .queue-box { background: white; border: 2px solid #54258a; border-radius: 12px; padding: 32px; max-width: 500px; margin: 0 auto; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+    .position { font-size: 48px; color: #54258a; font-weight: bold; margin: 16px 0; }
+    .wait-time { font-size: 18px; color: #2e7d32; font-weight: 600; }
+    .captcha-box { margin-top: 24px; padding: 16px; background: #fff8e1; border: 1px solid #ffe082; border-radius: 8px; text-align: left; }
+    .expired-banner { display: none; margin-top: 24px; padding: 16px; background: #ffebee; border: 1px solid #ffcdd2; color: #c62828; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <div class="queue-box" id="ttd-virtual-queue">
+    <h1>TTD Virtual Waiting Room</h1>
+    <p>You are in the queue for Special Entry Darshan. Please do not refresh or close this tab.</p>
+
+    <div class="position" id="queue-position">142</div>
+    <div class="wait-time" id="queue-wait-time">Estimated wait: ~12 minutes</div>
+
+    <div class="captcha-box" id="queue-captcha-container" style="display: none;">
+      <h3>Action Required: Security Check</h3>
+      <p>Solve the CAPTCHA below to maintain your place in line.</p>
+      <input type="text" id="queueCaptchaInput" placeholder="Enter CAPTCHA" />
+    </div>
+
+    <div class="expired-banner" id="queue-expired-banner">
+      Queue Session Expired. Please restart your booking session.
+    </div>
+  </div>
+</body>
+</html>

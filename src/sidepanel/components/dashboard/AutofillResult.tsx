@@ -1,5 +1,6 @@
 import React from 'react';
 import type { PilgrimRowReport } from '@shared/types';
+import { Icon, Badge } from '../../design-system';
 import { t } from '@i18n/index';
 
 interface AutofillResultProps {
@@ -14,99 +15,158 @@ export const AutofillResult: React.FC<AutofillResultProps> = ({
   if (pilgrimReports.length === 0) return null;
 
   const totalPilgrims = pilgrimReports.length;
-  const allVerified = pilgrimReports.every(p => p.allValidated);
-  const totalFields = totalPilgrims * 5;
-  const verifiedFieldsCount = pilgrimReports.reduce((acc, p) =>
-    acc + Object.values(p.fields).filter(f => f.validated).length, 0
-  );
+  const allVerified = pilgrimReports.every((p) => p.allValidated);
 
-  if (allVerified) {
-    return (
-      <div className="rounded-2xl border border-[#2F8F68]/30 bg-[#F2FBF6] dark:bg-[#1B3E2B]/30 p-4 shadow-xs space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-[#2F8F68] text-white flex items-center justify-center font-bold text-base shadow-xs">
-              ✓
-            </div>
-            <div>
-              <h3 className="text-sm font-bold text-[#1B5E20] dark:text-[#A5D6A7]">
-                {t('dashboard.allDetailsVerified')}
-              </h3>
-              <p className="text-xs text-[#2F8F68] font-medium mt-0.5">
-                {totalPilgrims} / {totalPilgrims} {totalPilgrims === 1 ? 'pilgrim' : 'pilgrims'} selected &bull; {totalFields} / {totalFields} (100%)
-              </p>
-            </div>
-          </div>
-          <span className="text-xs font-bold text-[#1B5E20] bg-[#2F8F68]/15 px-2.5 py-1 rounded-full border border-[#2E7D5B]/20">
-            100%
-          </span>
-        </div>
+  // Accurate breakdown: Filled vs Skipped/Preserved vs Manual Input Required
+  let filledCount = 0;
+  let skippedPreservedCount = 0;
+  let manualRequiredCount = 0;
 
-        <div className="space-y-1.5 border-t border-[#2F8F68]/15 pt-2">
-          {pilgrimReports.map(p => (
-            <div key={p.pilgrimIndex} className="flex items-center justify-between text-xs py-1.5 px-3 rounded-lg bg-white/70 dark:bg-[#1B1022]/40">
-              <span className="font-semibold text-[#1B5E20] dark:text-[#A5D6A7] flex items-center gap-2">
-                <span className="text-[#2F8F68] font-bold">✓</span>
-                Pilgrim {p.pilgrimIndex + 1}: {p.pilgrimName}
-              </span>
-              <span className="text-xs text-[#2F8F68] font-bold">5/5 {t('dashboard.verified')}</span>
-            </div>
-          ))}
-        </div>
+  const filledFieldItems: { pilgrim: string; label: string }[] = [];
+  const skippedPreservedItems: { pilgrim: string; label: string; reason?: string }[] = [];
+  const manualRequiredItems: { pilgrim: string; label: string; error?: string }[] = [];
 
-        <p className="text-xs text-[#6F6477] dark:text-[#D4C3E0] font-medium pt-1">
-          {t('dashboard.allDetailsVerifiedDesc')}
-        </p>
-      </div>
-    );
+  for (const p of pilgrimReports) {
+    const fields = Object.values(p.fields || {});
+    for (const f of fields) {
+      if (f.validated && f.filled) {
+        filledCount++;
+        filledFieldItems.push({ pilgrim: p.pilgrimName, label: f.label });
+      } else if (f.validated && !f.filled) {
+        skippedPreservedCount++;
+        skippedPreservedItems.push({
+          pilgrim: p.pilgrimName,
+          label: f.label,
+          reason: 'Preserved user-entered value',
+        });
+      } else {
+        manualRequiredCount++;
+        manualRequiredItems.push({
+          pilgrim: p.pilgrimName,
+          label: f.label,
+          error: f.error || 'Requires manual input',
+        });
+      }
+    }
   }
 
-  // Partial / Attention needed
-  const failedReports = pilgrimReports.filter(p => !p.allValidated);
-
   return (
-    <div className="rounded-2xl border border-[#C98A18]/30 bg-[#FFFBF0] dark:bg-[#3D2F1B]/30 p-4 shadow-xs space-y-3">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-[#C98A18] text-white flex items-center justify-center font-bold text-base shadow-xs">
-            ⚠
+    <div
+      role="region"
+      aria-label={t('autofillResult.title') || 'Autofill Execution Results'}
+      className={`rounded-2xl border-2 p-4 shadow-sm space-y-3.5 transition-all motion-reduce:transition-none ${
+        allVerified
+          ? 'border-emerald-500/40 bg-gradient-to-b from-white to-emerald-50/20 dark:from-[#2C1A35] dark:to-[#172E22]/20'
+          : 'border-amber-500/40 bg-gradient-to-b from-white to-amber-50/20 dark:from-[#2C1A35] dark:to-[#382613]/20'
+      }`}
+    >
+      {/* ─── Header: Overall Status ─── */}
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2.5">
+          <div
+            className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm text-white shrink-0 ${
+              allVerified ? 'bg-emerald-600' : 'bg-amber-600'
+            }`}
+          >
+            {allVerified ? '✓' : '⚠️'}
           </div>
           <div>
-            <h3 className="text-sm font-bold text-[#8D6E18] dark:text-[#FFE082]">
-              {t('dashboard.detailsNeedAttention')}
+            <h3 className="text-sm font-bold text-[#321B3F] dark:text-[#F8EFD8] leading-tight">
+              {allVerified
+                ? (t('autofillResult.allVerifiedTitle') || 'Autofill Complete & Verified')
+                : (t('autofillResult.attentionTitle') || 'Autofill Finished with Action Required')}
             </h3>
-            <p className="text-xs font-semibold text-[#8D6E18] dark:text-[#FFE082] mt-0.5">
-              {t('dashboard.fieldsVerified', { verified: verifiedFieldsCount, total: totalFields })}
+            <p className="text-[11px] text-[#6B5A70] dark:text-[#C5B4D4] font-medium mt-0.5">
+              {t('autofillResult.devoteesProcessed', { count: totalPilgrims }) ||
+                `${totalPilgrims} Devotee(s) processed on page`}
             </p>
           </div>
         </div>
+
+        <Badge variant={allVerified ? 'ready' : 'actionRequired'} size="sm">
+          {allVerified ? '100% Verified' : 'Action Required'}
+        </Badge>
       </div>
 
-      <div className="space-y-2 border-t border-[#C98A18]/15 pt-2">
-        {failedReports.map(p => {
-          const failedFields = Object.values(p.fields).filter(f => !f.validated);
-          return (
-            <div key={p.pilgrimIndex} className="p-3 rounded-xl bg-white/80 dark:bg-[#1B1022]/60 border border-[rgba(201,138,24,0.2)] text-xs space-y-1.5">
-              <div className="font-bold text-sm text-[#30213A] dark:text-[#F8EFD8]">
-                Pilgrim {p.pilgrimIndex + 1}: {p.pilgrimName}
-              </div>
-              {failedFields.map(f => (
-                <div key={f.fieldType} className="flex items-center justify-between text-xs text-[#B64747] dark:text-[#EF9A9A] pl-2">
-                  <span>{f.label}</span>
-                  <span className="font-medium">{f.error || t('dashboard.couldNotVerify')}</span>
-                </div>
-              ))}
-            </div>
-          );
-        })}
+      {/* ─── 3-Way Metrics Bar: Filled, Skipped, Manual Input Required ─── */}
+      <div className="grid grid-cols-3 gap-2 text-center pt-1">
+        <div className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800">
+          <span className="block text-base font-bold text-emerald-800 dark:text-emerald-300">
+            {filledCount}
+          </span>
+          <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-400">
+            {t('autofillResult.filledFields') || 'Filled'}
+          </span>
+        </div>
+
+        <div className="p-2 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800">
+          <span className="block text-base font-bold text-blue-800 dark:text-blue-300">
+            {skippedPreservedCount}
+          </span>
+          <span className="text-[10px] font-semibold text-blue-700 dark:text-blue-400">
+            {t('autofillResult.skippedPreserved') || 'Preserved'}
+          </span>
+        </div>
+
+        <div className="p-2 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800">
+          <span className="block text-base font-bold text-amber-800 dark:text-amber-300">
+            {manualRequiredCount}
+          </span>
+          <span className="text-[10px] font-semibold text-amber-700 dark:text-amber-400">
+            {t('autofillResult.manualRequired') || 'Manual Action'}
+          </span>
+        </div>
       </div>
 
-      <button
-        onClick={onRepair}
-        className="w-full min-h-[44px] py-3 px-4 rounded-xl bg-gradient-to-r from-[#54258A] to-[#3E1B68] text-white font-bold text-sm flex items-center justify-center gap-2 hover:shadow-md cursor-pointer transition-all active:scale-[0.99]"
-      >
-        <span>⚡ {t('dashboard.repairMissingFields')}</span>
-      </button>
+      {/* ─── Preserved Fields Notice if any ─── */}
+      {skippedPreservedCount > 0 && (
+        <div className="p-2.5 rounded-xl bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 text-[11px] text-blue-900 dark:text-blue-200 flex items-center gap-2">
+          <Icon name="shield" size={13} className="shrink-0 text-blue-600 dark:text-blue-400" />
+          <span>
+            {t('autofillResult.userValuesPreservedDesc', { count: skippedPreservedCount }) ||
+              `${skippedPreservedCount} manually entered website value(s) were safely preserved without overwriting.`}
+          </span>
+        </div>
+      )}
+
+      {/* ─── Manual Input Required (Devotee Responsibility & Boundaries) ─── */}
+      <div className="p-3 rounded-xl bg-[#FAF8F5] dark:bg-[#24132D] border border-black/5 dark:border-white/10 space-y-2">
+        <div className="flex items-center gap-1.5 text-xs font-bold text-[#54258A] dark:text-[#D4A72C]">
+          <Icon name="alert-circle" size={13} />
+          <span>{t('autofillResult.manualStepsHeading') || 'Next Steps (Manual Human Action)'}</span>
+        </div>
+
+        <ul className="text-[11px] text-[#6B5A70] dark:text-[#C5B4D4] space-y-1 pl-1 font-medium">
+          <li className="flex items-center gap-2">
+            <span className="text-[#54258A] dark:text-[#D4A72C] font-bold">1.</span>
+            <span>{t('autofillResult.stepCaptcha') || 'Solve CAPTCHA challenge on the page'}</span>
+          </li>
+          <li className="flex items-center gap-2">
+            <span className="text-[#54258A] dark:text-[#D4A72C] font-bold">2.</span>
+            <span>{t('autofillResult.stepOtp') || 'Verify mobile OTP when prompted by TTD'}</span>
+          </li>
+          <li className="flex items-center gap-2">
+            <span className="text-[#54258A] dark:text-[#D4A72C] font-bold">3.</span>
+            <span>{t('autofillResult.stepDeclaration') || 'Acknowledge rules / declaration checkboxes manually'}</span>
+          </li>
+          <li className="flex items-center gap-2">
+            <span className="text-[#54258A] dark:text-[#D4A72C] font-bold">4.</span>
+            <span>{t('autofillResult.stepPayment') || 'Review summary and complete payment on official bank gateway'}</span>
+          </li>
+        </ul>
+      </div>
+
+      {/* ─── Repair Action if any field failed ─── */}
+      {!allVerified && (
+        <button
+          type="button"
+          onClick={onRepair}
+          className="w-full min-h-[40px] py-2.5 px-4 rounded-xl bg-gradient-to-r from-[#54258A] to-[#3E1B68] text-white font-bold text-xs flex items-center justify-center gap-2 hover:shadow-md cursor-pointer transition-all active:scale-[0.99] focus-visible:ring-2 focus-visible:ring-[#54258A]"
+        >
+          <Icon name="sparkles" size={14} />
+          <span>{t('dashboard.repairMissingFields') || '⚡ Re-scan & Fill Missing Fields'}</span>
+        </button>
+      )}
     </div>
   );
 };

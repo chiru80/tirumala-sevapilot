@@ -258,10 +258,54 @@ Automated suites:
 - [x] existing-profile Home (renders PREPARE BOOKING and secondary OPEN TTD BOOKING)
 - [x] TTD-detected Home (renders TTD PAGE READY, service context, ⚡ FILL & VERIFY)
 - [x] temporary-lock Home (renders TRY AGAIN, CHECK BOOKING HISTORY, non-auto-retry)
+
+## Phase 13 — Professional UI/UX & User-First Booking Experience tests
+
+Automated suite:
+- [`tests/sidepanel/phase13-user-experience.test.tsx`](file:///tests/sidepanel/phase13-user-experience.test.tsx) (15/15 tests passing)
+
+- [x] Next Action presentation mapper: authoritative single-action calculation across 8 state categories (`NO_PROFILE`, `PROFILE_INCOMPLETE`, `READY`, `TTD_DETECTED`, `WORKING`, `USER_ACTION_REQUIRED`, `QUEUE_WAITING`, `BLOCKED`)
+- [x] Zero engineering leaks: verifies technical states (`FIELD_RESOLUTION`, `DOM_REPLACED`, `MUTATION_BATCH`) never surface in UI copy
+- [x] Service-aware readiness validation: SED ₹300 enforces general details + photo + valid ID; Padmavathi ₹200 does not require general details; Homam ₹1600 enforces Gothram
+- [x] NextActionCard component: accessible primary button with `#sp-hero-primary-action-btn`, sticky positioning, click callback dispatch
+- [x] BookingModeView: full-screen high-focus mode, single dominant CTA, clean devotee count summary, smooth exit mechanism
+- [x] ServiceSelectorModal: instant service switching across SED ₹300, Padmavathi ₹200, Homam ₹1600, Srivari Seva
+- [x] TestProfileModal: pre-booking simulator validating devotee data against canonical TTD rules with zero network calls
+- [x] Multilingual dictionary parity: 100% key parity across `en`, `te`, `hi`, `ta`, and `kn` (5/5 suites passing)
 - [x] diagnostics hidden from primary Home (internal scores kept off main dashboard)
 - [x] diagnostics available in Settings (System Diagnostics modal opens on demand)
 - [x] one dominant CTA (single primary sticky button adapts contextually)
 - [x] mobile/side-panel responsive (supports 360px-400px widths, truncated text, responsive grids)
 - [x] keyboard accessibility (ARIA landmarks, progressbar, alert semantics, focus rings)
+
+## Phase 14 — Browser E2E Testing & Real-World Reliability Lab
+
+Automated Playwright suites (executed in persistent Chromium context loading `./dist`):
+- [`tests/e2e/01-onboarding-and-navigation.spec.ts`](file:///tests/e2e/01-onboarding-and-navigation.spec.ts) (3/3 passing)
+- [`tests/e2e/02-service-readiness-correctness.spec.ts`](file:///tests/e2e/02-service-readiness-correctness.spec.ts) (3/3 passing)
+- [`tests/e2e/03-autofill-pipeline-and-dom.spec.ts`](file:///tests/e2e/03-autofill-pipeline-and-dom.spec.ts) (3/3 passing)
+- [`tests/e2e/04-safety-human-boundaries.spec.ts`](file:///tests/e2e/04-safety-human-boundaries.spec.ts) (4/4 passing)
+- [`tests/e2e/05-queue-and-temporary-lock.spec.ts`](file:///tests/e2e/05-queue-and-temporary-lock.spec.ts) (2/2 passing)
+- [`tests/e2e/06-tab-isolation-and-lifecycle.spec.ts`](file:///tests/e2e/06-tab-isolation-and-lifecycle.spec.ts) (2/2 passing)
+- [`tests/e2e/07-accessibility-and-performance.spec.ts`](file:///tests/e2e/07-accessibility-and-performance.spec.ts) (3/3 passing)
+
+Key Invariants Verified:
+- [x] Production MV3 extension bundle loaded into real Chromium browser
+- [x] Unknown service fails closed with `Requirements Unavailable` / `Generic Mode`
+- [x] Homam enforces exactly 2 householder devotees and required Gothram
+- [x] Srivari Seva enforces single pilgrim count and 18-60 age boundary
+- [x] SED form autofill and input event dispatch on local TTD fixtures
+- [x] User-edited values preserved without destructive overwriting
+- [x] Dynamic DOM replacement safely handled with MutationObserver
+- [x] Invariant defense: zero CAPTCHA autofill, zero OTP touch, zero auto-checking of declarations, zero payment automation
+- [x] Zero PII logged to browser console (Aadhaar, phone, email masked or absent)
+- [x] Temporary lock presents BLOCKED state with history link and NO retry/try-again buttons
+- [x] Queue progression distinguishes waiting, action required, expired session; emergency stop cancels monitoring cleanly
+- [x] Multi-tab context isolation: sessions and service contexts do not leak across tabs
+- [x] MV3 storage persistence survives sidepanel reloads
+- [x] 5-language translation parity verified across EN, TE, HI, TA, KN
+- [x] Keyboard focus management via Tab navigation verified
+- [x] Real browser performance benchmarked (median ~0-1ms, p95 < 4ms)
+
 
 

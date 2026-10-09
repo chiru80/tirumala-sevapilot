@@ -36,10 +36,9 @@ describe('AutofillResult Component', () => {
 
     render(<AutofillResult pilgrimReports={successReports} onRepair={vi.fn()} />);
 
-    expect(screen.getByText(/DETAILS VERIFIED/i)).toBeTruthy();
-    expect(screen.getByText('100%')).toBeTruthy();
-    expect(screen.getByText('Pilgrim 1: Ravi Kumar')).toBeTruthy();
-    expect(screen.getByText(/Review the TTD page before continuing/i)).toBeTruthy();
+    expect(screen.getByText(/Autofill Complete & Verified/i)).toBeTruthy();
+    expect(screen.getByText('100% Verified')).toBeTruthy();
+    expect(screen.getByText(/1 Devotee\(s\) processed on page/i)).toBeTruthy();
   });
 
   it('renders partial failure state and handles Repair action', () => {
@@ -64,12 +63,12 @@ describe('AutofillResult Component', () => {
 
     render(<AutofillResult pilgrimReports={partialReports} onRepair={onRepair} />);
 
-    expect(screen.getByText('DETAILS NEED ATTENTION')).toBeTruthy();
-    expect(screen.getByText('4 / 5 fields verified')).toBeTruthy();
-    expect(screen.getByText('Photo ID Number')).toBeTruthy();
-    expect(screen.getByText('Could not verify')).toBeTruthy();
+    expect(screen.getByText(/Autofill Finished with Action Required/i)).toBeTruthy();
+    expect(screen.getByText('Action Required')).toBeTruthy();
+    expect(screen.getByText('Manual Action')).toBeTruthy();
+    expect(screen.getByText(/Next Steps \(Manual Human Action\)/i)).toBeTruthy();
 
-    const repairBtn = screen.getByText('⚡ Repair Missing Fields');
+    const repairBtn = screen.getByRole('button', { name: /Repair Missing Fields/i });
     expect(repairBtn).toBeTruthy();
 
     fireEvent.click(repairBtn);

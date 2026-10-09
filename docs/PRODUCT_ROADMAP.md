@@ -144,14 +144,28 @@ Status: COMPLETE
 - React Zero-Lag Rendering: Wrapped heavy dashboard cards (`BookingCockpit`, `QueueCard`, `ReleaseCountdownCard`, `ActiveProfileCard`, `PrivacyBadge`) in `React.memo`.
 - Performance & Chaos Suites: 16 new tests across `performance-regression.test.ts` and `chaos-performance.test.ts`, 75 test files total (928 tests passing 100%).
 
-## Phase 13 — AI-Assisted DOM Intelligence (Deterministic/Safe)
-- Deterministic heuristic fallback and semantic fuzzy matching.
-- Human review boundaries.
+## Phase 13 — Professional UI/UX & User-First Booking Experience
+Status: COMPLETE
+- Design System Architecture (`src/sidepanel/design-system`): Complete suite of calm, spiritually grounded primitives (`Button`, `Card`, `Badge`, `Alert`, `Dialog`, `Icon`, `Skeleton`, `EmptyState`) in light/dark modes.
+- Next Action Presentation Engine (`src/sidepanel/presentation/next-action.ts`): Single authoritative hero presentation layer mapping complex engineering states into one obvious, human Next Action.
+- Zero Engineering Leaks: Technical machine states (`FIELD_RESOLUTION`, `DOM_REPLACED`, `MUTATION_BATCH`, etc.) are completely abstracted into clear, reassuring copy.
+- Service-Aware Readiness Engine (`profile-readiness-tester.ts`): Replaced arbitrary diagnostic percentages with rule-validated pre-flight checklists specific to SED ₹300, Padmavathi ₹200, Homam ₹1600, and Srivari Seva.
+- Signature Booking Mode (`BookingModeView.tsx`): High-focus full-screen mode stripping all secondary tabs and providing a single, dominant `⚡ FILL & VERIFY` trigger.
+- Navigation Modernization: Simplified 3-tab layout (`HOME`, `PROFILE`, `MORE`), moving diagnostic reports, release calendar settings, backup, and docs to the dedicated `MORE` hub.
+- Full 5-Language Parity: English, Telugu, Hindi, Tamil, and Kannada 100% key-synchronized across all Phase 13 user experiences.
+- Full Phase 13 Regression Suite: 15 new tests in `phase13-user-experience.test.tsx`, 79 test files total (959 tests passing 100%).
 
-## Phase 14 — Advanced UX / Accessibility / i18n
-- Multi-language expansion and WCAG 2.1 AA keyboard/screen-reader compliance.
+## Phase 14 — Browser E2E Testing & Real-World Reliability Lab
+Status: COMPLETE
+- Real Browser E2E Lab with Playwright (`playwright.config.ts`): Tests real production-built Manifest V3 extension bundle (`dist/`) in Chromium 131.
+- Deterministic Local TTD Fixtures: Local form fixtures for SED ₹300, Padmavathi ₹200, Homam ₹1600, Srivari Seva, Unknown Service, Temporary Lock, Queue Simulation, and Dynamic DOM.
+- Critical End-to-End Journeys: First launch onboarding, profile creation, multi-pilgrim autofill, manual edit preservation, dynamic DOM recovery, emergency stop, temporary lock blocking, queue progression, tab isolation, storage recovery across reloads.
+- Canonical Service & Readiness Authority: Fail-closed on unknown services (`Requirements Unavailable`), Homam 2-pilgrim and Gothram rules, Srivari Seva 18-60 age limits.
+- Strict Safety Boundary Defense: Zero CAPTCHA/OTP automation, zero payment/CVV automation, zero declaration auto-checking, zero queue forging, zero PII logging.
+- Accessibility, 5-Language Parity & Benchmarking: EN, TE, HI, TA, KN parity verified, keyboard tab navigation verified, browser storage & DOM latency benchmarks (median ~0-1ms, p95 < 4ms).
+- Automated CI Workflow: `.github/workflows/e2e-reliability.yml` running typecheck, unit tests, build, and browser E2E tests with sanitized artifact capture.
 
-## Phase 15 — Observability + Diagnostics without PII
+## Phase 15 — AI-Assisted DOM Intelligence (Deterministic/Safe)
 - Structured internal diagnostics, zero-PII telemetry aggregation.
 
 ## Phase 16 — Production QA / Chaos Testing

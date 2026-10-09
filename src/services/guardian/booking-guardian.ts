@@ -367,7 +367,7 @@ export class BookingGuardian {
    * Emergency Stop: Aborts retries, halts active sessions, and preserves all user-entered data.
    */
   public emergencyStop(reason: string = 'User triggered emergency stop'): void {
-    logger.warn(`[BookingGuardian] Emergency Stop invoked: ${reason}`);
+    logger.info(`[BookingGuardian] Emergency Stop invoked: ${reason}`);
     requestStop();
     bookingSession.cancelSession(reason);
 

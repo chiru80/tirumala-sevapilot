@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Gender, IdType } from '@shared/types';
 import type { Pilgrim } from '@shared/types';
 import { validateDevoteePhotoFile } from '../../../security/file-security';
+import { BackButton } from '../../design-system';
+import { t } from '@i18n/index';
 
 export function maskIdDisplay(val?: string): string {
   if (!val) return '—';
@@ -74,15 +76,18 @@ export function PilgrimEditorModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-3 animate-fade-in">
       <div className="bg-white dark:bg-[#2D1A38] p-4 rounded-2xl shadow-2xl w-full max-w-md border border-gold-500/30 max-h-[90vh] overflow-y-auto space-y-3">
         <div className="flex items-center justify-between pb-2 border-b border-gold-500/15">
-          <div>
-            <h3 className="text-xs font-bold font-serif text-[#5B2A86] dark:text-[#F8EFD8]">
-              Edit Pilgrim Details
-            </h3>
-            <p className="text-[10px] text-[#6B5A70] dark:text-[#A692B4]">
-              {pilgrim.fullName || 'New Pilgrim'}
-            </p>
+          <div className="flex items-center gap-1.5">
+            <BackButton onClick={onClose} aria-label={t('common.back') || 'Back'} />
+            <div>
+              <h3 className="text-xs font-bold font-serif text-[#5B2A86] dark:text-[#F8EFD8]">
+                Edit Pilgrim Details
+              </h3>
+              <p className="text-[10px] text-[#6B5A70] dark:text-[#A692B4]">
+                {pilgrim.fullName || 'New Pilgrim'}
+              </p>
+            </div>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-white text-xs font-bold p-1">
+          <button onClick={onClose} aria-label={t('common.close') || 'Close'} className="text-gray-400 hover:text-gray-600 dark:hover:text-white text-xs font-bold p-1">
             ✕
           </button>
         </div>

@@ -83,7 +83,7 @@ export class TimerManager {
     const timerId = setInterval(() => {
       const timer = this.timers.get(key);
       if (timer && Date.now() - timer.createdAt > timer.maxLifetimeMs) {
-        logger.warn(`[TimerManager] Auto-terminating exceeded interval for ${owner} (${purpose})`);
+        logger.info(`[TimerManager] Auto-terminating exceeded interval for ${owner} (${purpose})`);
         this.clearTimer(key);
         return;
       }
@@ -153,7 +153,7 @@ export class TimerManager {
     const now = Date.now();
     for (const [key, timer] of Array.from(this.timers.entries())) {
       if (now - timer.createdAt > timer.maxLifetimeMs) {
-        logger.warn(`[TimerManager] Sweeping stale timer ${key} from ${timer.owner} (${timer.purpose})`);
+        logger.info(`[TimerManager] Sweeping stale timer ${key} from ${timer.owner} (${timer.purpose})`);
         this.clearTimer(key);
       }
     }
