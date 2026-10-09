@@ -18,7 +18,9 @@
     "homeA11y": "Booking dashboard",
     "profilesA11y": "Manage pilgrim groups",
     "pilgrimsA11y": "Manage saved pilgrim details",
-    "settingsA11y": "Configure SevaPilot"
+    "settingsA11y": "Configure SevaPilot",
+    "back": "Back",
+    "backA11y": "Go back to previous screen"
   },
   "dashboard": {
     "ttdPage": "TTD PAGE",
@@ -460,21 +462,11 @@
     "confirmationNeeded": "Some field mappings may require confirmation."
   },
   "common": {
-    "save": "Save",
-    "cancel": "Cancel",
-    "delete": "Delete",
-    "edit": "Edit",
+    "back": "Back",
     "close": "Close",
-    "confirm": "Confirm",
-    "search": "Search",
-    "loading": "Loading...",
-    "success": "Success",
-    "error": "Error",
-    "warning": "Warning",
-    "keepCurrent": "Keep Current",
-    "useSaved": "Use Saved",
-    "reviewManually": "Review Manually",
-    "continueManually": "Continue Manually"
+    "cancel": "Cancel",
+    "save": "Save",
+    "edit": "Edit"
   },
   "workflow": {
     "status": {
