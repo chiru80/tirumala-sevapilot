@@ -5,8 +5,15 @@ import { EXTENSION_VERSION, STORAGE_KEYS } from '@shared/constants';
 import type { Settings as SettingsType, AutofillMode } from '@shared/types';
 import { TempleDivider } from '../components/TempleDivider';
 import { DiagnosticModal } from '../components/dashboard/DiagnosticModal';
+import { BackButton } from '../design-system';
 
-export function Settings({ onSettingsChange }: { onSettingsChange: () => void }) {
+export function Settings({
+  onSettingsChange,
+  onBack,
+}: {
+  onSettingsChange: () => void;
+  onBack?: () => void;
+}) {
   const [settings, setSettings] = useState<SettingsType | null>(null);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [resetFloatStatus, setResetFloatStatus] = useState<string | null>(null);
@@ -46,9 +53,12 @@ export function Settings({ onSettingsChange }: { onSettingsChange: () => void })
 
   return (
     <div className="p-4 space-y-4 animate-fade-in text-[#321B3F] dark:text-[#F8EFD8]">
-      <div>
-        <h2 className="text-xl font-bold font-serif text-[#5B2A86] dark:text-[#F8EFD8]">{t('settings.title')}</h2>
-        <p className="text-sm text-[#6B5A70] dark:text-[#A692B4] mt-0.5">{t('settings.subtitle')}</p>
+      <div className="flex items-center gap-2">
+        {onBack && <BackButton onClick={onBack} />}
+        <div>
+          <h2 className="text-xl font-bold font-serif text-[#5B2A86] dark:text-[#F8EFD8]">{t('settings.title')}</h2>
+          <p className="text-sm text-[#6B5A70] dark:text-[#A692B4] mt-0.5">{t('settings.subtitle')}</p>
+        </div>
       </div>
 
       <TempleDivider variant="compact" />
