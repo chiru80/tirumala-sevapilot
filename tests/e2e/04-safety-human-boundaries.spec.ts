@@ -1,4 +1,5 @@
 import { test, expect } from './helpers/extension-fixture';
+import { mockSedProfile, validAadhaar1 } from './helpers/mock-profiles';
 
 test.describe('E2E Journey 4 — Safety & Human Boundary Lab (Zero Automation)', () => {
   test('strictly never auto-fills or touches CAPTCHA input', async ({
@@ -47,12 +48,9 @@ test.describe('E2E Journey 4 — Safety & Human Boundary Lab (Zero Automation)',
   });
 
   test('zero devotee PII (Aadhaar, phone, email) logged to browser console', async ({
-    context,
     sidepanelPage,
     seedProfiles,
   }) => {
-    const { mockSedProfile, validAadhaar1 } = await import('./helpers/mock-profiles');
-
     const loggedTexts: string[] = [];
     sidepanelPage.on('console', (msg) => loggedTexts.push(msg.text()));
 

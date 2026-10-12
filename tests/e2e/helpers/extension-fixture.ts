@@ -40,9 +40,30 @@ export const test = base.extend<ExtensionTestFixtures>({
   },
 
   extensionId: async ({ context }, use) => {
-    let [background] = context.serviceWorkers();
+    let background = context.serviceWorkers()[0];
     if (!background) {
-      background = await context.waitForEvent('serviceworker', { timeout: 10000 });
+      const eventPromise = context.waitForEvent('serviceworker', { timeout: 3000 }).catch(() => null);
+      background = (await eventPromise) || context.serviceWorkers()[0];
+    }
+    if (!background) {
+      for (let i = 0; i < 15; i++) {
+        await new Promise((r) => setTimeout(r, 200));
+        background = context.serviceWorkers()[0];
+        if (background) break;
+      }
+    }
+    if (!background) {
+      const targets = context.pages();
+      for (const p of targets) {
+        if (p.url().startsWith('chrome-extension://')) {
+          const id = p.url().split('/')[2];
+          await use(id);
+          return;
+        }
+      }
+    }
+    if (!background) {
+      throw new Error('Extension service worker not found in Chromium context');
     }
     const extensionId = background.url().split('/')[2];
     await use(extensionId);
