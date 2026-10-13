@@ -248,7 +248,16 @@ export function useAutofillSession(): UseAutofillSessionResult {
           durationMs: fillDuration,
         }).catch(() => {});
 
-        if (failed === 0) {
+        if (filled === 0) {
+          setFillStatus('Form not filled — check service detection and field availability.');
+          setStatusType('warning');
+          addNotification({
+            type: 'warning',
+            title: 'Form Not Filled',
+            message: 'Form not filled — check service detection and field availability.',
+          }).catch(() => {});
+          return false;
+        } else if (failed === 0) {
           setFillStatus(`Autofill complete — all details verified in ${fillDuration}ms.`);
           setStatusType('success');
           addNotification({

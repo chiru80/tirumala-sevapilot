@@ -328,34 +328,95 @@ export class ServiceRecognitionEngine {
       lowerUrl.includes('flowidentifier=spat');
 
     if (isSpatRoute) {
-      const config = getServiceConfig('padmavathi-supadham-entry-200');
-      const verified = Boolean(config?.verified && isOfficialDomain);
-      const summary = 'Identified Padmavathi / Sri PAT (₹200) with 100% confidence via dominant SPAT route pattern.';
-      const signals: DetectionSignal[] = [
-        {
-          type: 'url',
-          name: 'SPAT Route Dominance',
-          matched: true,
-          score: 40,
-          evidence: url,
-        },
-      ];
-      return {
-        status: 'detected',
-        serviceType: ServiceType.DARSHAN,
-        serviceId: 'padmavathi-supadham-entry-200',
-        serviceName: 'Padmavathi / Sri PAT',
-        confidenceScore: 100,
-        confidence: 1,
-        confidenceBand: 'High',
-        strategy: 'spat-route-dominance',
-        workflowId: 'padmavathi-v1',
-        verified,
-        reason: summary,
-        signals,
-        summary,
-        isOfficialDomain,
-      };
+      if (doc) {
+        const explicitService = (
+          doc.querySelector('[data-service]')?.getAttribute('data-service') ||
+          doc.querySelector('[data-service-id]')?.getAttribute('data-service-id') ||
+          doc.querySelector('meta[name="ttd-service"]')?.getAttribute('content') ||
+          ''
+        ).toLowerCase();
+
+        if (explicitService === 'unknown' || explicitService.includes('unknown-service') || explicitService.includes('unconfirmed')) {
+          const summary = 'Page contains unknown or unconfirmed service marker. Autofill paused.';
+          return {
+            status: 'uncertain',
+            serviceType: ServiceType.GENERIC,
+            serviceId: 'unknown-service',
+            serviceName: 'TTD Portal Service (Unspecified)',
+            confidenceScore: 0,
+            confidence: 0,
+            confidenceBand: 'Low',
+            strategy: 'unknown-fail-closed',
+            verified: false,
+            reason: summary,
+            signals: [{ type: 'dom-marker', name: 'Unknown Service Marker', matched: true, score: 0, evidence: explicitService }],
+            summary,
+            isOfficialDomain,
+          };
+        }
+
+        if (explicitService && !explicitService.includes('padmavathi') && !explicitService.includes('pat') && !explicitService.includes('spat')) {
+          // Conflicting service in DOM, do not force SPAT
+        } else {
+          const config = getServiceConfig('padmavathi-supadham-entry-200');
+          const verified = Boolean(config?.verified && isOfficialDomain);
+          const summary = 'Identified Padmavathi / Sri PAT (₹200) with 100% confidence via dominant SPAT route pattern.';
+          const signals: DetectionSignal[] = [
+            {
+              type: 'url',
+              name: 'SPAT Route Dominance',
+              matched: true,
+              score: 40,
+              evidence: url,
+            },
+          ];
+          return {
+            status: 'detected',
+            serviceType: ServiceType.DARSHAN,
+            serviceId: 'padmavathi-supadham-entry-200',
+            serviceName: 'Padmavathi / Sri PAT',
+            confidenceScore: 100,
+            confidence: 1,
+            confidenceBand: 'High',
+            strategy: 'spat-route-dominance',
+            workflowId: 'padmavathi-v1',
+            verified,
+            reason: summary,
+            signals,
+            summary,
+            isOfficialDomain,
+          };
+        }
+      } else {
+        const config = getServiceConfig('padmavathi-supadham-entry-200');
+        const verified = Boolean(config?.verified && isOfficialDomain);
+        const summary = 'Identified Padmavathi / Sri PAT (₹200) with 100% confidence via dominant SPAT route pattern.';
+        const signals: DetectionSignal[] = [
+          {
+            type: 'url',
+            name: 'SPAT Route Dominance',
+            matched: true,
+            score: 40,
+            evidence: url,
+          },
+        ];
+        return {
+          status: 'detected',
+          serviceType: ServiceType.DARSHAN,
+          serviceId: 'padmavathi-supadham-entry-200',
+          serviceName: 'Padmavathi / Sri PAT',
+          confidenceScore: 100,
+          confidence: 1,
+          confidenceBand: 'High',
+          strategy: 'spat-route-dominance',
+          workflowId: 'padmavathi-v1',
+          verified,
+          reason: summary,
+          signals,
+          summary,
+          isOfficialDomain,
+        };
+      }
     }
 
     // Route Dominance: Srivari Seva route patterns strictly resolve to Srivari Seva

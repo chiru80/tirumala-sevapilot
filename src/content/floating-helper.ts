@@ -267,13 +267,22 @@ export async function injectFloatingHelper(): Promise<void> {
       const result = await executeAutofill({ doc: document, pilgrims, profile });
 
       if (result.success) {
-        if (statusText) statusText.textContent = `✓ ${result.totalVerified}/${result.totalFields} fields filled`;
-        fillBtn.textContent = '✓ Done';
+        if (result.totalVerified === 0) {
+          if (statusText) statusText.textContent = 'Form not filled — check service detection and field availability.';
+          fillBtn.textContent = '⚡ Retry';
+        } else {
+          if (statusText) statusText.textContent = `✓ ${result.totalVerified}/${result.totalFields} fields filled`;
+          fillBtn.textContent = '✓ Done';
+        }
       } else if (result.temporaryLock || result.state === 'TTD_TEMPORARY_BOOKING_LOCK') {
         if (statusText) statusText.textContent = '⏳ TTD Temporary Lock';
         fillBtn.textContent = 'Wait to Retry';
       } else {
-        if (statusText) statusText.textContent = result.errors[0] || '⚠ Attention needed';
+        if (statusText) {
+          statusText.textContent = result.totalVerified === 0
+            ? 'Form not filled — check service detection and field availability.'
+            : (result.errors[0] || '⚠ Attention needed');
+        }
         fillBtn.textContent = '⚡ Retry';
       }
     } catch (err) {

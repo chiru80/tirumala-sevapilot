@@ -107,11 +107,38 @@ export function detectAvailability(doc: Document = document, url: string = ''): 
 
 /**
  * Detect Slot / Time Selection step.
+ * Stale query parameters (e.g. section=slot-booking on /spat/pilgrim-details)
+ * must NOT trigger slot selection when the active route is pilgrim details
+ * or when live pilgrim rows/inputs are present.
  */
 export function detectSlotSelection(doc: Document = document, url: string = ''): { isCurrentStep: boolean; confidence: number } {
+  let pathname = '';
+  try {
+    pathname = new URL(url).pathname.toLowerCase();
+  } catch {
+    pathname = (url || '').split('?')[0].toLowerCase();
+  }
+
+  // If live pilgrim rows or inputs are present in the DOM, slot selection is completed
+  const hasLivePilgrimInputs = doc.querySelectorAll(
+    '.pilgrim-row, .devotee-card, input[formcontrolname*="name" i], input[name*="name" i], select[formcontrolname*="gender" i], mat-select[formcontrolname*="gender" i]'
+  );
+  let visiblePilgrimCount = 0;
+  for (const el of Array.from(hasLivePilgrimInputs)) {
+    if (isElementVisible(el as HTMLElement)) {
+      visiblePilgrimCount++;
+      if (visiblePilgrimCount >= 2) break;
+    }
+  }
+
+  if (visiblePilgrimCount >= 2 || pathname.includes('/pilgrim') || pathname.includes('/devotee')) {
+    return { isCurrentStep: false, confidence: 0 };
+  }
+
   let score = 0;
 
-  if (/slot|time-selection|select-slot/i.test(url)) {
+  // Only test pathname or non-pilgrim url for slot selection route
+  if (/slot|time-selection|select-slot/i.test(pathname) || (/slot|time-selection|select-slot/i.test(url) && !/pilgrim/i.test(url))) {
     score += 35;
   }
 
@@ -245,7 +272,7 @@ export function detectAdditionalServices(doc: Document = document, url: string =
 export function detectPilgrimDetails(doc: Document = document, url: string = ''): { isCurrentStep: boolean; confidence: number } {
   let score = 0;
 
-  if (/pilgrim|devotee|passenger|darshan-entry/i.test(url)) {
+  if (/pilgrim|devotee|passenger|darshan-entry|flow=spat|\/spat\//i.test(url)) {
     score += 25;
   }
 
@@ -261,9 +288,15 @@ export function detectPilgrimDetails(doc: Document = document, url: string = '')
     }
   }
 
-  // Check visible devotee form inputs
+  // Check explicit pilgrim row markers
+  const pilgrimRows = doc.querySelectorAll('.pilgrim-row, .devotee-card, [id*="pilgrim-row"]');
+  if (pilgrimRows.length > 0) {
+    score += 40;
+  }
+
+  // Check visible devotee form inputs (including Angular Material mat-select and indexed name/age/gender/id fields)
   const devoteeInputs = doc.querySelectorAll(
-    'input[formcontrolname*="name" i], input[name*="pilgrim" i], select[formcontrolname*="gender" i], input[formcontrolname*="age" i], select[formcontrolname*="proof" i]'
+    'input[formcontrolname*="name" i], input[name*="name" i], input[id*="name" i], input[name*="pilgrim" i], select[formcontrolname*="gender" i], mat-select[formcontrolname*="gender" i], select[name*="gender" i], input[formcontrolname*="age" i], input[name*="age" i], select[formcontrolname*="proof" i], mat-select[formcontrolname*="proof" i], select[formcontrolname*="idproof" i], mat-select[formcontrolname*="idproof" i], input[formcontrolname*="idnumber" i], input[name*="idnumber" i]'
   );
 
   let visibleCount = 0;

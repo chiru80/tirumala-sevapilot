@@ -115,11 +115,17 @@ function findRowContainers(doc: Document, expectedCount: number): HTMLElement[] 
       if (attrString.includes(ex)) return false;
     }
 
+    const hasNameSignal = (text: string) => text.includes('name') || text.includes('devotee') || text.includes('pilgrim');
+    const isIdOrProofField = (text: string) => /photo\s*upload|upload\s*photo|id\s*number|id\s*no\b|proof\s*number|card\s*number|id\s*type|proof\s*type/i.test(text);
+
     // Check associated label too
     if (el.id) {
       const labelEl = doc.querySelector(`label[for="${CSS.escape(el.id)}"]`);
       if (labelEl?.textContent) {
         const lblText = labelEl.textContent.toLowerCase();
+        if (hasNameSignal(lblText) && !isIdOrProofField(lblText)) {
+          return true;
+        }
         for (const ex of ['id', 'photo', 'email', 'login', 'mobile', 'phone']) {
           if (lblText.includes(ex)) return false;
         }
@@ -129,10 +135,13 @@ function findRowContainers(doc: Document, expectedCount: number): HTMLElement[] 
     // Check comprehensive label text
     const labelText = (findLabelText(el, doc) || '').toLowerCase();
     if (labelText) {
+      if (hasNameSignal(labelText) && !isIdOrProofField(labelText)) {
+        return true;
+      }
       for (const ex of ['id', 'photo', 'email', 'login', 'mobile', 'phone', 'captcha', 'search', 'password']) {
         if (labelText.includes(ex)) return false;
       }
-      if (labelText.includes('name') || labelText.includes('devotee') || labelText.includes('pilgrim')) {
+      if (hasNameSignal(labelText)) {
         return true;
       }
     }
