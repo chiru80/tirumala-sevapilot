@@ -251,7 +251,7 @@ export function useAutofillSession(): UseAutofillSessionResult {
         }).catch(() => {});
 
         if (filled === 0) {
-          setFillStage(prev => ({ ...prev, stage: 'idle', active: false }));
+          setFillStage(prev => ({ ...prev, stage: 'preparing', active: false }));
           const failureReason = fillResponse?.error || 'Form not filled — could not identify eligible fields. Please use the Manual-Entry Assistant below.';
           setFillStatus(failureReason);
           setStatusType('warning');
