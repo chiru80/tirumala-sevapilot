@@ -52,7 +52,7 @@ export const NextActionCard: React.FC<NextActionCardProps> = ({
           {badgeVariant === 'ready' && (
             <span className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
               <Icon name="check" size={12} />
-              Profile Ready
+              {model.category === 'TTD_DETECTED' ? 'Profile Ready to Fill' : 'Profile Ready'}
             </span>
           )}
         </div>

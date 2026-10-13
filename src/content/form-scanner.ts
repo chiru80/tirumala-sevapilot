@@ -28,17 +28,21 @@ function isPilgrimNameField(el: Element, label?: string): boolean {
   const normId = el.id ? normalizeText(el.id) : '';
   const normPlaceholder = (el as HTMLInputElement).placeholder ? normalizeText((el as HTMLInputElement).placeholder) : '';
 
-  // Exclude ID card name / photo ID
-  if (normLabel.includes('id') || normName.includes('id') || normLabel.includes('photo') || normName.includes('photo')) {
+  const fullContext = `${normLabel} ${normName} ${normId} ${normPlaceholder}`;
+
+  // Exclude explicit ID number or photo upload controls, while permitting "Name as per Photo ID"
+  const isExplicitIdOrPhotoUpload = /photo\s*upload|upload\s*photo|id\s*number|id\s*no\b|proof\s*number|card\s*number|id\s*type|proof\s*type/i.test(fullContext);
+  if (isExplicitIdOrPhotoUpload) {
     return false;
   }
 
-  const nameMatches = ['name', 'full name', 'pilgrim name', 'devotee name', 'passenger name'];
+  const nameMatches = ['name', 'full name', 'pilgrim name', 'devotee name', 'passenger name', 'name as per photo id', 'name as per id'];
+  const hasNameSignal = nameMatches.some(m =>
+    normLabel.includes(m) || normName.includes(m) || normId.includes(m) || normPlaceholder.includes(m)
+  );
+
   return (
-    nameMatches.includes(normLabel) ||
-    nameMatches.includes(normName) ||
-    nameMatches.includes(normId) ||
-    nameMatches.includes(normPlaceholder) ||
+    hasNameSignal ||
     normName.endsWith('.name') ||
     normName.endsWith('[name]')
   );

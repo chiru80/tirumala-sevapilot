@@ -108,15 +108,31 @@ function findRowContainers(doc: Document, expectedCount: number): HTMLElement[] 
       el.getAttribute('formcontrolname'), el.getAttribute('aria-label'),
     ].filter(Boolean).join(' ').toLowerCase();
 
+    const hasNameSignal = (text: string) => text.includes('name') || text.includes('devotee') || text.includes('pilgrim');
+    const isIdOrProofField = (text: string) => /photo\s*upload|upload\s*photo|id\s*number|id\s*no\b|proof\s*number|card\s*number|id\s*type|proof\s*type/i.test(text);
+
+    // If attributes explicitly indicate a Name field (e.g. placeholder="Name as per Photo ID"),
+    // verify it is not an ID number or photo upload field
+    if (hasNameSignal(attrString) && !isIdOrProofField(attrString)) {
+      const strictExclude = ['login', 'user', 'email', 'otp', 'search', 'captcha', 'password', 'mobile', 'phone', 'city', 'state', 'country', 'pin', 'address'];
+      let excluded = false;
+      for (const ex of strictExclude) {
+        if (attrString.includes(ex)) {
+          excluded = true;
+          break;
+        }
+      }
+      if (!excluded) {
+        return true;
+      }
+    }
+
     // Exclude non-pilgrim-name fields
     const excludePatterns = ['login', 'user', 'email', 'otp', 'search', 'captcha', 'password',
       'photo', 'mobile', 'phone', 'city', 'state', 'country', 'pin', 'address'];
     for (const ex of excludePatterns) {
       if (attrString.includes(ex)) return false;
     }
-
-    const hasNameSignal = (text: string) => text.includes('name') || text.includes('devotee') || text.includes('pilgrim');
-    const isIdOrProofField = (text: string) => /photo\s*upload|upload\s*photo|id\s*number|id\s*no\b|proof\s*number|card\s*number|id\s*type|proof\s*type/i.test(text);
 
     // Check associated label too
     if (el.id) {
@@ -127,7 +143,7 @@ function findRowContainers(doc: Document, expectedCount: number): HTMLElement[] 
           return true;
         }
         for (const ex of ['id', 'photo', 'email', 'login', 'mobile', 'phone']) {
-          if (lblText.includes(ex)) return false;
+          if (lblText.includes(ex) && !hasNameSignal(lblText)) return false;
         }
       }
     }
@@ -139,7 +155,7 @@ function findRowContainers(doc: Document, expectedCount: number): HTMLElement[] 
         return true;
       }
       for (const ex of ['id', 'photo', 'email', 'login', 'mobile', 'phone', 'captcha', 'search', 'password']) {
-        if (labelText.includes(ex)) return false;
+        if (labelText.includes(ex) && !hasNameSignal(labelText)) return false;
       }
       if (hasNameSignal(labelText)) {
         return true;

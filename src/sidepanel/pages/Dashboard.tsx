@@ -439,6 +439,31 @@ export function Dashboard({ onNavigate }: DashboardProps = {}) {
         />
       </div>
 
+      {/* 4b. AUTOFILL STATUS / ERROR BANNER */}
+      {fillStatus && !isFilling && (statusType === 'error' || statusType === 'warning') && (
+        <div
+          id="sp-fill-status-alert"
+          role="alert"
+          className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700 text-xs text-amber-900 dark:text-amber-200 flex items-start gap-2 shadow-xs"
+        >
+          <Icon name="alert-triangle" size={16} className="text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+          <div className="flex-1 space-y-1 min-w-0">
+            <div className="font-bold flex items-center justify-between">
+              <span>{statusType === 'error' ? (t('dashboard.fillErrorTitle') || 'Autofill Paused') : (t('dashboard.fillNoticeTitle') || 'Autofill Notice')}</span>
+              <button
+                type="button"
+                onClick={() => setFillStatus(null)}
+                className="text-amber-700 dark:text-amber-400 hover:text-amber-900 cursor-pointer font-bold px-1"
+                aria-label="Dismiss"
+              >
+                ✕
+              </button>
+            </div>
+            <p className="text-[11px] leading-relaxed break-words">{fillStatus}</p>
+          </div>
+        </div>
+      )}
+
       {/* 5. BOOKING ACTION AREA (Command Center with Select Profile, Fill Details, Review Fields, Save Profile) */}
       <BookingActionArea
         serviceId={selectedServiceId}

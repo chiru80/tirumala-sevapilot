@@ -350,4 +350,115 @@ describe('SPAT 6-Row Pilgrim Autofill Regression Suite', () => {
     expect(result.errors.length).toBeGreaterThan(0);
     expect(result.errors[0]).toMatch(/Pilgrim fields could not be safely identified|Form fields could not be safely identified|TTD form structure has changed/);
   });
+
+  // 11. Angular Material realistic DOM reproduction matching live SPAT screenshot
+  it('11. correctly resolves and fills Angular Material inputs with mat-input-x IDs and "Name as per Photo ID" placeholder', async () => {
+    // Exactly reproducing the live Angular DOM where IDs are generic mat-input-0, mat-input-1, etc.
+    const angularRows = [0, 1, 2, 3, 4, 5].map(i => {
+      const baseIdx = i * 5;
+      return `
+        <div class="pilgrim-card mat-card" id="card-${i}">
+          <div class="row-header"><h3>Pilgrim ${i + 1} Details</h3></div>
+          <div class="mat-form-field">
+            <label for="mat-input-${baseIdx}">Name as per Photo ID *</label>
+            <input matinput="" type="text" id="mat-input-${baseIdx}" placeholder="Name as per Photo ID" class="mat-input-element cdk-text-field-autofill-monitored ng-invalid ng-touched" />
+            <span class="mat-error">Name is required</span>
+          </div>
+          <div class="mat-form-field">
+            <label for="mat-input-${baseIdx + 1}">Age *</label>
+            <input matinput="" type="number" id="mat-input-${baseIdx + 1}" placeholder="Age" class="mat-input-element ng-invalid ng-touched" />
+            <span class="mat-error">Age is required</span>
+          </div>
+          <div class="mat-form-field">
+            <label for="mat-input-${baseIdx + 2}">Gender *</label>
+            <select id="mat-input-${baseIdx + 2}" class="mat-select ng-invalid ng-touched">
+              <option value="">Select Gender</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+            </select>
+          </div>
+          <div class="mat-form-field">
+            <label for="mat-input-${baseIdx + 3}">Photo ID Proof *</label>
+            <select id="mat-input-${baseIdx + 3}" class="mat-select ng-invalid ng-touched">
+              <option value="">Select ID Proof</option>
+              <option value="Aadhaar">Aadhaar</option>
+              <option value="Passport">Passport</option>
+            </select>
+          </div>
+          <div class="mat-form-field">
+            <label for="mat-input-${baseIdx + 4}">Photo ID Number *</label>
+            <input matinput="" type="text" id="mat-input-${baseIdx + 4}" placeholder="Photo ID Number" class="mat-input-element ng-invalid ng-touched" />
+          </div>
+        </div>
+      `;
+    }).join('\n');
+
+    doc.body.innerHTML = `
+      <div class="spat-container">
+        <h1>Pilgrim Details</h1>
+        <div class="slot-badge">Slot Selected: 10:00 AM</div>
+        <form id="spatForm">
+          ${angularRows}
+        </form>
+      </div>
+    `;
+
+    // Track simulated Angular event dispatching (input, change, blur)
+    const dispatchedEvents: string[] = [];
+    doc.body.addEventListener('input', (e) => dispatchedEvents.push(`input:${(e.target as HTMLElement).id}`));
+    doc.body.addEventListener('change', (e) => dispatchedEvents.push(`change:${(e.target as HTMLElement).id}`));
+    doc.body.addEventListener('blur', (e) => dispatchedEvents.push(`blur:${(e.target as HTMLElement).id}`), true);
+
+    const locked = detectAndLockPilgrimRows(doc, 6);
+    expect(locked).toHaveLength(6);
+
+    const result = await executeAutofill({
+      pilgrims: mockPilgrims,
+      profile: mockProfile,
+      doc,
+      url: spatUrl,
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.totalVerified).toBe(30);
+    expect(result.totalFailed).toBe(0);
+
+    // Verify all 6 rows received full names and were not rejected by "photo" or "id" filter
+    for (let i = 0; i < 6; i++) {
+      const baseIdx = i * 5;
+      const nameInput = doc.getElementById(`mat-input-${baseIdx}`) as HTMLInputElement;
+      const ageInput = doc.getElementById(`mat-input-${baseIdx + 1}`) as HTMLInputElement;
+      expect(nameInput.value).toBe(mockPilgrims[i].fullName);
+      expect(ageInput.value).toBe(String(mockPilgrims[i].age));
+    }
+
+    // Verify Angular events were dispatched for live reactive binding
+    expect(dispatchedEvents.some(ev => ev.startsWith('input:mat-input-0'))).toBe(true);
+    expect(dispatchedEvents.some(ev => ev.startsWith('change:mat-input-0'))).toBe(true);
+  }, 30000);
+
+  // 12. Verification failure when values fail read-back
+  it('12. fails gracefully and reports verification failure when DOM values fail read-back', async () => {
+    doc.body.innerHTML = createSixRowFormHtml();
+
+    // Stub an input whose value property is locked and refuses write
+    const ageInput = doc.getElementById('age_0') as HTMLInputElement;
+    Object.defineProperty(ageInput, 'value', {
+      get: () => '',
+      set: () => { /* no-op simulating rigid read-only component */ },
+      configurable: true,
+    });
+
+    const result = await executeAutofill({
+      pilgrims: [mockPilgrims[0]],
+      profile: mockProfile,
+      doc,
+      url: spatUrl,
+    });
+
+    // Verification must fail because age_0 read-back is '' instead of '35'
+    expect(result.success).toBe(false);
+    expect(result.totalFailed).toBeGreaterThanOrEqual(1);
+    expect(result.failedItems.some(f => f.field === 'age')).toBe(true);
+  }, 30000);
 });
