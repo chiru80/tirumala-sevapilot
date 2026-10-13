@@ -198,7 +198,36 @@ export const CANONICAL_PADMAVATHI_200: CanonicalServiceDefinition = {
   detect(url: string, doc: Document) {
     const lowerUrl = (url || '').toLowerCase();
 
-    // SPAT Route Dominance: Immediate 100% confidence
+    // Check for authoritative contradictory or unknown page evidence
+    if (doc && typeof doc.querySelector === 'function') {
+      const explicitService = (
+        doc.querySelector('[data-service]')?.getAttribute('data-service') ||
+        doc.querySelector('[data-service-id]')?.getAttribute('data-service-id') ||
+        doc.querySelector('meta[name="ttd-service"]')?.getAttribute('content') ||
+        ''
+      ).toLowerCase();
+
+      if (explicitService === 'unknown' || explicitService.includes('unknown-service') || explicitService.includes('unconfirmed')) {
+        return { matches: false, confidence: 0 };
+      }
+
+      if (explicitService && !explicitService.includes('padmavathi') && !explicitService.includes('pat') && !explicitService.includes('spat')) {
+        return { matches: false, confidence: 0 };
+      }
+
+      const pageHeading = (doc.querySelector('h1, h2, .service-title, [class*="service-heading"]') as HTMLElement)?.innerText?.toLowerCase() || '';
+      if (
+        pageHeading.includes('unknown service') ||
+        pageHeading.includes('srivani') ||
+        pageHeading.includes('srivari seva') ||
+        pageHeading.includes('divyanugraha homam') ||
+        pageHeading.includes('special entry darshan ₹300')
+      ) {
+        return { matches: false, confidence: 0 };
+      }
+    }
+
+    // SPAT Route Dominance: Immediate 100% confidence when page evidence does not contradict
     if (
       lowerUrl.includes('/spat/') ||
       lowerUrl.includes('flow=spat') ||
@@ -631,14 +660,49 @@ export function resolveCanonicalService(
   doc?: Document,
 ): CanonicalResolutionResult {
   const lowerUrl = (url || '').toLowerCase();
+  const effectiveDoc = doc ?? (typeof document !== 'undefined' ? document : ({ body: { innerText: '', textContent: '' } } as unknown as Document));
 
-  // Route Dominance: SPAT URLs strictly resolve to Padmavathi ₹200
+  // Authoritative page evidence check: if doc indicates unknown or unconfirmed service, fail closed
+  if (effectiveDoc && typeof effectiveDoc.querySelector === 'function') {
+    const explicitService = (
+      effectiveDoc.querySelector('[data-service]')?.getAttribute('data-service') ||
+      effectiveDoc.querySelector('[data-service-id]')?.getAttribute('data-service-id') ||
+      effectiveDoc.querySelector('meta[name="ttd-service"]')?.getAttribute('content') ||
+      ''
+    ).toLowerCase();
+
+    if (explicitService === 'unknown' || explicitService.includes('unknown-service') || explicitService.includes('unconfirmed')) {
+      return {
+        service: SAFE_CANONICAL_UNKNOWN_SERVICE,
+        confidence: 0,
+        isUncertain: true,
+        message: 'Unknown or unconfirmed service detected on page. Autofill paused.',
+      };
+    }
+  }
+
+  // Route Dominance: SPAT URLs strictly resolve to Padmavathi ₹200 if DOM does not contradict
   if (lowerUrl.includes('/spat/') || lowerUrl.includes('flow=spat') || lowerUrl.includes('flowidentifier=spat')) {
-    return {
-      service: CANONICAL_PADMAVATHI_200,
-      confidence: 100,
-      isUncertain: false,
-    };
+    if (effectiveDoc && typeof effectiveDoc.querySelector === 'function') {
+      const explicitService = (
+        effectiveDoc.querySelector('[data-service]')?.getAttribute('data-service') ||
+        effectiveDoc.querySelector('[data-service-id]')?.getAttribute('data-service-id') ||
+        ''
+      ).toLowerCase();
+      if (!explicitService || explicitService.includes('padmavathi') || explicitService.includes('pat') || explicitService.includes('spat')) {
+        return {
+          service: CANONICAL_PADMAVATHI_200,
+          confidence: 100,
+          isUncertain: false,
+        };
+      }
+    } else {
+      return {
+        service: CANONICAL_PADMAVATHI_200,
+        confidence: 100,
+        isUncertain: false,
+      };
+    }
   }
 
   // Route Dominance: Srivari Seva URLs strictly resolve to Srivari Seva
@@ -663,8 +727,6 @@ export function resolveCanonicalService(
       isUncertain: false,
     };
   }
-
-  const effectiveDoc = doc ?? (typeof document !== 'undefined' ? document : ({ body: { innerText: '', textContent: '' } } as unknown as Document));
 
   let bestMatch: CanonicalServiceDefinition | undefined = undefined;
   let highestConfidence = 0;

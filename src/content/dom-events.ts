@@ -11,8 +11,19 @@ export function setNativeValue(
   element: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement,
   value: string,
 ): void {
-  const proto = Object.getPrototypeOf(element);
-  const descriptor = Object.getOwnPropertyDescriptor(proto, 'value');
+  const win = element.ownerDocument?.defaultView || (typeof window !== 'undefined' ? window : globalThis as any);
+  let targetProto: any = Object.getPrototypeOf(element);
+  let descriptor = Object.getOwnPropertyDescriptor(targetProto, 'value');
+
+  if (!descriptor?.set && win) {
+    if (element instanceof (win.HTMLInputElement || HTMLInputElement)) {
+      descriptor = Object.getOwnPropertyDescriptor(win.HTMLInputElement?.prototype || HTMLInputElement.prototype, 'value');
+    } else if (element instanceof (win.HTMLTextAreaElement || HTMLTextAreaElement)) {
+      descriptor = Object.getOwnPropertyDescriptor(win.HTMLTextAreaElement?.prototype || HTMLTextAreaElement.prototype, 'value');
+    } else if (element instanceof (win.HTMLSelectElement || HTMLSelectElement)) {
+      descriptor = Object.getOwnPropertyDescriptor(win.HTMLSelectElement?.prototype || HTMLSelectElement.prototype, 'value');
+    }
+  }
 
   if (descriptor?.set) {
     descriptor.set.call(element, value);

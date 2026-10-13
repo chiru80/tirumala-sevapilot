@@ -1450,10 +1450,12 @@ export async function autofillGeneralDetails(
   let profile = opts.profile;
   if (!profile) {
     try {
-      const stored = await chrome.storage.local.get(STORAGE_KEYS.PROFILES);
-      const rawProfiles = (stored?.[STORAGE_KEYS.PROFILES] as any[]) || [];
-      const profiles = Array.isArray(rawProfiles) ? rawProfiles.filter(p => p != null && typeof p === 'object') : [];
-      profile = profiles.find((p: any) => p?.isDefault) || profiles[0] || null;
+      if (typeof chrome !== 'undefined' && chrome.runtime?.id && chrome.storage?.local) {
+        const stored = await chrome.storage.local.get(STORAGE_KEYS.PROFILES);
+        const rawProfiles = (stored?.[STORAGE_KEYS.PROFILES] as any[]) || [];
+        const profiles = Array.isArray(rawProfiles) ? rawProfiles.filter(p => p != null && typeof p === 'object') : [];
+        profile = profiles.find((p: any) => p?.isDefault) || profiles[0] || null;
+      }
     } catch {}
   }
 

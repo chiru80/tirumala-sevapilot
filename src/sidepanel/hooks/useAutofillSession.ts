@@ -185,6 +185,8 @@ export function useAutofillSession(): UseAutofillSessionResult {
           profile,
           mappings: scanData.mappedFields,
           mode,
+          serviceId: scanData.serviceId,
+          serviceName,
         },
         timestamp: new Date().toISOString(),
       });
@@ -248,7 +250,18 @@ export function useAutofillSession(): UseAutofillSessionResult {
           durationMs: fillDuration,
         }).catch(() => {});
 
-        if (failed === 0) {
+        if (filled === 0) {
+          setFillStage(prev => ({ ...prev, stage: 'preparing', active: false }));
+          const failureReason = fillResponse?.error || 'Form not filled — could not identify eligible fields. Please use the Manual-Entry Assistant below.';
+          setFillStatus(failureReason);
+          setStatusType('warning');
+          addNotification({
+            type: 'warning',
+            title: 'Form Not Filled',
+            message: failureReason,
+          }).catch(() => {});
+          return false;
+        } else if (failed === 0) {
           setFillStatus(`Autofill complete — all details verified in ${fillDuration}ms.`);
           setStatusType('success');
           addNotification({
@@ -281,8 +294,14 @@ export function useAutofillSession(): UseAutofillSessionResult {
         return false;
       } else {
         setFillStage(prev => ({ ...prev, active: false }));
-        setFillStatus(`Fill failed: ${fillResponse?.error || 'Unknown error'}`);
+        const err = fillResponse?.error || 'Form fields could not be safely identified. Please use manual entry.';
+        setFillStatus(`Fill failed: ${err}`);
         setStatusType('error');
+        addNotification({
+          type: 'error',
+          title: 'Autofill Failed',
+          message: err,
+        }).catch(() => {});
         return false;
       }
     } catch {

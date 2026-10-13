@@ -6,6 +6,7 @@
 // ─────────────────────────────────────────────────────────────
 
 import logger from '@shared/logger';
+import { isExtensionContextValid, teardownOrphanedContentScript } from './context-guard';
 
 export type DomLifecycleEventType =
   | 'DOM_REPLACED'
@@ -125,6 +126,12 @@ export class DomLifecycleEngine {
    * Batched mutation processor with subtree filtering.
    */
   private handleMutations(mutations: MutationRecord[]): void {
+    if (!isExtensionContextValid()) {
+      this.stop();
+      teardownOrphanedContentScript();
+      return;
+    }
+
     let hasFormAddition = false;
     let hasFormRemoval = false;
     let hasFieldAddition = false;
@@ -192,6 +199,11 @@ export class DomLifecycleEngine {
     }
 
     this.debounceTimer = setTimeout(() => {
+      if (!isExtensionContextValid()) {
+        this.stop();
+        teardownOrphanedContentScript();
+        return;
+      }
       if (hasRerender) {
         this.emit('DOM_RERENDERED');
         this.emit('DOM_REPLACED');

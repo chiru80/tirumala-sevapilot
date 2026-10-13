@@ -329,13 +329,13 @@ export function detectWorkflowStep(
   if (detectSrivariSevaInstructions(doc, url).isCurrentStep) return 'INSTRUCTIONS_REVIEW';
   if (detectSrivariSevaEnrollment(doc, url).isCurrentStep) return 'SRIVARI_SEVA_ENROLLMENT';
   if (detectReviewDetails(doc, url).isCurrentStep) return 'REVIEW_DETAILS';
+  if (detectPilgrimDetails(doc, url).isCurrentStep) return 'PILGRIM_DETAILS';
   if (detectGeneralDetails(doc, url).isCurrentStep) {
     if (workflow && !workflow.hasGeneralDetailsStep) {
       return 'REVIEW_DETAILS';
     }
     return 'GENERAL_DETAILS';
   }
-  if (detectPilgrimDetails(doc, url).isCurrentStep) return 'PILGRIM_DETAILS';
   if (detectAdditionalServices(doc, url).isCurrentStep) return 'ADDITIONAL_SERVICES';
   if (detectSlotSelection(doc, url).isCurrentStep) return 'SLOT_SELECTION';
   if (detectAvailability(doc, url).isCurrentStep) return 'AVAILABILITY';

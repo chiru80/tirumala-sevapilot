@@ -7,6 +7,13 @@ import { STORAGE_KEYS } from '@shared/constants';
 import { executeAutofill } from './autofill/autofill-manager';
 import { detectActiveBookingStep } from './autofill/page-workflow';
 import logger from '@shared/logger';
+import {
+  isExtensionContextValid,
+  safeSendMessage,
+  safeStorageGet,
+  safeStorageSet,
+  onContextInvalidated,
+} from './context-guard';
 
 let helperHost: HTMLElement | null = null;
 
@@ -16,11 +23,11 @@ interface Position {
 }
 
 export async function injectFloatingHelper(): Promise<void> {
-  if (helperHost) return;
+  if (helperHost || !isExtensionContextValid()) return;
 
   // Check if disabled in settings
   try {
-    const settingsRes = await chrome.storage.local.get(STORAGE_KEYS.SETTINGS);
+    const settingsRes = await safeStorageGet(STORAGE_KEYS.SETTINGS);
     const settings = settingsRes[STORAGE_KEYS.SETTINGS] as any;
     if (settings && settings.floatingHelperEnabled === false) {
       return;
@@ -32,7 +39,7 @@ export async function injectFloatingHelper(): Promise<void> {
   // Retrieve stored position
   let savedPos: Position = { x: window.innerWidth - 220, y: window.innerHeight - 150 };
   try {
-    const posRes = await chrome.storage.local.get(STORAGE_KEYS.FLOATING_POS);
+    const posRes = await safeStorageGet(STORAGE_KEYS.FLOATING_POS);
     if (posRes[STORAGE_KEYS.FLOATING_POS]) {
       savedPos = posRes[STORAGE_KEYS.FLOATING_POS] as Position;
       // Clamp to window boundaries
@@ -221,9 +228,9 @@ export async function injectFloatingHelper(): Promise<void> {
     if (isDragging) {
       isDragging = false;
       // Persist position
-      chrome.storage.local.set({
+      safeStorageSet({
         [STORAGE_KEYS.FLOATING_POS]: { x: card.offsetLeft, y: card.offsetTop },
-      }).catch(() => {});
+      });
     }
   });
 
@@ -236,7 +243,7 @@ export async function injectFloatingHelper(): Promise<void> {
   // Robust step-aware autofill trigger function
   let isRunning = false;
   async function triggerAutofillAction() {
-    if (isRunning) return;
+    if (isRunning || !isExtensionContextValid()) return;
     isRunning = true;
     fillBtn.disabled = true;
     fillBtn.textContent = 'Filling...';
@@ -248,7 +255,7 @@ export async function injectFloatingHelper(): Promise<void> {
       let pilgrims: any[] = [];
       let profile: any = null;
       try {
-        const stored = await chrome.storage.local.get(STORAGE_KEYS.PROFILES);
+        const stored = await safeStorageGet(STORAGE_KEYS.PROFILES);
         const rawProfiles = (stored?.[STORAGE_KEYS.PROFILES] as any[]) || [];
         const profiles = Array.isArray(rawProfiles) ? rawProfiles.filter(p => p != null && typeof p === 'object') : [];
         profile = profiles.find((p: any) => p?.isDefault) || profiles[0] || null;
@@ -260,13 +267,22 @@ export async function injectFloatingHelper(): Promise<void> {
       const result = await executeAutofill({ doc: document, pilgrims, profile });
 
       if (result.success) {
-        if (statusText) statusText.textContent = `✓ ${result.totalVerified}/${result.totalFields} fields filled`;
-        fillBtn.textContent = '✓ Done';
+        if (result.totalVerified === 0) {
+          if (statusText) statusText.textContent = 'Form not filled — check service detection and field availability.';
+          fillBtn.textContent = '⚡ Retry';
+        } else {
+          if (statusText) statusText.textContent = `✓ ${result.totalVerified}/${result.totalFields} fields filled`;
+          fillBtn.textContent = '✓ Done';
+        }
       } else if (result.temporaryLock || result.state === 'TTD_TEMPORARY_BOOKING_LOCK') {
         if (statusText) statusText.textContent = '⏳ TTD Temporary Lock';
         fillBtn.textContent = 'Wait to Retry';
       } else {
-        if (statusText) statusText.textContent = result.errors[0] || '⚠ Attention needed';
+        if (statusText) {
+          statusText.textContent = result.totalVerified === 0
+            ? 'Form not filled — check service detection and field availability.'
+            : (result.errors[0] || '⚠ Attention needed');
+        }
         fillBtn.textContent = '⚡ Retry';
       }
     } catch (err) {
@@ -284,7 +300,12 @@ export async function injectFloatingHelper(): Promise<void> {
 
   // Periodic SPA step observer: resets "Form Ready" when transitioning between Pilgrim & General
   let lastObservedStep = detectActiveBookingStep(document);
-  setInterval(() => {
+  const stepInterval = setInterval(() => {
+    if (!isExtensionContextValid()) {
+      clearInterval(stepInterval);
+      removeFloatingHelper();
+      return;
+    }
     if (isRunning) return;
     const currentStep = detectActiveBookingStep(document);
     if (currentStep !== lastObservedStep) {
@@ -297,6 +318,12 @@ export async function injectFloatingHelper(): Promise<void> {
       }
     }
   }, 1000);
+
+  // Auto teardown when context is invalidated
+  onContextInvalidated(() => {
+    clearInterval(stepInterval);
+    removeFloatingHelper();
+  });
 
   // Fill button click listener
   fillBtn.addEventListener('click', async (event) => {
@@ -317,11 +344,11 @@ export async function injectFloatingHelper(): Promise<void> {
 
   // Open side panel
   openPanelBtn.addEventListener('click', () => {
-    chrome.runtime.sendMessage({
+    safeSendMessage({
       type: 'OPEN_SIDE_PANEL',
       payload: {},
       timestamp: new Date().toISOString(),
-    }).catch(() => {});
+    });
   });
 
   logger.debug('Floating assistant initialized');

@@ -61,8 +61,9 @@ function mapSingleField(field: ScannedField): FieldMapping | null {
     bestScore = Math.max(bestScore, 90);
     bestReasons.push('ID Number disambiguation applied');
   } else if (hasIdSignal && (field.type === 'select' || textSignals.some(s => s.includes('proof') || s.includes('type')))) {
-    // If it's a dropdown or mentions proof/type without number, it's idType
-    if (!hasNumberSignal) {
+    // If it's a dropdown or mentions proof/type without number, and is NOT a name input, it's idType
+    const hasNameSignal = textSignals.some(s => s.includes('name') || s.includes('pilgrim') || s.includes('devotee'));
+    if (!hasNumberSignal && !hasNameSignal) {
       bestKey = 'idType';
       bestScore = Math.max(bestScore, 90);
       bestReasons.push('ID Proof/Type dropdown disambiguation applied');
