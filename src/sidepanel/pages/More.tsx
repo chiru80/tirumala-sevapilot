@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Card, Icon, Button, Badge } from '../design-system';
+import { Card, Icon, Button, Badge, BackButton } from '../design-system';
 import { t, setLanguage, useI18n, type Language } from '@i18n/index';
 import { getSettings, saveSettings } from '@storage/repository';
 import { EXTENSION_VERSION } from '@shared/constants';
@@ -8,12 +8,14 @@ export interface MoreProps {
   onNavigate: (page: string) => void;
   onThemeToggle?: () => void;
   isDark?: boolean;
+  onBack?: () => void;
 }
 
 export const More: React.FC<MoreProps> = ({
   onNavigate,
   onThemeToggle,
   isDark = false,
+  onBack,
 }) => {
   const { language } = useI18n();
   const [activeTab, setActiveTab] = useState<'hub' | 'diagnostics' | 'shortcuts'>('hub');
@@ -36,14 +38,7 @@ export const More: React.FC<MoreProps> = ({
     return (
       <div className="p-4 space-y-4">
         <div className="flex items-center justify-between border-b border-black/5 dark:border-white/5 pb-2">
-          <button
-            type="button"
-            onClick={() => setActiveTab('hub')}
-            className="text-xs font-semibold text-[#54258A] dark:text-[#D4A72C] flex items-center gap-1 cursor-pointer"
-          >
-            <Icon name="arrow-left" size={14} />
-            {t('common.back') || 'Back'}
-          </button>
+          <BackButton onClick={() => setActiveTab('hub')} showText />
           <h2 className="text-xs font-bold uppercase tracking-wider text-[#321B3F] dark:text-[#F8EFD8]">
             Keyboard Shortcuts
           </h2>
@@ -75,14 +70,7 @@ export const More: React.FC<MoreProps> = ({
     return (
       <div className="p-4 space-y-4">
         <div className="flex items-center justify-between border-b border-black/5 dark:border-white/5 pb-2">
-          <button
-            type="button"
-            onClick={() => setActiveTab('hub')}
-            className="text-xs font-semibold text-[#54258A] dark:text-[#D4A72C] flex items-center gap-1 cursor-pointer"
-          >
-            <Icon name="arrow-left" size={14} />
-            {t('common.back') || 'Back'}
-          </button>
+          <BackButton onClick={() => setActiveTab('hub')} showText />
           <h2 className="text-xs font-bold uppercase tracking-wider text-[#321B3F] dark:text-[#F8EFD8]">
             System Diagnostics
           </h2>
@@ -122,13 +110,16 @@ export const More: React.FC<MoreProps> = ({
   return (
     <div className="p-4 space-y-4 pb-8">
       {/* Page Title */}
-      <div className="border-b border-black/5 dark:border-white/5 pb-2">
-        <h2 className="text-sm font-bold text-[#321B3F] dark:text-[#F8EFD8]">
-          {t('more.title') || 'More & Preferences'}
-        </h2>
-        <p className="text-xs text-[#6B5A70] dark:text-[#A692B4] mt-0.5">
-          {t('more.subtitle') || 'Preferences, data management, and system tools.'}
-        </p>
+      <div className="border-b border-black/5 dark:border-white/5 pb-2 flex items-center gap-2">
+        {onBack && <BackButton onClick={onBack} />}
+        <div>
+          <h2 className="text-sm font-bold text-[#321B3F] dark:text-[#F8EFD8]">
+            {t('more.title') || 'More & Preferences'}
+          </h2>
+          <p className="text-xs text-[#6B5A70] dark:text-[#A692B4] mt-0.5">
+            {t('more.subtitle') || 'Preferences, data management, and system tools.'}
+          </p>
+        </div>
       </div>
 
       {/* 1. Language Preference */}
