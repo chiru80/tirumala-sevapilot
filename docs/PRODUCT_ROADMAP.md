@@ -177,12 +177,17 @@ Status: COMPLETE
 - 5-Language Localization: Complete 100% key parity across EN, TE, HI, TA, KN.
 - Full Verification Suites: 13 unit tests in `policy-compliant-assistant.test.ts` (994/994 tests passing), plus Playwright Journey 8 E2E tests (23/23 tests passing).
 
-## Phase 16 — Production Readiness & Trust
+## Phase 16 — Production Readiness, Privacy & Trust
 Status: COMPLETE
 - Devotee Data Erasure & Privacy Boundaries: Implemented dual erasure architecture in `Settings -> Danger Zone`:
-  - `purgeDevoteeData()`: wipes devotee profiles, identification vault, notifications, session history, and temporary draft tokens while preserving UI theme/language preferences.
-  - `clearAllData()`: nuclear factory reset across `chrome.storage.local`, `chrome.storage.sync`, and `chrome.storage.session`.
-- Plain JSON Export Privacy Warning: Prominent unencrypted JSON disclosure notice on Backup page informing devotees about raw Aadhaar/passport risks and recommending AES-GCM encrypted `.spbk` exports.
+  - `purgeDevoteeData()`: wipes devotee profiles, identification vault, notifications, session history, and temporary draft tokens while preserving UI theme/language preferences. Idempotent on repeated calls, tolerant to partial storage failures.
+  - `clearAllData()`: complete nuclear factory reset across `chrome.storage.local`, `chrome.storage.sync`, and `chrome.storage.session`, invalidating in-memory runtime caches.
+- Backup & Restore Security:
+  - Prominent unencrypted JSON disclosure notice on Backup page informing devotees about raw Aadhaar/passport risks and recommending AES-GCM encrypted `.spbk` exports.
+  - Authenticated AES-GCM-256 `.spbk` exports with PBKDF2 (600,000 iterations) and safe Web Crypto key derivation.
+  - Tamper detection rejecting altered ciphertext via authenticated tag verification, malformed formats, and corrupt payloads.
+  - Pre-import validation and schema sanitization with atomic rollback.
+  - Strict zero-PII logging guarantee during backup and restore workflows.
 - Release Schedule Freshness & Staleness Defense: Explicit `Cached · Check TTD` warning badge rendered whenever release schedules are served from local cache, with direct links to official TTD portals.
 - Manual-Entry Assistant Usability:
   - Multi-devotee pending filtering (`filterPendingOnly`) allowing quick focus on unentered pilgrims.
@@ -190,14 +195,33 @@ Status: COMPLETE
   - "All Devotees Completed" green banner with clear next-step instruction.
 - Chrome Extension Packaging & Security Linter:
   - Automated release validator script (`scripts/package-extension.js`) and `npm run package` command.
-  - Enforces Manifest V3 compliance, permission minimality, origin pinning to official TTD domains, CSP `script-src 'self'`, and zero build artifact leaks.
+  - Enforces Manifest V3 compliance, audited permission minimality (`storage`, `sidePanel`, `scripting`, `contextMenus`), origin pinning to official TTD domains, CSP `script-src 'self'`, and zero build artifact leaks.
   - Automatic production `.zip` bundle generation into `releases/`.
 - Privacy & Security Disclosure: Published comprehensive `docs/PRIVACY_AND_SECURITY_DISCLOSURE.md` detailing Chrome Web Store single purpose, zero telemetry, local storage tiers, and TTD compliance.
 - 5-Language Localization: Complete key parity across EN, TE, HI, TA, KN with 867 keys each.
-- Automated Test Verification: Unit suite `production-readiness-and-trust.test.ts` (6 tests) and Playwright Journey 9 `09-production-readiness-and-trust.spec.ts` (3 tests).
+- Automated Test Verification: Unit suite `production-readiness-and-trust.test.ts` (19 tests) and Playwright Journey 9 `09-production-readiness-and-trust.spec.ts` (3 tests).
 
-## Phase 17 — Chrome Web Store Submission & Distribution
-- Submission asset preparation (store screenshots, promotional tiles, store listing copy).
-- Production release publishing and store verification monitoring.
+## Outstanding Work — Advanced Chaos & Network Degradation Lab
+Status: OUTSTANDING (Future Milestone / Not Claimed in Phase 16)
+- Mock-Server Network Latency: Deterministic simulation of high-latency connections, throttled responses, and jitter against mock TTD API endpoints.
+- Network Packet Drop & Connection Interruption: Verification of client recovery under sudden network dropouts or intermittent HTTP 429/503 rate-limit responses.
+- Simulated Server Disruption Lab: Systematic chaos injection to test queue failover and recovery without data corruption.
+*(Note: DOM-level mutation chaos and concurrency stress were validated in Phase 11 & 12; full network-layer mock-server chaos remains outstanding).*
+
+## Phase 17 — Chrome Web Store Release Hardening
+Status: VERIFIED & HARDENED (Ready for Human Release Review & CWS Submission)
+- Upstream Prerequisite Verified: PR #15 merged into `master` at commit `547d4f1`. Clean release branch `phase-17/chrome-web-store-release-hardening` initialized.
+- Fail-Closed Policy Compliance Gate: Implemented in `autofill-manager.ts` and verified via `phase17-policy-compliance-gate.test.ts` (5/5 tests passing). Unconfirmed/unknown services write 0 fields; Srivari Trust is strictly manual-only across all entry paths.
+- Cryptographic Exception Hardening: Web Crypto `OperationError` gracefully caught in `src/security/backup.ts` to surface clear devotee feedback on decryption failure.
+- Manifest V3 Least-Privilege Verification: Audited permissions strictly limited to `storage`, `sidePanel`, `scripting`, `contextMenus`. Host permissions strictly pinned to `https://ttdevasthanams.ap.gov.in/*` and `https://tirupatibalaji.ap.gov.in/*`. Zero remote code, zero telemetry.
+- Production Package Build & Packaging Linter: `npm run build` and `npm run package` generate clean `releases/tirumala-sevapilot-v1.1.0.zip` (914.1 KB, SHA-256 `7EFA75B0027B2D9EC6D22EDB5EE773F8EC33EAE0CE5E0BF0A0200E0E050EB173`). Zero `.map`, `.ts`, or test artifacts in bundle.
+- Full Verification Suite Execution: 1,018/1,018 unit tests passing across 83 test files, 26/26 Playwright E2E tests passing across 9 journeys, 0 TypeScript errors.
+- Release Quality Gate Documentation:
+  - `docs/RELEASE_CHECKLIST.md`: Categorized automated checks, manual checks, pending CWS dashboard tasks, and human approval sign-off.
+  - `docs/RELEASE_AUDIT_REPORT.md`: Comprehensive security, privacy, and reproducibility audit report.
+  - `docs/STORE_LISTING.md`: Complete CWS listing metadata, descriptions, single-purpose declaration, reviewer notes, and privacy declarations.
+  - `docs/PRIVACY_AND_SECURITY_DISCLOSURE.md`: Aligned permissions and PBKDF2 iterations with runtime code.
+- Next Action: Human maintainer review of release PR, followed by manual upload to Chrome Web Store Developer Dashboard (no automatic store publishing).
+
 
 

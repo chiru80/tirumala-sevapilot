@@ -6,7 +6,7 @@
 // ─────────────────────────────────────────────────
 
 import type { Pilgrim, Profile } from '@shared/types';
-import { resolveGeneralDetails, getEffectiveAge } from '@shared/utils';
+import { resolveGeneralDetails, getEffectiveAge, isSupportedDomain } from '@shared/utils';
 import { getAdapterForUrl, getAdapterForService } from '../../services/registry';
 import type { ServiceAdapter } from '../../services/types';
 import { detectAndLockPilgrimRows, isRowValidInDOM, reDetectRow } from './row-detector';
@@ -19,6 +19,22 @@ import { verifyField } from './verification';
 import { detectWorkflowStep } from './page-workflow';
 import { getWorkflowById, detectActiveWorkflow, resolveWorkflowWithConfidence } from '../../services/workflows/registry';
 import { getCanonicalService, isServiceAutofillAllowed } from '../../services/canonical-service-registry';
+
+/**
+ * Phase 17 — Fail-closed automation authorization (release gate).
+ *
+ * Returns the refusal reason when assisted field preparation must be blocked
+ * for the resolved service, or `null` when it is explicitly authorized.
+ * Unknown, unconfirmed and restricted services fail closed: the engine never
+ * falls back to filling fields for a service it cannot account for.
+ */
+function automationRefusalReason(serviceId: string): string | null {
+  if (isServiceAutofillAllowed(serviceId)) return null;
+  return (
+    'Service not authorized for autofill: the active service is not confirmed for assisted entry. ' +
+    'Please enter the details manually.'
+  );
+}
 import {
   detectPageTicketLimit,
   detectDigitalQueue,
@@ -353,6 +369,22 @@ export async function executeAutofill(opts: AutofillOptions = {}): Promise<Autof
       progress.errors.push('Payment page reached. Complete payment manually.');
       emit();
       return buildResult(progress, 'unknown', startedAt);
+    }
+
+    // ─── Phase 17: Fail-closed automation authorization gate ───
+    // CAPTCHA, temporary-lock, queue and payment stops above keep their own
+    // guidance messages, but no field may be scanned, resolved or written on an
+    // official TTD origin unless the resolved service (explicit request,
+    // active workflow, or page recognition) is registered as
+    // PERMITTED_USER_INITIATED. Unrecognized and unconfirmed services fail closed.
+    if (isSupportedDomain(url)) {
+      const refusal = automationRefusalReason((opts as any).serviceId || workflow?.serviceId || '');
+      if (refusal) {
+        progress.state = 'ERROR';
+        progress.errors.push(refusal);
+        emit();
+        return buildResult(progress, 'unknown', startedAt);
+      }
     }
 
     // IMPORTANT: Use the canonical workflow detector first.
@@ -2460,6 +2492,18 @@ export async function repairFailedFields(opts: AutofillOptions = {}): Promise<Au
   };
 
   try {
+    // Phase 17: repair is a fill path too — fail closed on unconfirmed services.
+    const repairUrl = (opts as any).url || doc.location?.href || '';
+    if (isSupportedDomain(repairUrl)) {
+      const refusal = automationRefusalReason((opts as any).serviceId || '');
+      if (refusal) {
+        progress.state = 'ERROR';
+        progress.errors.push(refusal);
+        emit();
+        return buildResult(progress, 'unknown', startedAt);
+      }
+    }
+
     const lockedRows = detectAndLockPilgrimRows(doc, pilgrims.length);
 
     for (let i = 0; i < pilgrims.length; i++) {

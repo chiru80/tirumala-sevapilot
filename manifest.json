@@ -6,9 +6,7 @@
   "permissions": [
     "storage",
     "sidePanel",
-    "activeTab",
     "scripting",
-    "tabs",
     "contextMenus"
   ],
   "content_security_policy": {
