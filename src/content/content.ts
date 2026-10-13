@@ -10,7 +10,7 @@ import { FormChangeDetector } from './form-change-detector';
 import { FieldHighlighter } from './field-highlighter';
 import { createPageObserver, stopPageObserver } from './mutation-observer';
 import { getPageState, updatePageState } from './page-state';
-import { injectFloatingHelper } from './floating-helper';
+import { injectFloatingHelper, removeFloatingHelper } from './floating-helper';
 import { AngularFormObserver } from './angular-form-observer';
 // Legacy ttd-pilgrim-autofill is no longer imported — all autofill goes through autofill-manager
 import { executeAutofill, repairFailedFields, requestStop } from './autofill/autofill-manager';
@@ -20,6 +20,13 @@ import { STORAGE_KEYS } from '@shared/constants';
 import { MessageType, ServiceType } from '@shared/types';
 import type { ExtensionMessage, Pilgrim, Profile, FieldMapping, ScanResult, AutofillMode } from '@shared/types';
 import logger from '@shared/logger';
+import {
+  isExtensionContextValid,
+  safeSendMessage,
+  safeStorageGet,
+  onContextInvalidated,
+  teardownOrphanedContentScript,
+} from './context-guard';
 
 logger.info('SevaPilot content script loaded');
 
@@ -58,8 +65,8 @@ if (recognition.status !== 'not-detected') {
     logger.debug('Floating helper injection error:', err);
   }
 
-  // Notify background
-  chrome.runtime.sendMessage({
+  // Notify background safely
+  safeSendMessage({
     type: MessageType.PAGE_DETECTED,
     payload: {
       type: recognition.serviceType,
@@ -72,7 +79,7 @@ if (recognition.status !== 'not-detected') {
       signals: recognition.signals,
     },
     timestamp: new Date().toISOString(),
-  }).catch(() => {});
+  });
 }
 
 import { DomLifecycleEngine } from './dom-lifecycle';
@@ -81,6 +88,10 @@ import { isValidExtensionMessage } from '@shared/message-security';
 
 // Start mutation observer for SPA navigation and dynamic DOM mutations
 const observer = createPageObserver(() => {
+  if (!isExtensionContextValid()) {
+    teardownOrphanedContentScript();
+    return;
+  }
   const currentRec = ServiceRecognitionEngine.recognize(window.location.href, document);
   if (currentRec.status !== 'not-detected') {
     const inputCount = document.querySelectorAll('input:not([type="hidden"]), select').length;
@@ -101,6 +112,10 @@ const observer = createPageObserver(() => {
 // Phase 6: Scoped DOM Lifecycle Engine
 const domLifecycle = new DomLifecycleEngine({ debounceMs: 50 });
 domLifecycle.subscribe((event) => {
+  if (!isExtensionContextValid()) {
+    teardownOrphanedContentScript();
+    return;
+  }
   logger.debug(`[DOM Lifecycle] ${event.type}:`, event.details);
   if (event.type === 'STEP_CHANGED') {
     const currentRec = ServiceRecognitionEngine.recognize(window.location.href, document);
@@ -119,9 +134,20 @@ domLifecycle.subscribe((event) => {
 });
 domLifecycle.start(document.body || document.documentElement);
 
+// Register automatic teardown when extension context becomes invalid
+onContextInvalidated(() => {
+  domLifecycle.stop();
+  stopPageObserver(observer);
+  removeFloatingHelper();
+  requestStop();
+});
 
 // Phase 6: User Value Protection
 document.addEventListener('input', (e) => {
+  if (!isExtensionContextValid()) {
+    teardownOrphanedContentScript();
+    return;
+  }
   if (!e.isTrusted) return; // Only track real human DOM interaction
   const target = e.target as HTMLElement;
   const nameOrId = target.getAttribute('name') || target.getAttribute('formcontrolname') || target.id;
@@ -136,12 +162,17 @@ document.addEventListener('input', (e) => {
 window.addEventListener('beforeunload', () => {
   domLifecycle.stop();
   stopPageObserver(observer);
+  removeFloatingHelper();
   requestStop();
 });
 
 // Listen for messages from background/sidepanel with message security verification
-chrome.runtime.onMessage.addListener(
-  (rawMessage: unknown, _sender, sendResponse) => {
+if (typeof chrome !== 'undefined' && chrome.runtime?.onMessage) {
+  const messageListener = (rawMessage: unknown, _sender: chrome.runtime.MessageSender, sendResponse: (res: any) => void) => {
+    if (!isExtensionContextValid()) {
+      teardownOrphanedContentScript();
+      return false;
+    }
     if (!isValidExtensionMessage(rawMessage)) {
       logger.warn('Rejected malformed or invalid extension message');
       sendResponse({ success: false, error: 'Malformed message rejected' });
@@ -149,8 +180,16 @@ chrome.runtime.onMessage.addListener(
     }
     handleMessage(rawMessage, sendResponse);
     return true; // Keep channel open for async response
-  },
-);
+  };
+
+  chrome.runtime.onMessage.addListener(messageListener);
+
+  onContextInvalidated(() => {
+    try {
+      chrome.runtime?.onMessage?.removeListener(messageListener);
+    } catch {}
+  });
+}
 
 
 async function handleMessage(
@@ -172,11 +211,11 @@ async function handleMessage(
 
         if (changeReport.hasChanged) {
           logger.warn('Form change detected:', changeReport.message);
-          chrome.runtime.sendMessage({
+          safeSendMessage({
             type: MessageType.FORM_CHANGED,
             payload: changeReport,
             timestamp: new Date().toISOString(),
-          }).catch(() => {});
+          });
         }
 
         const activeRec = ServiceRecognitionEngine.recognize(window.location.href, document);
@@ -224,17 +263,15 @@ async function handleMessage(
 
         if (pilgrims.length === 0 || !profile) {
           try {
-            if (typeof chrome !== 'undefined' && chrome.runtime?.id && chrome.storage?.local) {
-              const stored = await chrome.storage.local.get(STORAGE_KEYS.PROFILES);
-              const rawProfiles = (stored?.[STORAGE_KEYS.PROFILES] as Profile[]) || [];
-              const profiles = Array.isArray(rawProfiles) ? rawProfiles.filter((p: any) => p != null && typeof p === 'object') : [];
-              const activeProfile = profiles.find((p: any) => p?.isDefault) || profiles[0] || null;
-              if (pilgrims.length === 0 && activeProfile && Array.isArray(activeProfile.pilgrims)) {
-                pilgrims = activeProfile.pilgrims;
-              }
-              if (!profile && activeProfile) {
-                profile = activeProfile;
-              }
+            const stored = await safeStorageGet(STORAGE_KEYS.PROFILES);
+            const rawProfiles = (stored?.[STORAGE_KEYS.PROFILES] as Profile[]) || [];
+            const profiles = Array.isArray(rawProfiles) ? rawProfiles.filter((p: any) => p != null && typeof p === 'object') : [];
+            const activeProfile = profiles.find((p: any) => p?.isDefault) || profiles[0] || null;
+            if (pilgrims.length === 0 && activeProfile && Array.isArray(activeProfile.pilgrims)) {
+              pilgrims = activeProfile.pilgrims;
+            }
+            if (!profile && activeProfile) {
+              profile = activeProfile;
             }
           } catch {}
         }
@@ -255,11 +292,11 @@ async function handleMessage(
         };
 
         const onProg = (prog: any) => {
-          chrome.runtime.sendMessage({
+          safeSendMessage({
             type: MessageType.AUTOFILL_PROGRESS,
             payload: prog,
             timestamp: new Date().toISOString(),
-          }).catch(() => {});
+          });
         };
 
         const activeRec = ServiceRecognitionEngine.recognize(window.location.href, document);
