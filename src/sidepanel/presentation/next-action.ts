@@ -2,7 +2,8 @@
  * Tirumala SevaPilot — Next Action Presentation Engine (Phase 13)
  * Pure, authoritative UX presentation mapper.
  * Translates low-level engineering states into ONE clear user-facing Next Action.
- * Strictly never exposes technical state names (FIELD_RESOLUTION, DOM_REPLACED, etc.).
+ * Priority-ordered safety: Temporary locks and queue safety states take precedence.
+ * Complete 5-language translation parity with zero hardcoded English labels.
  */
 
 import type { Profile, Pilgrim } from '@shared/types';
@@ -72,13 +73,122 @@ export function computeNextAction(input: NextActionInput): NextActionModel {
     userActionPrompt,
   } = input;
 
-  // 1. Digital Queue active state
+  // 1. HIGHEST SAFETY PRIORITY: Temporary TTD Booking Lock (Server-side hold)
+  // While the lock is active, RETRY action is strictly disabled/removed to prevent lock extension.
+  if (temporaryLock && temporaryLock.status === 'temporary-lock') {
+    return {
+      category: 'BLOCKED',
+      badgeVariant: 'blocked',
+      statusText: t('nextAction.temporaryLockStatus') || 'Temporarily Blocked',
+      headline: t('nextAction.temporaryLockHeadline') || 'Previous booking attempt is still active',
+      description: t('nextAction.temporaryLockDescription') || 'TTD holds slot tokens for several minutes before releasing. Please wait or check your history.',
+      primaryAction: {
+        label: t('nextAction.checkBookingHistory') || 'CHECK BOOKING HISTORY',
+        actionType: 'VIEW_HISTORY',
+        variant: 'secondary',
+      },
+      // Note: secondaryAction ('TRY AGAIN') is intentionally omitted while lock is active
+    };
+  }
+
+  // 2. PRIORITY-ORDERED QUEUE STATE HANDLING
+  // Never lump CAPTCHA, expiry, errors, or completion into ordinary waiting!
   if (
     queueSession &&
     queueSession.state !== 'QUEUE_NOT_PRESENT' &&
     queueSession.state !== 'QUEUE_EXITED' &&
     queueSession.state !== 'QUEUE_UNKNOWN'
   ) {
+    const state = queueSession.state;
+
+    // 2A. CAPTCHA Required in Queue (Safety Boundary: Human action required)
+    if (state === 'QUEUE_CAPTCHA_REQUIRED') {
+      return {
+        category: 'USER_ACTION_REQUIRED',
+        badgeVariant: 'actionRequired',
+        statusText: t('nextAction.queueCaptchaStatus') || 'Action Required',
+        headline: t('nextAction.queueCaptchaHeadline') || 'Solve CAPTCHA on TTD',
+        description: t('nextAction.queueCaptchaDesc') || 'Please solve the CAPTCHA in the TTD queue tab to maintain your position.',
+        primaryAction: {
+          label: t('nextAction.openTtdTab') || 'VIEW TTD TAB',
+          actionType: 'OPEN_TTD',
+          variant: 'primary',
+        },
+        safetyNotice: t('safety.humanBoundaryNotice') || 'SevaPilot never automates CAPTCHA, OTP, or payments.',
+      };
+    }
+
+    // 2B. Session Expired or Session Warning in Queue
+    if (state === 'QUEUE_SESSION_EXPIRED' || state === 'QUEUE_SESSION_WARNING') {
+      return {
+        category: 'BLOCKED',
+        badgeVariant: 'blocked',
+        statusText: t('nextAction.queueSessionExpiredStatus') || 'Session Expired',
+        headline: t('nextAction.queueSessionExpiredHeadline') || 'Queue Session Expired',
+        description: t('nextAction.queueSessionExpiredDesc') || 'Your queue session has expired on TTD. Please restart your booking session.',
+        primaryAction: {
+          label: t('nextAction.reopenPortal') || 'REOPEN PORTAL',
+          actionType: 'OPEN_TTD',
+          variant: 'primary',
+        },
+      };
+    }
+
+    // 2C. Queue Blocked, Error, or Interrupted
+    if (state === 'QUEUE_ERROR' || state === 'QUEUE_BLOCKED' || state === 'QUEUE_INTERRUPTED') {
+      return {
+        category: 'BLOCKED',
+        badgeVariant: 'blocked',
+        statusText: t('nextAction.queueBlockedStatus') || 'Queue Interrupted',
+        headline: t('nextAction.queueBlockedHeadline') || 'Queue Access Interrupted',
+        description: t('nextAction.queueBlockedDesc') || 'TTD queue connection was interrupted or blocked. Please check your network and browser tab.',
+        primaryAction: {
+          label: t('nextAction.viewTtd') || 'CHECK TTD TAB',
+          actionType: 'OPEN_TTD',
+          variant: 'secondary',
+        },
+      };
+    }
+
+    // 2D. Queue Action Required (User input requested by TTD queue)
+    if (state === 'QUEUE_ACTION_REQUIRED') {
+      return {
+        category: 'USER_ACTION_REQUIRED',
+        badgeVariant: 'actionRequired',
+        statusText: t('nextAction.actionRequired') || 'Action Required',
+        headline: t('nextAction.queueActionRequiredHeadline') || 'Action Required in Queue',
+        description: t('nextAction.queueActionRequiredDesc') || 'TTD queue requires your manual input. Switch to the TTD tab to proceed.',
+        primaryAction: {
+          label: t('nextAction.openTtdTab') || 'VIEW TTD TAB',
+          actionType: 'OPEN_TTD',
+          variant: 'primary',
+        },
+      };
+    }
+
+    // 2E. Queue Completed (Devotee successfully passed the queue)
+    if (state === 'QUEUE_COMPLETED') {
+      return {
+        category: 'COMPLETED',
+        badgeVariant: 'completed',
+        statusText: t('nextAction.queueCompletedStatus') || 'Queue Complete',
+        headline: t('nextAction.queueCompletedHeadline') || 'Queue Complete — Ready to Book',
+        description: t('nextAction.queueCompletedDesc') || 'You have passed the queue! Proceed with slot selection and details.',
+        primaryAction: pageDetected
+          ? {
+              label: t('nextAction.fillAndVerify') || '⚡ FILL & VERIFY',
+              actionType: 'TRIGGER_FILL',
+              variant: 'primary',
+            }
+          : {
+              label: t('nextAction.openTtdTab') || 'VIEW TTD TAB',
+              actionType: 'OPEN_TTD',
+              variant: 'primary',
+            },
+      };
+    }
+
+    // 2F. Ordinary Queue Waiting / Progressing / Loading / Detected
     const officialWait = queueSession.progress?.officialWaitTime;
     return {
       category: 'QUEUE_WAITING',
@@ -96,26 +206,6 @@ export function computeNextAction(input: NextActionInput): NextActionModel {
     };
   }
 
-  // 2. Temporary TTD Booking Lock (Server-side hold)
-  if (temporaryLock && temporaryLock.status === 'temporary-lock') {
-    return {
-      category: 'BLOCKED',
-      badgeVariant: 'blocked',
-      statusText: t('nextAction.temporaryLockStatus') || 'Temporarily Blocked',
-      headline: t('nextAction.temporaryLockHeadline') || 'Previous booking attempt is still active',
-      description: t('nextAction.temporaryLockDescription') || 'TTD holds slot tokens for several minutes before releasing. Please wait or check your history.',
-      primaryAction: {
-        label: 'CHECK BOOKING HISTORY',
-        actionType: 'VIEW_HISTORY',
-        variant: 'secondary',
-      },
-      secondaryAction: {
-        label: 'TRY AGAIN',
-        actionType: 'RETRY_LOCK',
-      },
-    };
-  }
-
   // 3. Profile is completely missing
   if (!activeProfile || (activeProfile.pilgrims || []).length === 0) {
     return {
@@ -125,7 +215,7 @@ export function computeNextAction(input: NextActionInput): NextActionModel {
       headline: t('nextAction.completeProfileHeadline') || 'Complete your profile',
       description: t('nextAction.addPilgrimDesc') || 'Add pilgrim details once to prepare for fast booking.',
       primaryAction: {
-        label: 'CREATE PROFILE',
+        label: t('nextAction.createProfile') || 'CREATE PROFILE',
         actionType: 'NAVIGATE_PROFILE',
         variant: 'primary',
       },
@@ -141,7 +231,7 @@ export function computeNextAction(input: NextActionInput): NextActionModel {
       headline: t('nextAction.selectPilgrimsHeadline') || 'Select devotees to book for',
       description: t('nextAction.selectPilgrimsDesc', { service: serviceDisplayName }) || `Choose devotees from your profile for ${serviceDisplayName}.`,
       primaryAction: {
-        label: 'SELECT PILGRIMS',
+        label: t('nextAction.selectPilgrims') || 'SELECT PILGRIMS',
         actionType: 'SELECT_PILGRIMS',
         variant: 'primary',
       },
@@ -232,10 +322,9 @@ export function computeNextAction(input: NextActionInput): NextActionModel {
     };
   }
 
-  // 9. Profile missing specific service fields (excluding the 'ttd-page' check)
+  // 9. Profile missing specific service fields
   const missing = readiness.missingDetails || [];
   if (!readiness.allPilgrimsReady && missing.length > 0) {
-    const count = missing.length;
     const headline = t('nextAction.actionRequired') || 'Action required';
     const desc = `${missing[0]} is required before booking.`;
 
@@ -247,12 +336,12 @@ export function computeNextAction(input: NextActionInput): NextActionModel {
       description: desc,
       missingDetails: missing,
       primaryAction: {
-        label: 'PREPARE BOOKING',
+        label: t('nextAction.prepareBooking') || 'PREPARE BOOKING',
         actionType: 'NAVIGATE_PROFILE',
         variant: 'primary',
       },
       secondaryAction: {
-        label: 'OPEN TTD BOOKING',
+        label: t('nextAction.openTtdBooking') || 'OPEN TTD BOOKING',
         actionType: 'OPEN_TTD',
       },
     };
@@ -265,9 +354,9 @@ export function computeNextAction(input: NextActionInput): NextActionModel {
       badgeVariant: 'ready',
       statusText: t('nextAction.pageReady') || 'Page Detected',
       headline: t('nextAction.bookingPageDetected') || 'Booking page detected',
-      description: `Your details are prepared to fill for ${serviceDisplayName}.`,
+      description: t('nextAction.detailsPreparedForService', { service: serviceDisplayName }) || `Your details are prepared to fill for ${serviceDisplayName}.`,
       primaryAction: {
-        label: '⚡ FILL & VERIFY',
+        label: t('nextAction.fillAndVerify') || '⚡ FILL & VERIFY',
         actionType: 'TRIGGER_FILL',
         variant: 'primary',
       },
@@ -280,14 +369,14 @@ export function computeNextAction(input: NextActionInput): NextActionModel {
     badgeVariant: 'ready',
     statusText: t('nextAction.ready') || 'Ready',
     headline: t('nextAction.youAreReady') || "You're ready",
-    description: 'Open a supported TTD booking page to start.',
+    description: t('nextAction.openSupportedTtdDesc') || 'Open a supported TTD booking page to start.',
     primaryAction: {
-      label: 'PREPARE BOOKING',
+      label: t('nextAction.prepareBooking') || 'PREPARE BOOKING',
       actionType: 'NAVIGATE_PROFILE',
       variant: 'primary',
     },
     secondaryAction: {
-      label: 'OPEN TTD BOOKING',
+      label: t('nextAction.openTtdBooking') || 'OPEN TTD BOOKING',
       actionType: 'OPEN_TTD',
     },
   };

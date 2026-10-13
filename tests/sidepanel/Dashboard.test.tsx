@@ -244,7 +244,7 @@ describe('Dashboard Component — Redesign & Consumer Experience', () => {
     expect(screen.queryByRole('button', { name: /Open system diagnostics modal/i })).toBeNull();
   });
 
-  it('E. Temporary lock: renders CHECK BOOKING HISTORY and TRY AGAIN without showing Fill failed', async () => {
+  it('E. Temporary lock: renders CHECK BOOKING HISTORY without retry action and without showing Fill failed', async () => {
     (globalThis as any).chrome.runtime.sendMessage = vi.fn(async (msg: any) => {
       if (msg?.type === 'GET_PAGE_STATE' || msg?.type === 'PAGE_SCAN' || msg?.type === 'GET_ACTIVE_STEP') {
         return {
@@ -271,12 +271,12 @@ describe('Dashboard Component — Redesign & Consumer Experience', () => {
     // Should NOT show "Fill failed"
     expect(screen.queryByText(/Fill failed/i)).toBeNull();
 
-    // Primary action provides CHECK BOOKING HISTORY or TRY AGAIN
+    // Primary action provides CHECK BOOKING HISTORY
     const lockBtn = screen.getByRole('button', { name: /CHECK BOOKING HISTORY/i });
     expect(lockBtn).toBeTruthy();
 
-    const tryAgainBtn = screen.getByRole('button', { name: /TRY AGAIN/i });
-    expect(tryAgainBtn).toBeTruthy();
+    // Safety: TRY AGAIN action is strictly removed while temporary lock is active
+    expect(screen.queryByRole('button', { name: /TRY AGAIN/i })).toBeNull();
   });
 
   it('I. Optional fields: pilgrim mobile number is optional for Special Entry Darshan and does not block readiness', async () => {

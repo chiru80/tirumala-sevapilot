@@ -620,22 +620,60 @@ export function getCanonicalServiceLimits(serviceId: string): {
 }
 
 /**
+ * Safe generic fallback definition for unknown or unspecified TTD services.
+ * Never invents ticket prices, never assumes ?300 rules, and only mandates baseline identity fields.
+ */
+export const SAFE_CANONICAL_UNKNOWN_SERVICE: CanonicalServiceDefinition = {
+  serviceId: 'unknown-service',
+  serviceName: 'TTD Portal Service (Unspecified)',
+  displayName: 'TTD Portal Service (Unspecified)',
+  serviceType: ServiceType.GENERIC,
+  workflowId: 'generic-workflow-v1',
+  workflowVersion: '1.0.0',
+  temple: 'Tirumala Tirupati Devasthanams',
+  ticketPrice: 0,
+  minPilgrims: 1,
+  maxPilgrims: 6,
+  hasGeneralDetailsStep: false,
+  fieldRules: {
+    pilgrimFields: {
+      name: 'REQUIRED',
+      age: 'REQUIRED',
+      gender: 'REQUIRED',
+      idProofType: 'REQUIRED',
+      idProofNumber: 'REQUIRED',
+    },
+    generalFields: {},
+    prohibitedFields: ['otp', 'password', 'paymentMode', 'cvv', 'cardNumber'],
+    userControlledFields: ['declaration', 'mentallyFit', 'physicallyFit'],
+  },
+  requiredPilgrimFields: ['name', 'age', 'gender', 'idProofType', 'idProofNumber'],
+  optionalPilgrimFields: [],
+  requiredGeneralFields: [],
+  optionalGeneralFields: [],
+  userControlledFields: ['declaration', 'mentallyFit', 'physicallyFit'],
+  detect: () => ({ matches: false, confidence: 0 }),
+};
+
+/**
  * Retrieve canonical field rules for a service.
+ * Never silently applies ?300 Special Entry requirements to an unknown service.
  */
 export function getCanonicalFieldRules(serviceId: string): CanonicalFieldRules {
   const service = getCanonicalService(serviceId);
   if (!service) {
-    return CANONICAL_SPECIAL_ENTRY_300.fieldRules;
+    return SAFE_CANONICAL_UNKNOWN_SERVICE.fieldRules;
   }
   return service.fieldRules;
 }
 
 /**
  * Determine whether a service expects General Details.
+ * Returns false for unknown services to prevent blocking on nonexistent steps.
  */
 export function hasGeneralDetails(serviceId: string): boolean {
   const service = getCanonicalService(serviceId);
-  if (!service) return true;
+  if (!service) return false;
   return service.hasGeneralDetailsStep;
 }
 

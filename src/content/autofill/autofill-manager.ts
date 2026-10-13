@@ -713,6 +713,14 @@ async function executePilgrimStep(
   return buildResult(progress, 'pilgrim', startedAt, workflow, profiler);
 }
 
+function isFieldOrElementUserModified(fieldKey: string, el?: HTMLElement | null, pilgrimIndex?: number): boolean {
+  if (bookingSessionManager.isUserModified(fieldKey, pilgrimIndex)) return true;
+  if (!el) return false;
+  if (el.getAttribute('data-sp-user-modified') === 'true') return true;
+  if ((el as any).dataset?.__sp_field_ownership__ === 'USER') return true;
+  return false;
+}
+
 async function fillPilgrimRow(
   pilgrim: Pilgrim,
   row: PilgrimRowContext,
@@ -745,7 +753,7 @@ async function fillPilgrimRow(
   const nameRes = getRes('name');
   const nameVal = (pilgrim.fullName || `${pilgrim.firstName || ''} ${pilgrim.lastName || ''}`).trim();
 
-  if (bookingSessionManager.isUserModified('name', pilgrimIndex)) {
+  if (isFieldOrElementUserModified('name', nameRes?.element, pilgrimIndex)) {
     logger.info(`Pilgrim ${pilgrimIndex + 1}: Name was manually entered by user. Preserving user value.`);
     pp.results.push({
       field: 'name',
@@ -841,7 +849,7 @@ async function fillPilgrimRow(
   const effectiveAge = getEffectiveAge(pilgrim);
   const ageStr = effectiveAge !== undefined ? String(effectiveAge) : '';
 
-  if (bookingSessionManager.isUserModified('age', pilgrimIndex)) {
+  if (isFieldOrElementUserModified('age', ageRes?.element, pilgrimIndex)) {
     logger.info(`Pilgrim ${pilgrimIndex + 1}: Age was manually entered by user. Preserving user value.`);
     pp.results.push({
       field: 'age',
@@ -955,7 +963,7 @@ async function fillPilgrimRow(
     return;
   }
 
-  if (bookingSessionManager.isUserModified('gender', pilgrimIndex)) {
+  if (isFieldOrElementUserModified('gender', genderRes?.element, pilgrimIndex)) {
     logger.info(`Pilgrim ${pilgrimIndex + 1}: Gender was manually entered by user. Preserving user value.`);
     pp.results.push({
       field: 'gender',
@@ -1113,7 +1121,7 @@ async function fillPilgrimRow(
     return;
   }
 
-  if (bookingSessionManager.isUserModified('photoIdProof', pilgrimIndex)) {
+  if (isFieldOrElementUserModified('photoIdProof', idProofRes?.element, pilgrimIndex)) {
     logger.info(`Pilgrim ${pilgrimIndex + 1}: Photo ID Proof was manually entered by user. Preserving user value.`);
     pp.results.push({
       field: 'photoIdProof',
@@ -1288,7 +1296,7 @@ async function fillPilgrimRow(
     idNum = idNum.replace(/\s+/g, '').replace(/-/g, '');
   }
 
-  if (bookingSessionManager.isUserModified('photoIdNumber', pilgrimIndex)) {
+  if (isFieldOrElementUserModified('photoIdNumber', idNumRes?.element, pilgrimIndex)) {
     logger.info(`Pilgrim ${pilgrimIndex + 1}: Photo ID Number was manually entered by user. Preserving user value.`);
     pp.results.push({
       field: 'photoIdNumber',
@@ -1462,7 +1470,7 @@ async function executeGeneralStep(
 
     const semanticRes = semanticFields.get(def.key);
 
-    if (bookingSessionManager.isUserModified(def.key)) {
+    if (isFieldOrElementUserModified(def.key, semanticRes?.element)) {
       logger.info(`General details: ${def.label} was manually entered by user. Preserving user value.`);
       results.push({
         field: def.key,
@@ -1855,7 +1863,7 @@ async function executeSrivariEnrollmentStep(
     const res = fields.get(fieldKey);
     const value = fieldValues[fieldKey];
 
-    if (bookingSessionManager.isUserModified(fieldKey, 0)) {
+    if (isFieldOrElementUserModified(fieldKey, res?.element, 0)) {
       results.push({
         field: fieldKey,
         pilgrimIndex: 0,

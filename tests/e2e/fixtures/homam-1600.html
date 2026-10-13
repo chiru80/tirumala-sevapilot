@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>TTD — Sri Srinivasa Divyanugraha Homam (₹1600)</title>
+  <style>
+    body { font-family: sans-serif; background: #faf7f2; padding: 24px; color: #333; }
+    .card { background: white; border: 1px solid #ddd; border-radius: 8px; padding: 16px; margin-bottom: 16px; max-width: 700px; }
+    h1, h2 { color: #54258a; }
+    .row { display: flex; gap: 12px; margin-bottom: 12px; }
+    .field { flex: 1; display: flex; flex-direction: column; }
+    label { font-size: 12px; font-weight: bold; margin-bottom: 4px; }
+    input, select { padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
+    .boundary-section { background: #fff8e1; border: 1px solid #ffe082; padding: 12px; border-radius: 6px; margin-top: 16px; }
+    .btn { background: #54258a; color: white; padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <div class="card" id="ttd-homam-container">
+    <h1>Sri Srinivasa Divyanugraha Vishesha Homam (₹1600)</h1>
+    <p>Alipiri / Tirumala — Strictly 2 Householder Devotees Required</p>
+
+    <!-- General Details with Gothram -->
+    <h2>General Details</h2>
+    <div id="general-details-section">
+      <div class="row">
+        <div class="field">
+          <label for="gothram">Gothram (Mandatory for Homam Sankalpam) *</label>
+          <input type="text" id="gothram" name="gothram" placeholder="Enter Gothram" />
+        </div>
+        <div class="field">
+          <label for="email">Email *</label>
+          <input type="email" id="email" name="email" placeholder="devotee@example.com" />
+        </div>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label for="city">City *</label>
+          <input type="text" id="city" name="city" placeholder="City" />
+        </div>
+        <div class="field">
+          <label for="state">State *</label>
+          <input type="text" id="state" name="state" placeholder="State" />
+        </div>
+        <div class="field">
+          <label for="pincode">Pincode *</label>
+          <input type="text" id="pincode" name="pincode" placeholder="6-digit PIN" maxlength="6" />
+        </div>
+      </div>
+    </div>
+
+    <!-- 2 Pilgrim Rows (Strictly 2) -->
+    <h2>Householder Devotees (Exactly 2)</h2>
+    <div id="pilgrim-card-0" class="pilgrim-card" data-pilgrim-index="0">
+      <h3>Devotee 1</h3>
+      <div class="row">
+        <div class="field">
+          <label for="name_0">Full Name *</label>
+          <input type="text" id="name_0" name="pilgrimName_0" placeholder="Full name" />
+        </div>
+        <div class="field">
+          <label for="age_0">Age *</label>
+          <input type="number" id="age_0" name="pilgrimAge_0" placeholder="Age" min="1" max="120" />
+        </div>
+        <div class="field">
+          <label for="gender_0">Gender *</label>
+          <select id="gender_0" name="pilgrimGender_0">
+            <option value="">Gender</option>
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+          </select>
+        </div>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label for="idType_0">Photo ID Type *</label>
+          <select id="idType_0" name="pilgrimIdType_0">
+            <option value="">ID Proof</option>
+            <option value="Aadhaar">Aadhaar</option>
+            <option value="Passport">Passport</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="idNumber_0">Photo ID Number *</label>
+          <input type="text" id="idNumber_0" name="pilgrimIdNumber_0" placeholder="ID number" />
+        </div>
+      </div>
+    </div>
+
+    <div id="pilgrim-card-1" class="pilgrim-card" data-pilgrim-index="1">
+      <h3>Devotee 2</h3>
+      <div class="row">
+        <div class="field">
+          <label for="name_1">Full Name *</label>
+          <input type="text" id="name_1" name="pilgrimName_1" placeholder="Full name" />
+        </div>
+        <div class="field">
+          <label for="age_1">Age *</label>
+          <input type="number" id="age_1" name="pilgrimAge_1" placeholder="Age" min="1" max="120" />
+        </div>
+        <div class="field">
+          <label for="gender_1">Gender *</label>
+          <select id="gender_1" name="pilgrimGender_1">
+            <option value="">Gender</option>
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+          </select>
+        </div>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label for="idType_1">Photo ID Type *</label>
+          <select id="idType_1" name="pilgrimIdType_1">
+            <option value="">ID Proof</option>
+            <option value="Aadhaar">Aadhaar</option>
+            <option value="Passport">Passport</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="idNumber_1">Photo ID Number *</label>
+          <input type="text" id="idNumber_1" name="pilgrimIdNumber_1" placeholder="ID number" />
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
