@@ -20,7 +20,9 @@
     "pilgrimsA11y": "Manage saved pilgrim details",
     "settingsA11y": "Configure SevaPilot",
     "back": "Back",
-    "backA11y": "Go back to previous screen"
+    "backA11y": "Go back to previous screen",
+    "more": "More",
+    "moreA11y": "Settings and secondary tools"
   },
   "dashboard": {
     "ttdPage": "TTD PAGE",
@@ -136,7 +138,8 @@
     "bookingFlow": "BOOKING FLOW",
     "ttdPageRequired": "TTD PAGE REQUIRED",
     "profileNeedsAttention": "PROFILE NEEDS ATTENTION",
-    "missingDetails": "MISSING DETAILS"
+    "missingDetails": "MISSING DETAILS",
+    "officialUpdate": "Official TTD update"
   },
   "profiles": {
     "title": "Profiles",
@@ -273,7 +276,8 @@
     "jsonExportTitle": "Standard JSON Export",
     "jsonExportDesc": "Direct unencrypted backup for migration (seva-pilot-backup-*.json)",
     "jsonExportBtn": "Export JSON",
-    "jsonPrivacyWarning": "Notice: Plain JSON files are unencrypted and contain devotee names and ID proof numbers. For shared or public computers, we recommend the password-encrypted (.spbk) backup above."
+    "jsonPrivacyWarning": "Notice: Plain JSON files are unencrypted and contain devotee names and ID proof numbers. For shared or public computers, we recommend the password-encrypted (.spbk) backup above.",
+    "exportJsonBtn": "Export JSON"
   },
   "settings": {
     "title": "Settings",
@@ -683,7 +687,10 @@
     "error": "TTD queue encountered an issue. Follow on-screen portal guidance.",
     "stopMonitoring": "Stop Monitoring",
     "refreshManually": "Refresh Manually",
-    "safeModeActive": "Safe Waiting Mode Active (Zero Queue Bypass)"
+    "safeModeActive": "Safe Waiting Mode Active (Zero Queue Bypass)",
+    "waiting": "WAITING IN QUEUE",
+    "keepOpenDesc": "Please keep this TTD page open. Do not refresh unnecessarily.",
+    "processing": "Queue moving · Preparing session"
   },
   "nextAction": {
     "queueWaitingStatus": "In Queue",
@@ -762,7 +769,8 @@
     "manualReady": "Ready for Manual Entry",
     "manualPreparedHeadline": "Details prepared for manual entry",
     "openSrivaniDesc": "Open the official Srivani portal page to begin.",
-    "viewChecklist": "VIEW CHECKLIST"
+    "viewChecklist": "VIEW CHECKLIST",
+    "viewTtd": "CHECK TTD TAB"
   },
   "readiness": {
     "exactPilgrims": "Exactly {count} pilgrims required",
@@ -809,7 +817,12 @@
     "readyForManualEntry": "Ready for Manual Entry",
     "readyForManualSummary": "All required items verified. Use the Manual-Entry Assistant on the TTD booking page.",
     "manualEntryPolicy": "TTD Manual-Entry Policy (May 2026)",
-    "srivaniPolicyDesc": "Autofill and automated copy-paste abolished by TTD. Manual-entry guidance active."
+    "srivaniPolicyDesc": "Autofill and automated copy-paste abolished by TTD. Manual-entry guidance active.",
+    "ready": "Ready",
+    "needed": "Needed",
+    "fixProfile": "Fix profile",
+    "pass": "PASS",
+    "actionNeeded": "ACTION"
   },
   "bookingMode": {
     "title": "BOOKING MODE",
