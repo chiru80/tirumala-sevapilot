@@ -331,7 +331,7 @@ export function Dashboard({ onNavigate }: DashboardProps = {}) {
         <button
           type="button"
           onClick={() => setIsServiceModalOpen(true)}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-black/10 dark:border-white/10 hover:border-[#54258A]/30 dark:hover:border-[#D4A72C]/40 bg-white dark:bg-[#2C1A35] text-xs font-bold text-[#321B3F] dark:text-[#F8EFD8] transition-all cursor-pointer shadow-2xs max-w-[240px]"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[#54258A]/15 dark:border-[#D4A72C]/20 hover:border-[#D4A72C]/60 bg-white dark:bg-[#2C1A35] text-xs font-bold text-[#321B3F] dark:text-[#F8EFD8] transition-all cursor-pointer shadow-xs max-w-[240px]"
         >
           <span className="truncate">{effectiveDisplayName}</span>
           <Icon name="chevron-down" size={14} className="shrink-0 text-[#6B5A70] dark:text-[#A692B4]" />
@@ -341,7 +341,7 @@ export function Dashboard({ onNavigate }: DashboardProps = {}) {
         <button
           type="button"
           onClick={() => setIsBookingMode(true)}
-          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-[#54258A]/10 hover:bg-[#54258A]/15 dark:bg-[#D4A72C]/15 dark:hover:bg-[#D4A72C]/25 text-xs font-bold text-[#54258A] dark:text-[#F8EFD8] transition-colors cursor-pointer"
+          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-[#54258A]/10 to-[#D4A72C]/15 hover:from-[#54258A]/20 hover:to-[#D4A72C]/30 text-xs font-bold text-[#54258A] dark:text-[#F0CC63] border border-[#54258A]/15 dark:border-[#D4A72C]/30 transition-all cursor-pointer shadow-xs"
         >
           <Icon name="sparkles" size={13} className="text-[#54258A] dark:text-[#D4A72C]" />
           <span>{t('bookingMode.enter') || 'Booking Mode'}</span>
@@ -421,7 +421,7 @@ export function Dashboard({ onNavigate }: DashboardProps = {}) {
       />
 
       {/* 5. THE HERO: NEXT ACTION CARD */}
-      <div className="sticky top-0 z-20 bg-[#FAF7F2] dark:bg-[#1E1028] pt-1 pb-1">
+      <div className="sticky top-0 z-20 bg-[#FFFDF7] dark:bg-[#211526] pt-1 pb-1">
         <NextActionCard
           model={nextAction}
           onPrimaryClick={handlePrimaryActionTrigger}

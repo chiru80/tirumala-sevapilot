@@ -20,7 +20,7 @@ export const PrivacyBadge: React.FC<PrivacyBadgeProps> = React.memo(({ onOpenMod
     <div className="relative">
       <button
         onClick={handleClick}
-        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[#F5F2F8] dark:bg-[#3E1B68]/30 border border-[rgba(84,37,138,0.15)] text-[#54258A] dark:text-[#D4A72C] hover:bg-[#EBE5F2] transition-all cursor-pointer select-none"
+        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[#54258A]/5 dark:bg-[#D4A72C]/10 border border-[#54258A]/15 dark:border-[#D4A72C]/20 text-[#54258A] dark:text-[#D4A72C] hover:bg-[#54258A]/10 dark:hover:bg-[#D4A72C]/20 transition-all cursor-pointer select-none shadow-xs active:scale-[0.98]"
         aria-label="Data stored locally"
       >
         <span>{t('dashboard.localData')}</span>

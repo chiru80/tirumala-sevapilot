@@ -94,6 +94,7 @@ export const NextActionCard: React.FC<NextActionCardProps> = ({
             fullWidth
             onClick={onPrimaryClick}
             disabled={primaryAction.disabled}
+            className="shadow-sm hover:shadow-md active:scale-[0.99] font-bold tracking-wide"
           >
             {primaryAction.label}
           </Button>

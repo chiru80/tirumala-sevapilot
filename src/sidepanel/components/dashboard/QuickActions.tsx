@@ -63,19 +63,21 @@ export const QuickActions: React.FC<QuickActionsProps> = ({
           <button
             key={act.id}
             onClick={act.action}
-            className="flex flex-col items-center p-2.5 bg-white dark:bg-[#2A1733] rounded-2xl border border-[rgba(84,37,138,0.1)] hover:border-[#D4A72C]/60 hover:bg-[#FAF8F5] dark:hover:bg-[#3E1B68]/20 cursor-pointer transition-all group shadow-2xs min-h-[58px] justify-center"
+            className="flex flex-col items-center p-2 bg-white dark:bg-[#2A1733] rounded-xl border border-[#54258A]/10 dark:border-[#D4A72C]/20 hover:border-[#D4A72C]/60 hover:bg-[#FAF8F5] dark:hover:bg-[#3E1B68]/30 cursor-pointer transition-all group shadow-xs active:scale-[0.98] min-h-[60px] justify-center"
             aria-label={act.label}
           >
-            <svg
-              className="w-5 h-5 text-[#54258A] dark:text-[#D4A72C] mb-1 group-hover:scale-110 transition-transform shrink-0"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.8"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" d={act.icon} />
-            </svg>
-            <span className="text-xs font-bold text-[#30213A] dark:text-[#F8EFD8] truncate w-full text-center">
+            <div className="w-8 h-8 rounded-full flex items-center justify-center bg-[#54258A]/5 dark:bg-[#D4A72C]/10 text-[#54258A] dark:text-[#D4A72C] group-hover:bg-[#54258A]/10 dark:group-hover:bg-[#D4A72C]/20 group-hover:scale-105 transition-all mb-1 shrink-0">
+              <svg
+                className="w-4 h-4"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d={act.icon} />
+              </svg>
+            </div>
+            <span className="text-[11px] font-semibold text-[#30213A] dark:text-[#F8EFD8] truncate w-full text-center tracking-tight">
               {act.label}
             </span>
           </button>
@@ -87,15 +89,15 @@ export const QuickActions: React.FC<QuickActionsProps> = ({
           type="button"
           id="sp-open-safe-session-guide-btn"
           onClick={onOpenSafeSessionGuide}
-          className="w-full flex items-center justify-between p-2.5 rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-[#2A1733] hover:bg-black/5 dark:hover:bg-white/5 transition-all text-left cursor-pointer"
+          className="w-full flex items-center justify-between px-3 py-2 rounded-xl border border-[#54258A]/15 dark:border-[#D4A72C]/20 bg-[#FAF8F5] dark:bg-[#2C1A35] hover:bg-[#F4EFE6] dark:hover:bg-[#351F40] transition-all text-left cursor-pointer shadow-xs active:scale-[0.99]"
         >
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-[#54258A] dark:bg-[#D4A72C]" />
-            <span className="text-xs font-bold text-[#30213A] dark:text-[#F8EFD8]">
+            <span className="text-xs font-semibold text-[#30213A] dark:text-[#F8EFD8]">
               {t('safeSession.guideBtn') || 'Safe Session & Anti-Bot Guidance'}
             </span>
           </div>
-          <span className="text-[10px] font-bold text-[#54258A] dark:text-[#D4A72C]">
+          <span className="text-[11px] font-bold text-[#54258A] dark:text-[#D4A72C]">
             {t('safeSession.viewRules') || 'View Rules →'}
           </span>
         </button>

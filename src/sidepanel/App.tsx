@@ -127,15 +127,15 @@ export default function App() {
   return (
     <div key={activeLanguage} className="flex flex-col h-screen bg-[#FFFDF7] dark:bg-[#211526] text-[#321B3F] dark:text-[#F8EFD8] temple-watermark transition-colors duration-200">
       {/* Clean Premium Header */}
-      <header className="relative bg-[#FFFDF7] dark:bg-[#2C1A35] border-b border-[rgba(84,37,138,0.08)] px-4 py-3 shrink-0">
+      <header className="relative bg-[#FFFDF7] dark:bg-[#2C1A35] border-b border-[#54258A]/10 dark:border-[#D4A72C]/15 px-4 py-3 shrink-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             {/* Temple Emblem / Logo */}
-            <div className="relative flex items-center justify-center w-9 h-9 rounded-xl overflow-hidden shadow-sm shrink-0 border border-[#D4A72C]/40 bg-[#2C1A35]">
+            <div className="relative flex items-center justify-center w-9 h-9 rounded-xl overflow-hidden shadow-xs shrink-0 border border-[#D4A72C]/50 bg-gradient-to-br from-[#3E1B68] to-[#2C1A35] p-0.5">
               <img
                 src="/icons/icon48.png"
                 alt="Tirumala SevaPilot Logo"
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover rounded-lg"
               />
             </div>
 
@@ -149,13 +149,13 @@ export default function App() {
             </div>
           </div>
 
-          <span className="text-xs font-serif italic text-[#D4A72C]/80 dark:text-[#D4A72C]/70">
+          <span className="text-[11px] font-serif font-medium tracking-wide text-[#8D6E18] dark:text-[#D4A72C] bg-[#D4A72C]/10 dark:bg-[#D4A72C]/15 px-2.5 py-0.5 rounded-full border border-[#D4A72C]/30 select-none">
             Om Namo Venkatesaya
           </span>
         </div>
 
         {/* Subtle gold accent line */}
-        <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-[#D4A72C]/30 to-transparent" />
+        <div className="absolute bottom-0 left-0 right-0 h-[1.5px] bg-gradient-to-r from-transparent via-[#D4A72C]/40 to-transparent" />
       </header>
 
       {/* Main Content Area */}
