@@ -185,6 +185,7 @@ All 1,044 combined automated tests execute cleanly without flaky retries or time
 1. **Zero High or Medium Severity Vulnerabilities:** Codebase conforms to all Manifest V3 security requirements.
 2. **Strict Privacy Alignment:** Privacy disclosure accurately reflects the underlying source code.
 3. **Robust Policy Gate:** Newly introduced fail-closed gate prevents unintentional autofill on emerging or unverified TTD seva paths.
+4. **Store Assets Prepared & Verified:** Generated real production screenshots (1280x800) and promotional tiles (440x280, 1400x560) via automated Playwright renderer in `store-assets/`, ensuring zero placeholder usage and compliance with CWS dimensional standards.
 
 ### Verdict
 **GO FOR HUMAN RELEASE REVIEW**  

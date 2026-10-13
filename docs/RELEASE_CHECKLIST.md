@@ -62,11 +62,14 @@ These steps require administrative access to the Google Chrome Web Store Develop
   - Short Description (max 132 characters)
   - Detailed Description (Markdown rendered as plain text per CWS format)
   - Category: `Accessibility` or `Productivity` (Workflow & Planning)
-- [ ] **Visual Media Upload:**
-  - 128x128 store icon (`public/icons/icon128.png`)
-  - 1280x800 or 640x400 screenshot of the Side Panel Devotee Manager
-  - 1280x800 screenshot of the Booking Cockpit & Quota Countdown
-  - 440x280 small promo tile
+- [ ] **Visual Media Upload (Generated & Stored in `store-assets/`):**
+  - Store Icon 128x128: `store-assets/icons/icon128.png` (READY)
+  - Screenshot 1 (1280x800): `store-assets/screenshots/screenshot-1-booking-cockpit-1280x800.png` (READY)
+  - Screenshot 2 (1280x800): `store-assets/screenshots/screenshot-2-pilgrim-manager-1280x800.png` (READY)
+  - Screenshot 3 (1280x800): `store-assets/screenshots/screenshot-3-privacy-and-settings-1280x800.png` (READY)
+  - Screenshot 4 (1280x800): `store-assets/screenshots/screenshot-4-encrypted-backup-1280x800.png` (READY)
+  - Small Promo Tile (440x280): `store-assets/promo/promo-small-440x280.png` (READY)
+  - Marquee Promo Banner (1400x560): `store-assets/promo/promo-marquee-1400x560.png` (READY)
 - [ ] **Privacy Declarations (Developer Console Questionnaire):**
   - **Single Purpose Description:** *"Assists pilgrims with local profile management and guided form entry on official Tirumala Tirupati Devasthanams (TTD) booking portals."*
   - **Permission Justifications:**

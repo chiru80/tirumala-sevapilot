@@ -113,12 +113,31 @@ When requested by the Chrome Web Store submission questionnaire:
 
 ---
 
-## 6. Store Asset Specifications
+## 6. Store Asset Specifications (Generated & Ready in `store-assets/`)
 
-- **Store Icon:** 128x128 PNG (`public/icons/icon128.png` / `dist/icons/icon128.png`)
-- **Promo Tile:** 440x280 PNG (Clean banner with extension title and tagline)
-- **Screenshots (1280x800 or 640x400):**
-  1. *Screenshot 1:* Side Panel Devotee Manager showing offline profiles and preparation checklist.
-  2. *Screenshot 2:* Quota Intelligence Countdown showing upcoming release schedule.
-  3. *Screenshot 3:* Form assistance on official booking page with manual CAPTCHA and OTP boundaries highlighted.
-  4. *Screenshot 4:* Export/Import encrypted backup dialog with master password protection.
+All required visual assets are prepared, generated from the production build, and available in `store-assets/`:
+
+- **Store Icon (128x128 PNG):**
+  - Path: `store-assets/icons/icon128.png` (and `public/icons/icon128.png`)
+  - Resolution: `128x128` pixels (46.1 KB)
+  - Compliant with Chrome Web Store icon specifications.
+
+- **Small Promotional Tile (440x280 PNG):**
+  - Path: `store-assets/promo/promo-small-440x280.png`
+  - Resolution: `440x280` pixels (66.1 KB)
+  - Shows extension branding, offline devotee highlights, and independent status.
+
+- **Marquee Promotional Banner (1400x560 PNG):**
+  - Path: `store-assets/promo/promo-marquee-1400x560.png`
+  - Resolution: `1400x560` pixels (395.5 KB)
+  - Large store banner highlighting peace-of-mind quota preparation and non-negotiable safety boundaries.
+
+- **Production Screenshots (1280x800 PNG):**
+  - *Screenshot 1:* `store-assets/screenshots/screenshot-1-booking-cockpit-1280x800.png`  
+    Official TTD Portal side-by-side with SevaPilot Side Panel Booking Cockpit & Quota Countdown.
+  - *Screenshot 2:* `store-assets/screenshots/screenshot-2-pilgrim-manager-1280x800.png`  
+    Devotee Profile Manager showing offline family groups, masked ID numbers, and readiness validation.
+  - *Screenshot 3:* `store-assets/screenshots/screenshot-3-privacy-and-settings-1280x800.png`  
+    Settings page showing local-only storage controls and the Danger Zone data erasure triggers.
+  - *Screenshot 4:* `store-assets/screenshots/screenshot-4-encrypted-backup-1280x800.png`  
+    Military-grade AES-GCM-256 backup export/restore interface with master password protection.

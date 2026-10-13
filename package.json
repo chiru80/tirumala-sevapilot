@@ -10,7 +10,8 @@
     "test": "vitest run",
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed",
-    "package": "node scripts/package-extension.js"
+    "package": "node scripts/package-extension.js",
+    "assets:store": "node scripts/capture-store-assets.js"
   },
   "keywords": [],
   "author": "",
