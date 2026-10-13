@@ -27,10 +27,19 @@ export const ManualEntryAssistant: React.FC<ManualEntryAssistantProps> = ({
   const [revealedIds, setRevealedIds] = useState<Record<string, boolean>>({});
   // Track which pilgrims the user has checked off as entered
   const [completedPilgrims, setCompletedPilgrims] = useState<Record<string, boolean>>({});
+  const [collapsedPilgrims, setCollapsedPilgrims] = useState<Record<string, boolean>>({});
+  const [filterPendingOnly, setFilterPendingOnly] = useState<boolean>(false);
   const [isGeneralCompleted, setIsGeneralCompleted] = useState<boolean>(false);
 
   const toggleReveal = (pilgrimId: string) => {
     setRevealedIds((prev) => ({
+      ...prev,
+      [pilgrimId]: !prev[pilgrimId],
+    }));
+  };
+
+  const toggleCollapse = (pilgrimId: string) => {
+    setCollapsedPilgrims((prev) => ({
       ...prev,
       [pilgrimId]: !prev[pilgrimId],
     }));
@@ -45,6 +54,8 @@ export const ManualEntryAssistant: React.FC<ManualEntryAssistantProps> = ({
 
   const handleResetChecklist = () => {
     setCompletedPilgrims({});
+    setCollapsedPilgrims({});
+    setFilterPendingOnly(false);
     setIsGeneralCompleted(false);
   };
 
@@ -58,8 +69,13 @@ export const ManualEntryAssistant: React.FC<ManualEntryAssistantProps> = ({
 
   const totalDevotees = selectedPilgrims.length;
   const completedCount = selectedPilgrims.filter((p) => completedPilgrims[p.id]).length;
+  const pendingCount = totalDevotees - completedCount;
   const general = activeProfile?.general;
   const hasGeneral = Boolean(general?.email || general?.city || general?.state || general?.pinCode);
+
+  const displayedPilgrims = filterPendingOnly
+    ? selectedPilgrims.filter((p) => !completedPilgrims[p.id])
+    : selectedPilgrims;
 
   const maskIdNumber = (idNum?: string) => {
     if (!idNum) return '—';
@@ -105,29 +121,55 @@ export const ManualEntryAssistant: React.FC<ManualEntryAssistantProps> = ({
           </p>
         </div>
 
-        {/* Progress Tracker */}
-        <div className="flex items-center justify-between text-xs font-semibold text-[#6B5A70] dark:text-[#A692B4] pt-0.5">
+        {/* All Completed Banner */}
+        {completedCount === totalDevotees && totalDevotees > 0 && (
+          <div id="sp-manual-all-completed-banner" className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-900 dark:text-emerald-200 text-xs flex items-center gap-2 animate-in fade-in">
+            <Icon name="check" size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+            <span>
+              {t('manualEntry.allCompletedBanner') ||
+                'ALL DEVOTEES ENTERED! Proceed with manual CAPTCHA, OTP, and payment submission on TTD.'}
+            </span>
+          </div>
+        )}
+
+        {/* Progress Tracker with Pending Filter */}
+        <div className="flex items-center justify-between text-xs font-semibold text-[#6B5A70] dark:text-[#A692B4] pt-0.5 flex-wrap gap-2">
           <span>
             {t('manualEntry.progress', { completed: completedCount, total: totalDevotees }) ||
               `Devotees entered: ${completedCount} / ${totalDevotees}`}
           </span>
-          {completedCount > 0 && (
-            <button
-              type="button"
-              onClick={handleResetChecklist}
-              className="text-[10px] font-bold text-[#54258A] dark:text-[#D4A72C] hover:underline cursor-pointer"
-            >
-              {t('manualEntry.resetChecklist') || 'Reset Checklist'}
-            </button>
-          )}
+          <div className="flex items-center gap-2">
+            {completedCount > 0 && completedCount < totalDevotees && (
+              <button
+                type="button"
+                id="sp-manual-filter-pending-btn"
+                onClick={() => setFilterPendingOnly((prev) => !prev)}
+                className="text-[10px] font-bold px-2 py-0.5 rounded-md border border-[#54258A]/30 dark:border-[#D4A72C]/40 text-[#54258A] dark:text-[#D4A72C] hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer"
+              >
+                {filterPendingOnly
+                  ? (t('manualEntry.showAll') || `Show All (${totalDevotees})`)
+                  : (t('manualEntry.showPendingOnly') || `Pending Only (${pendingCount})`)}
+              </button>
+            )}
+            {completedCount > 0 && (
+              <button
+                type="button"
+                onClick={handleResetChecklist}
+                className="text-[10px] font-bold text-[#54258A] dark:text-[#D4A72C] hover:underline cursor-pointer"
+              >
+                {t('manualEntry.resetChecklist') || 'Reset Checklist'}
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
       {/* ─── 2. Devotee-by-Devotee Field Instructions ─── */}
       <div className="space-y-3">
-        {selectedPilgrims.map((pilgrim, idx) => {
+        {displayedPilgrims.map((pilgrim, idx) => {
           const isDone = Boolean(completedPilgrims[pilgrim.id]);
           const isRevealed = Boolean(revealedIds[pilgrim.id]);
+          const isCollapsed = Boolean(collapsedPilgrims[pilgrim.id]);
           const name = (pilgrim.fullName || `${pilgrim.firstName || ''} ${pilgrim.lastName || ''}`).trim();
 
           return (
@@ -141,7 +183,10 @@ export const ManualEntryAssistant: React.FC<ManualEntryAssistantProps> = ({
             >
               {/* Pilgrim Header */}
               <div className="flex items-center justify-between gap-2 pb-2 border-b border-black/5 dark:border-white/5">
-                <div className="flex items-center gap-2 min-w-0">
+                <div
+                  className="flex items-center gap-2 min-w-0 cursor-pointer select-none"
+                  onClick={() => toggleCollapse(pilgrim.id)}
+                >
                   <span
                     className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${
                       isDone
@@ -154,6 +199,11 @@ export const ManualEntryAssistant: React.FC<ManualEntryAssistantProps> = ({
                   <span className="text-xs font-bold text-[#321B3F] dark:text-[#F8EFD8] truncate">
                     {name}
                   </span>
+                  <Icon
+                    name="chevron-down"
+                    size={12}
+                    className={`text-[#6B5A70] dark:text-[#A692B4] transition-transform ${isCollapsed ? '-rotate-90' : ''}`}
+                  />
                 </div>
 
                 <label className="flex items-center gap-1.5 cursor-pointer text-[11px] font-bold text-[#54258A] dark:text-[#D4A72C] select-none">
@@ -169,7 +219,8 @@ export const ManualEntryAssistant: React.FC<ManualEntryAssistantProps> = ({
                 </label>
               </div>
 
-              {/* Field Step Instructions */}
+              {/* Field Step Instructions (Collapsible) */}
+              {!isCollapsed && (
               <div className="space-y-2 pt-2 text-xs">
                 {/* Step 1: Full Name */}
                 <div className="flex items-start justify-between gap-2 p-1.5 rounded-lg bg-black/2 dark:bg-white/5">
@@ -234,6 +285,7 @@ export const ManualEntryAssistant: React.FC<ManualEntryAssistantProps> = ({
                   </p>
                 </div>
               </div>
+              )}
             </div>
           );
         })}

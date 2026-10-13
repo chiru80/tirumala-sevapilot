@@ -120,7 +120,12 @@ export const UpcomingReleasesCard: React.FC<UpcomingReleasesCardProps> = ({ onOp
             let statusLabel = '';
             let statusBadgeClass = '';
 
-            if (!isConfirmed) {
+            const isStale = evt.status === 'STALE';
+
+            if (isStale) {
+              statusLabel = t('home.cachedScheduleNotice') || 'Cached · Check TTD';
+              statusBadgeClass = 'bg-[#FFF8E8] text-[#8D6E18] dark:bg-[#3D2F1B] dark:text-[#FFE082] font-semibold border border-amber-300 dark:border-amber-700';
+            } else if (!isConfirmed) {
               statusLabel = t('home.unconfirmedDate') || 'Unconfirmed Date';
               statusBadgeClass = 'bg-[#FFF8E8] text-[#8D6E18] dark:bg-[#3D2F1B] dark:text-[#FFE082] font-semibold border border-amber-300 dark:border-amber-700';
             } else if (countdown.days > 0) {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { t, setLanguage } from '@i18n/index';
-import { getSettings, saveSettings, clearAllData } from '@storage/repository';
+import { getSettings, saveSettings, clearAllData, purgeDevoteeData } from '@storage/repository';
 import { EXTENSION_VERSION, STORAGE_KEYS } from '@shared/constants';
 import type { Settings as SettingsType, AutofillMode } from '@shared/types';
 import { TempleDivider } from '../components/TempleDivider';
@@ -16,7 +16,9 @@ export function Settings({
 }) {
   const [settings, setSettings] = useState<SettingsType | null>(null);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [showPurgeConfirm, setShowPurgeConfirm] = useState(false);
   const [resetFloatStatus, setResetFloatStatus] = useState<string | null>(null);
+  const [purgeStatus, setPurgeStatus] = useState<string | null>(null);
   const [showDiagnostics, setShowDiagnostics] = useState(false);
 
   useEffect(() => { loadSettings(); }, []);
@@ -41,6 +43,14 @@ export function Settings({
     await chrome.storage.local.remove(STORAGE_KEYS.FLOATING_POS);
     setResetFloatStatus(t('settings.positionReset'));
     setTimeout(() => setResetFloatStatus(null), 2500);
+  }
+
+  async function handlePurgeDevotees() {
+    await purgeDevoteeData();
+    setShowPurgeConfirm(false);
+    setPurgeStatus(t('settings.devoteesPurged') || 'Devotee profiles purged successfully.');
+    setTimeout(() => setPurgeStatus(null), 3000);
+    onSettingsChange();
   }
 
   async function handleClearAll() {
@@ -300,34 +310,109 @@ export function Settings({
         </div>
       </div>
 
-      {/* Reset & Version */}
-      <div className="sp-card bg-white dark:bg-[#2D1A38] border-gold-500/25 space-y-2.5">
+      {/* Data Erasure & Privacy Controls */}
+      <div className="sp-card bg-white dark:bg-[#2D1A38] border-gold-500/25 space-y-3 p-3.5">
         <div className="flex items-center justify-between text-xs text-[#6B5A70] dark:text-[#A692B4]">
           <span className="font-bold text-[#5B2A86] dark:text-[#F8EFD8]">{t('settings.extensionVersion')}</span>
           <span className="font-mono font-medium text-[#6F6477] dark:text-[#D4C3E0]">Version {EXTENSION_VERSION}</span>
         </div>
 
-        {showClearConfirm ? (
-          <div className="p-3 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 space-y-2">
-            <h4 className="text-xs font-bold text-temple-red">{t('settings.clearDataModalTitle')}</h4>
-            <p className="text-xs text-[#6F6477] dark:text-[#D4C3E0] font-medium leading-relaxed">{t('settings.clearConfirm')}</p>
-            <div className="flex gap-2 pt-1">
-              <button onClick={() => setShowClearConfirm(false)} className="sp-btn-secondary flex-1 min-h-[44px] text-xs py-1.5 px-3">
-                {t('common.cancel')}
-              </button>
-              <button onClick={handleClearAll} className="sp-btn-danger flex-1 min-h-[44px] text-xs py-1.5 px-3">
-                {t('settings.confirmClear')}
-              </button>
-            </div>
+        {purgeStatus && (
+          <div id="sp-settings-purge-status" className="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 text-xs text-[#1E573F] dark:text-emerald-200">
+            {purgeStatus}
           </div>
-        ) : (
-          <button
-            onClick={() => setShowClearConfirm(true)}
-            className="text-xs text-gray-400 hover:text-temple-red transition-colors cursor-pointer py-1"
-          >
-            {t('settings.clearDataTitle')}
-          </button>
         )}
+
+        {/* Purge Devotee Profiles */}
+        <div className="pt-2 border-t border-black/5 dark:border-white/5 space-y-1.5">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-xs font-bold text-[#5B2A86] dark:text-[#F0CC63]">
+                {t('settings.purgeProfilesTitle') || 'Purge Devotee Personal Data'}
+              </div>
+              <div className="text-[11px] text-[#6B5A70] dark:text-[#A692B4]">
+                {t('settings.purgeProfilesDesc') || 'Permanently deletes all saved profiles and pilgrim proofs while keeping your language and theme preferences.'}
+              </div>
+            </div>
+            {!showPurgeConfirm && (
+              <button
+                type="button"
+                id="sp-settings-purge-devotees-btn"
+                onClick={() => setShowPurgeConfirm(true)}
+                className="shrink-0 text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-amber-500/40 text-amber-800 dark:text-amber-200 hover:bg-amber-50 dark:hover:bg-amber-950/30 transition-all cursor-pointer"
+              >
+                {t('settings.purgeProfilesBtn') || 'Purge Profiles'}
+              </button>
+            )}
+          </div>
+
+          {showPurgeConfirm && (
+            <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700 space-y-2 animate-in fade-in">
+              <h4 className="text-xs font-bold text-amber-900 dark:text-amber-200">
+                {t('settings.confirmPurgeTitle') || 'Are you sure you want to delete all devotee profiles?'}
+              </h4>
+              <p className="text-[11px] text-amber-800 dark:text-amber-300 leading-relaxed">
+                {t('settings.confirmPurgeDesc') || 'This action will wipe all stored devotee names, Aadhaar numbers, and photos. You will need to re-enter them or restore from an encrypted backup (.spbk).'}
+              </p>
+              <div className="flex gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setShowPurgeConfirm(false)}
+                  className="sp-btn-secondary flex-1 min-h-[38px] text-xs py-1 px-3"
+                >
+                  {t('common.cancel')}
+                </button>
+                <button
+                  type="button"
+                  id="sp-settings-confirm-purge-btn"
+                  onClick={handlePurgeDevotees}
+                  className="sp-btn-primary flex-1 min-h-[38px] text-xs py-1 px-3 bg-amber-700 hover:bg-amber-800 text-white"
+                >
+                  {t('settings.confirmPurge') || 'Yes, Purge Profiles'}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Complete Factory Reset / Nuclear Wipe */}
+        <div className="pt-2 border-t border-black/5 dark:border-white/5 space-y-1.5">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-xs font-bold text-temple-red">
+                {t('settings.clearDataTitle') || 'Factory Reset (Wipe All Data)'}
+              </div>
+              <div className="text-[11px] text-[#6B5A70] dark:text-[#A692B4]">
+                {t('settings.clearDataDesc') || 'Nuclear reset: Clears all local, sync, and session storage completely.'}
+              </div>
+            </div>
+            {!showClearConfirm && (
+              <button
+                type="button"
+                id="sp-settings-nuclear-wipe-btn"
+                onClick={() => setShowClearConfirm(true)}
+                className="shrink-0 text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-red-300 text-temple-red hover:bg-red-50 dark:hover:bg-red-950/30 transition-all cursor-pointer"
+              >
+                {t('settings.clearDataBtn') || 'Reset All'}
+              </button>
+            )}
+          </div>
+
+          {showClearConfirm && (
+            <div className="p-3 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 space-y-2 animate-in fade-in">
+              <h4 className="text-xs font-bold text-temple-red">{t('settings.clearDataModalTitle')}</h4>
+              <p className="text-xs text-[#6F6477] dark:text-[#D4C3E0] font-medium leading-relaxed">{t('settings.clearConfirm')}</p>
+              <div className="flex gap-2 pt-1">
+                <button onClick={() => setShowClearConfirm(false)} className="sp-btn-secondary flex-1 min-h-[44px] text-xs py-1.5 px-3">
+                  {t('common.cancel')}
+                </button>
+                <button id="sp-settings-confirm-nuclear-wipe-btn" onClick={handleClearAll} className="sp-btn-danger flex-1 min-h-[44px] text-xs py-1.5 px-3">
+                  {t('settings.confirmClear')}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Diagnostic Modal (On Demand) */}

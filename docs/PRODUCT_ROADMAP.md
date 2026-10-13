@@ -177,9 +177,27 @@ Status: COMPLETE
 - 5-Language Localization: Complete 100% key parity across EN, TE, HI, TA, KN.
 - Full Verification Suites: 13 unit tests in `policy-compliant-assistant.test.ts` (994/994 tests passing), plus Playwright Journey 8 E2E tests (23/23 tests passing).
 
-## Phase 16 — Production QA / Chaos Testing
-- End-to-end chaos suites, simulated network degradation, and mock server latency.
+## Phase 16 — Production Readiness & Trust
+Status: COMPLETE
+- Devotee Data Erasure & Privacy Boundaries: Implemented dual erasure architecture in `Settings -> Danger Zone`:
+  - `purgeDevoteeData()`: wipes devotee profiles, identification vault, notifications, session history, and temporary draft tokens while preserving UI theme/language preferences.
+  - `clearAllData()`: nuclear factory reset across `chrome.storage.local`, `chrome.storage.sync`, and `chrome.storage.session`.
+- Plain JSON Export Privacy Warning: Prominent unencrypted JSON disclosure notice on Backup page informing devotees about raw Aadhaar/passport risks and recommending AES-GCM encrypted `.spbk` exports.
+- Release Schedule Freshness & Staleness Defense: Explicit `Cached · Check TTD` warning badge rendered whenever release schedules are served from local cache, with direct links to official TTD portals.
+- Manual-Entry Assistant Usability:
+  - Multi-devotee pending filtering (`filterPendingOnly`) allowing quick focus on unentered pilgrims.
+  - Collapsible per-devotee cards with chevron toggles to minimize visual scrolling during rapid manual entry.
+  - "All Devotees Completed" green banner with clear next-step instruction.
+- Chrome Extension Packaging & Security Linter:
+  - Automated release validator script (`scripts/package-extension.js`) and `npm run package` command.
+  - Enforces Manifest V3 compliance, permission minimality, origin pinning to official TTD domains, CSP `script-src 'self'`, and zero build artifact leaks.
+  - Automatic production `.zip` bundle generation into `releases/`.
+- Privacy & Security Disclosure: Published comprehensive `docs/PRIVACY_AND_SECURITY_DISCLOSURE.md` detailing Chrome Web Store single purpose, zero telemetry, local storage tiers, and TTD compliance.
+- 5-Language Localization: Complete key parity across EN, TE, HI, TA, KN with 867 keys each.
+- Automated Test Verification: Unit suite `production-readiness-and-trust.test.ts` (6 tests) and Playwright Journey 9 `09-production-readiness-and-trust.spec.ts` (3 tests).
 
-## Phase 17 — Chrome Web Store Release Hardening
-- Final manifest and security audit, package bundle production distribution.
+## Phase 17 — Chrome Web Store Submission & Distribution
+- Submission asset preparation (store screenshots, promotional tiles, store listing copy).
+- Production release publishing and store verification monitoring.
+
 
