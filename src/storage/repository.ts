@@ -815,18 +815,73 @@ export async function importProfilesSafely(incoming: unknown): Promise<{ importe
   }
 }
 
-// ─── Clear All ───
+// ─── Data Erasure & Nuclear Wipe ───
 
-/** Delete ALL local data. Requires explicit confirmation. */
-export async function clearAllData(): Promise<void> {
-  invalidateSettingsCache();
-  await chrome.storage.local.clear();
-  if (typeof chrome !== 'undefined' && chrome.storage?.sync) {
+/**
+ * Purge only devotee personal data (profiles, pilgrims, notifications, session history)
+ * while safely preserving user preferences (language, theme, settings).
+ */
+export async function purgeDevoteeData(): Promise<void> {
+  const keysToRemove: string[] = [
+    STORAGE_KEYS.PROFILES,
+    STORAGE_KEYS.VAULT,
+    STORAGE_KEYS.VAULT_SALT,
+    STORAGE_KEYS.NOTIFICATIONS,
+    STORAGE_KEYS.SESSION_HISTORY,
+    'sp_session_draft_tokens',
+  ];
+
+  if (typeof chrome !== 'undefined' && chrome.storage?.local) {
     try {
-      await chrome.storage.sync.clear();
+      const all = await chrome.storage.local.get(null);
+      // Remove any lingering automatic backups or temporary copies
+      const backupKeys = Object.keys(all).filter(
+        k => k.startsWith('sp_auto_backup_') || k.startsWith('sp_migration_backup_') || k.startsWith('sp_session_draft') || k.startsWith('sp_draft_')
+      );
+      await chrome.storage.local.remove([...keysToRemove, ...backupKeys]);
     } catch {
-      // Fallback
+      await chrome.storage.local.remove(keysToRemove);
     }
   }
-  logger.info('All local data cleared');
+
+  // Clear session storage if present (ephemeral queue tokens, active booking states)
+  if (typeof chrome !== 'undefined' && chrome.storage?.session) {
+    try {
+      await chrome.storage.session.clear();
+    } catch {
+      // Ignore if session storage is unsupported
+    }
+  }
+
+  logger.info('Devotee personal profiles and session history purged successfully');
+}
+
+/**
+ * Delete ALL local data across local, sync, and session tiers.
+ * Performs a complete factory wipe.
+ */
+export async function clearAllData(): Promise<void> {
+  invalidateSettingsCache();
+
+  if (typeof chrome !== 'undefined') {
+    if (chrome.storage?.local) {
+      await chrome.storage.local.clear();
+    }
+    if (chrome.storage?.sync) {
+      try {
+        await chrome.storage.sync.clear();
+      } catch {
+        // Fallback
+      }
+    }
+    if (chrome.storage?.session) {
+      try {
+        await chrome.storage.session.clear();
+      } catch {
+        // Fallback
+      }
+    }
+  }
+
+  logger.info('All local, sync, and session data wiped completely');
 }

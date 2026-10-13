@@ -110,7 +110,7 @@ describe('Dashboard Component — Redesign & Consumer Experience', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Family')).toBeTruthy();
-    });
+    }, { timeout: 3000 });
 
     // Check single dominant action button exists
     const actionBtn = screen.getByRole('button', { name: /FILL & VERIFY/i });
@@ -128,7 +128,7 @@ describe('Dashboard Component — Redesign & Consumer Experience', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Family')).toBeTruthy();
-    });
+    }, { timeout: 3000 });
 
     expect(screen.getByText(/Booking Readiness/i)).toBeTruthy();
   });

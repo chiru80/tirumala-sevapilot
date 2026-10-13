@@ -325,3 +325,22 @@ Key Invariants Verified:
 - [x] Safe Session Guidance modal provides human-centered education for CAPTCHA, OTP, Queue, Expired Session, and Temporary Lock without bypasses
 - [x] Upcoming Releases card verifies official TTD domains (`ttdevasthanams.ap.gov.in`, `news.tirumala.org`) with publication date and unconfirmed date indicator
 - [x] Complete 5-language parity maintained across all Phase 15 components with zero missing keys
+
+## Phase 16 — Production Readiness, Data Security & Trust tests
+
+Automated suites:
+- Unit suite: [`tests/services/production-readiness-and-trust.test.ts`](file:///tests/services/production-readiness-and-trust.test.ts) (6/6 tests passing)
+- Playwright E2E suite: [`tests/e2e/09-production-readiness-and-trust.spec.ts`](file:///tests/e2e/09-production-readiness-and-trust.spec.ts) (3/3 tests passing)
+
+Key Invariants Verified:
+- [x] Dual data erasure architecture: `purgeDevoteeData` purges profiles, vault, notifications, and draft tokens while preserving UI settings and release calendar cache
+- [x] Complete nuclear factory reset: `clearAllData` wipes all data across local, sync, and session storage tiers
+- [x] Backup privacy disclosure: unencrypted plain JSON warning notice (`#sp-backup-json-privacy-notice`) informs devotees of unencrypted ID proofs and recommends password-protected `.spbk` exports
+- [x] Release freshness badge: cached booking release dates display the `Cached · Check TTD` warning badge
+- [x] Manual-entry assistant pending filter: `filterPendingOnly` (`#sp-manual-filter-pending-btn`) toggles between all devotees and uncompleted devotees
+- [x] Manual-entry assistant collapsible cards: per-devotee cards collapse and expand on demand
+- [x] Manual-entry completion state: renders prominent green completion banner (`#sp-manual-all-completed-banner`) when all devotees are entered
+- [x] Chrome extension production packaging linter: `scripts/package-extension.js` validates Manifest V3 compliance, permission minimality, pinned TTD host origins, and strict Content Security Policy
+- [x] Privacy and security documentation: `docs/PRIVACY_AND_SECURITY_DISCLOSURE.md` published with comprehensive Chrome Web Store data declarations and TTD compliance statements
+- [x] 100% key synchronization across all 5 languages (`en`, `te`, `hi`, `ta`, `kn`) with 867 keys each
+

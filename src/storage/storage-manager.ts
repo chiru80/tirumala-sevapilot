@@ -19,6 +19,8 @@ import {
   updateSelectedPilgrims,
   getSettings,
   saveSettings,
+  purgeDevoteeData,
+  clearAllData,
 } from './repository';
 import type { Profile, Pilgrim, Settings } from '@shared/types';
 import logger from '@shared/logger';
@@ -100,5 +102,17 @@ export class StorageManager {
       filename,
       json: JSON.stringify(data, null, 2),
     };
+  }
+
+  /** Purge all devotee profiles while preserving settings */
+  public static async purgeDevoteeData(): Promise<void> {
+    logger.info('[StorageManager] Purging devotee profiles');
+    return purgeDevoteeData();
+  }
+
+  /** Complete nuclear wipe of all extension data */
+  public static async clearAllData(): Promise<void> {
+    logger.info('[StorageManager] Clearing all local, sync, and session data');
+    return clearAllData();
   }
 }

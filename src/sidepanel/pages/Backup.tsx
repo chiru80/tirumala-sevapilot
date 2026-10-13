@@ -226,18 +226,27 @@ export function Backup({ onBack }: { onBack?: () => void } = {}) {
           {loading ? 'Encrypting & Generating .spbk...' : 'Download Encrypted Backup (.spbk)'}
         </button>
 
-        <div className="pt-2.5 border-t border-gold-500/20 flex items-center justify-between">
-          <div>
-            <div className="text-sm font-bold text-[#5B2A86] dark:text-[#F0CC63]">Standard JSON Export</div>
-            <div className="text-xs text-[#6B5A70] dark:text-[#A692B4]">Direct backup for migration (seva-pilot-backup-*.json)</div>
+        <div className="pt-2.5 border-t border-gold-500/20 space-y-2">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-sm font-bold text-[#5B2A86] dark:text-[#F0CC63]">
+                {t('backup.jsonExportTitle') || 'Standard JSON Export'}
+              </div>
+              <div className="text-xs text-[#6B5A70] dark:text-[#A692B4]">
+                {t('backup.jsonExportDesc') || 'Direct unencrypted backup for migration (seva-pilot-backup-*.json)'}
+              </div>
+            </div>
+            <button
+              onClick={handleExportJson}
+              disabled={loading}
+              className="sp-btn-secondary min-h-[44px] text-sm py-2 px-3.5 shrink-0 cursor-pointer"
+            >
+              {t('backup.exportJsonBtn') || 'Export JSON'}
+            </button>
           </div>
-          <button
-            onClick={handleExportJson}
-            disabled={loading}
-            className="sp-btn-secondary min-h-[44px] text-sm py-2 px-3.5 shrink-0 cursor-pointer"
-          >
-            Export JSON
-          </button>
+          <div id="sp-backup-json-privacy-notice" className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/30 text-[11px] text-amber-900 dark:text-amber-200">
+            <span>⚠️ {t('backup.jsonPrivacyWarning') || 'Notice: Plain JSON files are unencrypted and contain devotee names and ID proof numbers. For shared or public computers, we recommend the password-encrypted (.spbk) backup above.'}</span>
+          </div>
         </div>
       </div>
 

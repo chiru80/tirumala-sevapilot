@@ -141,3 +141,46 @@ export const mockSrivaniProfile = {
   },
 };
 
+export const mockMultiSrivaniProfile = {
+  id: 'profile-multi-srivani-e2e',
+  name: 'Srivani Family Group',
+  pilgrims: [
+    {
+      id: 'sv1',
+      firstName: 'Govinda',
+      lastName: 'Rao',
+      fullName: 'Govinda Rao',
+      age: 42,
+      gender: 'Male',
+      idType: 'Aadhaar',
+      idNumber: validAadhaar1,
+      mobile: '9876543210',
+      country: 'India',
+    },
+    {
+      id: 'sv2',
+      firstName: 'Lakshmi',
+      lastName: 'Rao',
+      fullName: 'Lakshmi Rao',
+      age: 38,
+      gender: 'Female',
+      idType: 'Aadhaar',
+      idNumber: validAadhaar2,
+      mobile: '9876543210',
+      country: 'India',
+    },
+  ],
+  general: {
+    mobile: '9876543210',
+    email: 'srivani.family@example.com',
+    city: 'Tirupati',
+    state: 'Andhra Pradesh',
+    country: 'India',
+    pinCode: '517501',
+  },
+  selectedPilgrims: {
+    'srivani': ['sv1', 'sv2'],
+    'srivani-trust': ['sv1', 'sv2'],
+  },
+};
+

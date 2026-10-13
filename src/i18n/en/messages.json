@@ -269,7 +269,11 @@
     "importCSV": "Import from CSV",
     "csvWarning": "CSV data is not encrypted. Only import from trusted sources.",
     "backupCreated": "Backup created successfully",
-    "restoreSuccess": "Profiles restored successfully"
+    "restoreSuccess": "Profiles restored successfully",
+    "jsonExportTitle": "Standard JSON Export",
+    "jsonExportDesc": "Direct unencrypted backup for migration (seva-pilot-backup-*.json)",
+    "jsonExportBtn": "Export JSON",
+    "jsonPrivacyWarning": "Notice: Plain JSON files are unencrypted and contain devotee names and ID proof numbers. For shared or public computers, we recommend the password-encrypted (.spbk) backup above."
   },
   "settings": {
     "title": "Settings",
@@ -330,7 +334,16 @@
     "confirmClear": "Delete all data",
     "floatingHelperDesc": "Show a quick SevaPilot button on supported TTD pages.",
     "autoScanDesc": "Detect supported booking fields when the page loads.",
-    "maskSensitiveDesc": "Hide ID and phone numbers in SevaPilot previews."
+    "maskSensitiveDesc": "Hide ID and phone numbers in SevaPilot previews.",
+    "devoteesPurged": "Devotee profiles purged successfully.",
+    "purgeProfilesTitle": "Purge Devotee Personal Data",
+    "purgeProfilesDesc": "Permanently deletes all saved profiles and pilgrim proofs while keeping your language and theme preferences.",
+    "purgeProfilesBtn": "Purge Profiles",
+    "confirmPurgeTitle": "Are you sure you want to delete all devotee profiles?",
+    "confirmPurgeDesc": "This action will wipe all stored devotee names, Aadhaar numbers, and photos. You will need to re-enter them or restore from an encrypted backup (.spbk).",
+    "confirmPurge": "Yes, Purge Profiles",
+    "clearDataDesc": "Nuclear reset: Clears all local, sync, and session storage completely.",
+    "clearDataBtn": "Reset All"
   },
   "bookings": {
     "title": "Pilgrim Group Manager",
@@ -463,10 +476,11 @@
   },
   "common": {
     "back": "Back",
+    "gotIt": "Got It",
     "close": "Close",
-    "cancel": "Cancel",
+    "edit": "Edit",
     "save": "Save",
-    "edit": "Edit"
+    "cancel": "Cancel"
   },
   "workflow": {
     "status": {
@@ -649,7 +663,8 @@
     "selectPilgrimsPrompt": "Select at least one pilgrim.",
     "completeIdPrompt": "Complete your pilgrim's ID details.",
     "completeGeneralPrompt": "Complete general contact details.",
-    "openTtdPrompt": "Open the supported TTD booking page."
+    "openTtdPrompt": "Open the supported TTD booking page.",
+    "cachedScheduleNotice": "Cached · Check TTD"
   },
   "queue": {
     "title": "TTD Digital Queue",
@@ -866,14 +881,6 @@
     "stepDeclaration": "Acknowledge rules / declaration checkboxes manually",
     "stepPayment": "Review summary and complete payment on official bank gateway"
   },
-  "common": {
-    "back": "Back",
-    "gotIt": "Got It",
-    "close": "Close",
-    "edit": "Edit",
-    "save": "Save",
-    "cancel": "Cancel"
-  },
   "manualEntry": {
     "ariaRegion": "Manual-Entry Assistant",
     "title": "MANUAL-ENTRY ASSISTANT",
@@ -904,7 +911,10 @@
     "openAssistant": "📋 Open Manual-Entry Assistant",
     "hideAssistant": "Hide Manual Assistant",
     "useManualChecklist": "Use Manual Reference Checklist",
-    "hideChecklist": "Hide Manual Checklist"
+    "hideChecklist": "Hide Manual Checklist",
+    "showAll": "Show All ({total})",
+    "showPendingOnly": "Pending Only ({pending})",
+    "allCompletedBanner": "All devotees entered! Proceed with manual CAPTCHA, OTP, and payment submission on TTD."
   },
   "safeSession": {
     "title": "SAFE SESSION GUIDANCE",
