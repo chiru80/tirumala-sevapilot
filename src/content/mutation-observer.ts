@@ -5,6 +5,7 @@
 import { debounce } from '@shared/utils';
 import { MUTATION_DEBOUNCE_MS } from '@shared/constants';
 import logger from '@shared/logger';
+import { isExtensionContextValid, teardownOrphanedContentScript } from './context-guard';
 
 /**
  * Create a targeted MutationObserver for detecting form changes.
@@ -14,11 +15,20 @@ export function createPageObserver(onFormChange: () => void): MutationObserver {
   let isObserving = false;
 
   const debouncedCallback = debounce(() => {
+    if (!isExtensionContextValid()) {
+      teardownOrphanedContentScript();
+      return;
+    }
     logger.debug('DOM mutation detected — re-scanning');
     onFormChange();
   }, MUTATION_DEBOUNCE_MS);
 
   const observer = new MutationObserver((mutations) => {
+    if (!isExtensionContextValid()) {
+      observer.disconnect();
+      teardownOrphanedContentScript();
+      return;
+    }
     // Filter for relevant mutations (form-related changes)
     const relevant = mutations.some(mutation => {
       // Check added nodes for form elements
