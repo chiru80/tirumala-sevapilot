@@ -18,18 +18,17 @@ We collect **no telemetry**, maintain **no external servers**, use **no third-pa
 ## 2. Chrome Web Store Compliance & Single Purpose
 
 - **Single Purpose:** Tirumala SevaPilot serves a single, well-defined purpose: to act as a local companion and manual-entry reference assistant for devotees making pilgrimage and seva bookings on official TTD portals.
-- **Permission Minimality:**
+- **Audited Minimal Permissions:**
   - `storage`: Required to persist devotee profiles and preferences locally in `chrome.storage.local`.
   - `sidePanel`: Required to render the companion side panel interface in Chrome.
-  - `activeTab`: Used strictly when the devotee actively invokes the side panel on an active TTD portal tab.
-  - `scripting`: Used to inspect current DOM context solely for read-only policy verification and session awareness.
-  - `tabs`: Used to detect navigation between official TTD booking pages.
-  - `contextMenus`: Used for user-initiated quick launch of the side panel.
-- **Excluded Permissions:**
+  - `scripting`: Required to inject and execute content verification scripts solely on pinned official TTD domains.
+  - `contextMenus`: Used for user-initiated quick launch of the side panel from the browser context menu.
+- **Explicitly Removed & Excluded Permissions:**
+  - **REMOVED** `tabs` and `activeTab`: Audited and eliminated to strictly uphold Chrome Web Store least-privilege principles. The extension does not read broad tab titles, URLs, or browsing history.
   - **NO** `<all_urls>` or unrestricted host permissions.
   - **NO** `clipboardRead` or `clipboardWrite` (ensures zero automated clipboard manipulation).
   - **NO** `webRequest` or `webRequestBlocking` (ensures zero traffic sniffing or tampering).
-  - **NO** `proxy` or `debugger` permissions.
+  - **NO** `proxy`, `debugger`, `cookies`, `history`, or `bookmarks` permissions.
 - **Host Permission Pinning:** Strictly scoped only to official TTD domains:
   - `https://ttdevasthanams.ap.gov.in/*`
   - `https://tirupatibalaji.ap.gov.in/*`
@@ -59,11 +58,11 @@ Ephemeral operational state (such as temporary policy flags and active step trac
 ## 4. Cryptographic Security & Backup Procedures
 
 ### 4.1 Encrypted Backups (`.spbk`)
-When a devotee creates an encrypted backup (`.spbk`), SevaPilot employs military-grade browser-native cryptography via the **Web Cryptography API (`crypto.subtle`)**:
-- **Cipher:** AES-GCM with a 256-bit symmetric key.
-- **Key Derivation:** PBKDF2 using SHA-256 with **100,000 iterations** and a cryptographically secure 16-byte random salt.
-- **Initialization Vector (IV):** 12-byte cryptographically secure random IV generated per export.
-- **Integrity Authentication:** 128-bit GCM authentication tag verifying ciphertext tamper-resistance.
+When a devotee creates an encrypted backup (`.spbk`), SevaPilot employs authenticated browser-native cryptography via the **Web Cryptography API (`crypto.subtle`)**:
+- **Cipher:** AES-GCM with a 256-bit symmetric key (`VAULT_CONFIG.ALGORITHM`).
+- **Key Derivation:** PBKDF2 using SHA-256 with **600,000 iterations** (`VAULT_CONFIG.PBKDF2_ITERATIONS`) and a cryptographically secure 32-byte random salt (`VAULT_CONFIG.SALT_LENGTH`).
+- **Initialization Vector (IV):** 12-byte cryptographically secure random IV generated per export (`VAULT_CONFIG.IV_LENGTH`).
+- **Integrity Authentication:** 128-bit GCM authentication tag verifying ciphertext tamper-resistance. Any tampered ciphertext is rejected prior to storage.
 
 ### 4.2 Plain JSON Exports & Unencrypted Warning
 Devotees have the option to export raw JSON for personal records. Whenever plain JSON export is accessed, the application displays a prominent security warning:

@@ -329,18 +329,21 @@ Key Invariants Verified:
 ## Phase 16 — Production Readiness, Data Security & Trust tests
 
 Automated suites:
-- Unit suite: [`tests/services/production-readiness-and-trust.test.ts`](file:///tests/services/production-readiness-and-trust.test.ts) (6/6 tests passing)
+- Unit suite: [`tests/services/production-readiness-and-trust.test.ts`](file:///tests/services/production-readiness-and-trust.test.ts) (19/19 tests passing)
 - Playwright E2E suite: [`tests/e2e/09-production-readiness-and-trust.spec.ts`](file:///tests/e2e/09-production-readiness-and-trust.spec.ts) (3/3 tests passing)
 
 Key Invariants Verified:
 - [x] Dual data erasure architecture: `purgeDevoteeData` purges profiles, vault, notifications, and draft tokens while preserving UI settings and release calendar cache
-- [x] Complete nuclear factory reset: `clearAllData` wipes all data across local, sync, and session storage tiers
+- [x] Data erasure idempotency and resilience: repeated purge calls succeed idempotently; storage exceptions caught gracefully without leaving primary sensitive keys
+- [x] Complete nuclear factory reset: `clearAllData` wipes all data across local, sync, and session storage tiers, invalidating in-memory cache
 - [x] Backup privacy disclosure: unencrypted plain JSON warning notice (`#sp-backup-json-privacy-notice`) informs devotees of unencrypted ID proofs and recommends password-protected `.spbk` exports
+- [x] Authenticated `.spbk` encryption: Web Crypto AES-GCM-256 with PBKDF2 (600,000 iterations); tampered ciphertext, malformed envelopes, and wrong passwords fail closed
 - [x] Release freshness badge: cached booking release dates display the `Cached · Check TTD` warning badge
 - [x] Manual-entry assistant pending filter: `filterPendingOnly` (`#sp-manual-filter-pending-btn`) toggles between all devotees and uncompleted devotees
 - [x] Manual-entry assistant collapsible cards: per-devotee cards collapse and expand on demand
 - [x] Manual-entry completion state: renders prominent green completion banner (`#sp-manual-all-completed-banner`) when all devotees are entered
 - [x] Chrome extension production packaging linter: `scripts/package-extension.js` validates Manifest V3 compliance, permission minimality, pinned TTD host origins, and strict Content Security Policy
+- [x] Production ZIP archive creation: automated zero-leak bundle in `releases/tirumala-sevapilot-v1.1.0.zip` (0.89 MB) with no `.map`, test, or source code leaks
 - [x] Privacy and security documentation: `docs/PRIVACY_AND_SECURITY_DISCLOSURE.md` published with comprehensive Chrome Web Store data declarations and TTD compliance statements
 - [x] 100% key synchronization across all 5 languages (`en`, `te`, `hi`, `ta`, `kn`) with 867 keys each
 

@@ -79,8 +79,13 @@ export async function restoreBackup(
     logger.info(`Backup restored and validated: ${validation.profiles.length} profiles`);
     return validation.profiles;
   } catch (error) {
-    if (error instanceof Error && error.message.includes('decrypt')) {
-      throw new Error('Wrong password. Cannot decrypt backup.');
+    if (
+      error instanceof Error &&
+      (error.name === 'OperationError' ||
+        error.message.toLowerCase().includes('decrypt') ||
+        error.message.includes('operation-specific'))
+    ) {
+      throw new Error('Wrong password or corrupted backup. Cannot decrypt backup.');
     }
     throw error;
   }

@@ -188,17 +188,27 @@ export function useTtdPage(): UseTtdPageResult {
 
   const openTtdWebsite = useCallback(() => {
     if (pageDetected && chrome.tabs) {
-      chrome.tabs.query({ url: ['https://ttdevasthanams.ap.gov.in/*', 'https://tirupatibalaji.ap.gov.in/*'] })
+      chrome.tabs
+        .query({ url: ['https://ttdevasthanams.ap.gov.in/*', 'https://tirupatibalaji.ap.gov.in/*'] })
         .then(tabs => {
-          if (tabs[0]?.id) chrome.tabs.update(tabs[0].id, { active: true });
+          const existingTtdTabId = tabs[0]?.id ?? currentTabId;
+          if (existingTtdTabId) {
+            // Focus an already-open official TTD tab.
+            chrome.tabs.update(existingTtdTabId, { active: true }).catch(() => {});
+          } else {
+            // URL-filtered queries can be unavailable without broad tab access.
+            chrome.tabs.create({ url: 'https://ttdevasthanams.ap.gov.in' }).catch(() => {});
+          }
         })
-        .catch(() => {});
+        .catch(() => {
+          chrome.tabs.create({ url: 'https://ttdevasthanams.ap.gov.in' }).catch(() => {});
+        });
     } else if (chrome.tabs) {
       chrome.tabs.create({ url: 'https://ttdevasthanams.ap.gov.in' }).catch(() => {});
     } else {
       window.open('https://ttdevasthanams.ap.gov.in', '_blank');
     }
-  }, [pageDetected]);
+  }, [pageDetected, currentTabId]);
 
   useEffect(() => {
     checkPageState();

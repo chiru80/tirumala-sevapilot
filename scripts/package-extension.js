@@ -37,19 +37,24 @@ if (manifest.manifest_version !== 3) {
   process.exit(1);
 }
 
-// B. Permission Minimality Check
+// B. Permission Minimality Check (Phase 17 audited set)
 const allowedPermissions = new Set([
   'storage',
   'sidePanel',
-  'activeTab',
   'scripting',
-  'tabs',
   'contextMenus',
 ]);
 
+// Permissions removed during the Phase 17 manifest audit, plus the classic
+// high-risk set. Re-adding any of these fails the release package.
 const forbiddenPermissions = [
+  'tabs',            // removed: grants read access to browsing history
+  'activeTab',       // removed: redundant — host access is already pinned
   'clipboardRead',
   'clipboardWrite',
+  'history',
+  'bookmarks',
+  'cookies',
   '<all_urls>',
   'webNavigation',
   'debugger',
@@ -64,7 +69,8 @@ for (const p of manifest.permissions || []) {
     process.exit(1);
   }
   if (!allowedPermissions.has(p)) {
-    console.warn(`⚠️ [Warning] Non-standard permission declared: ${p}`);
+    console.error(`❌ [Security Alert] Permission outside the audited minimal set: ${p}`);
+    process.exit(1);
   }
 }
 

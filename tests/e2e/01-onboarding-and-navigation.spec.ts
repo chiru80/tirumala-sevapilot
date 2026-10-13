@@ -5,9 +5,19 @@ test.describe('E2E Journey 1 — Onboarding, Navigation, and Lifecycle', () => {
     const manifest = await sidepanelPage.evaluate(() => chrome.runtime.getManifest());
     expect(manifest.manifest_version).toBe(3);
     expect(manifest.name).toContain('Tirumala SevaPilot');
-    expect(manifest.permissions).toContain('storage');
-    expect(manifest.permissions).toContain('sidePanel');
-    expect(manifest.permissions).toContain('activeTab');
+    // Phase 17 permission audit: the minimized permission set is asserted
+    // exactly, so re-introducing `tabs` / `activeTab` (browsing-history access)
+    // or any unexpected permission fails this journey.
+    expect([...(manifest.permissions ?? [])].sort()).toEqual([
+      'contextMenus',
+      'scripting',
+      'sidePanel',
+      'storage',
+    ]);
+    expect([...(manifest.host_permissions ?? [])].sort()).toEqual([
+      'https://tirupatibalaji.ap.gov.in/*',
+      'https://ttdevasthanams.ap.gov.in/*',
+    ]);
     expect(manifest.content_scripts).toBeDefined();
     expect(manifest.content_scripts?.length).toBeGreaterThan(0);
   });
