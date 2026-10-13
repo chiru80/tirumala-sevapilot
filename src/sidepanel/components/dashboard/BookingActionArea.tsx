@@ -2,10 +2,12 @@ import React, { useState } from 'react';
 import { Card, Badge, Button, Icon } from '../../design-system';
 import type { Profile, Pilgrim } from '@shared/types';
 import type { ProfileReadinessReport, PilgrimValidationItem } from '../../presentation/profile-readiness-tester';
+import { ManualEntryAssistant } from './ManualEntryAssistant';
 import { t } from '@i18n/index';
 
 export interface BookingActionAreaProps {
   // Service Context
+  serviceId?: string;
   serviceDisplayName: string;
   ticketPrice?: number;
   maxPilgrims?: number;
@@ -57,6 +59,7 @@ export const BookingActionArea: React.FC<BookingActionAreaProps> = ({
   className = '',
 }) => {
   const [isReviewOpen, setIsReviewOpen] = useState(false);
+  const [isManualAssistantOpen, setIsManualAssistantOpen] = useState(Boolean(readinessReport.isManualOnly));
   const selectedCount = selectedPilgrims.length;
   const isReady = readinessReport.isReady;
 
@@ -215,6 +218,21 @@ export const BookingActionArea: React.FC<BookingActionAreaProps> = ({
             <Icon name="x" size={16} className="mr-1.5" />
             {t('bookingWorkflow.stopAutofill') || 'Stop Autofill'}
           </Button>
+        ) : readinessReport.isManualOnly ? (
+          <Button
+            id="sp-booking-open-manual-assistant-btn"
+            variant="gold"
+            size="lg"
+            fullWidth
+            onClick={() => setIsManualAssistantOpen((prev) => !prev)}
+            disabled={!activeProfile || selectedCount === 0}
+            className="shadow-md"
+          >
+            <Icon name="clipboard-check" size={16} className="mr-1.5" />
+            {isManualAssistantOpen
+              ? (t('manualEntry.hideAssistant') || 'Hide Manual Assistant')
+              : (t('manualEntry.openAssistant') || '📋 Open Manual-Entry Assistant')}
+          </Button>
         ) : !pageDetected ? (
           <Button
             id="sp-booking-open-ttd-btn"
@@ -297,7 +315,40 @@ export const BookingActionArea: React.FC<BookingActionAreaProps> = ({
             <span>{t('bookingWorkflow.editProfile') || 'Edit Profile'}</span>
           </button>
         </div>
+
+        {/* Manual-Entry Assistant Mode Toggle for non-manual services */}
+        {!readinessReport.isManualOnly && (
+          <div className="pt-1 text-center">
+            <button
+              type="button"
+              id="sp-toggle-manual-guidance-btn"
+              onClick={() => setIsManualAssistantOpen((prev) => !prev)}
+              className="text-[11px] font-bold text-[#54258A] dark:text-[#D4A72C] hover:underline cursor-pointer inline-flex items-center gap-1"
+            >
+              <Icon name="clipboard-check" size={12} />
+              <span>
+                {isManualAssistantOpen
+                  ? (t('manualEntry.hideChecklist') || 'Hide Manual Checklist')
+                  : (t('manualEntry.useManualChecklist') || 'Use Manual Reference Checklist')}
+              </span>
+            </button>
+          </div>
+        )}
       </div>
+
+      {/* ─── 3B. Embedded Manual-Entry Assistant Component ─── */}
+      {isManualAssistantOpen && (
+        <div id="sp-manual-assistant-container" className="pt-2 animate-in fade-in duration-200">
+          <ManualEntryAssistant
+            serviceId={readinessReport.serviceId}
+            serviceDisplayName={serviceDisplayName}
+            activeProfile={activeProfile}
+            selectedPilgrims={selectedPilgrims}
+            onOpenTtd={onOpenTtdPortal}
+            onClose={() => setIsManualAssistantOpen(false)}
+          />
+        </div>
+      )}
 
       {/* ─── 4. Collapsible Per-Pilgrim Fields & Validation Review Panel ─── */}
       {isReviewOpen && (

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Dialog, Badge, Icon } from '../../design-system';
-import { getAllWorkflows } from '../../../services/workflows/registry';
+import { getAllCanonicalServices } from '../../../services/canonical-service-registry';
 import { t } from '@i18n/index';
 
 export interface ServiceSelectorModalProps {
@@ -16,7 +16,7 @@ export const ServiceSelectorModal: React.FC<ServiceSelectorModalProps> = ({
   currentServiceId,
   onSelectService,
 }) => {
-  const workflows = getAllWorkflows();
+  const services = getAllCanonicalServices();
 
   return (
     <Dialog
@@ -26,14 +26,17 @@ export const ServiceSelectorModal: React.FC<ServiceSelectorModalProps> = ({
       description={t('services.selectServiceDesc') || 'Choose the booking service to prepare your devotee details.'}
     >
       <div className="space-y-2">
-        {workflows.map((wf) => {
-          const isSelected = wf.serviceId === currentServiceId;
+        {services.map((svc) => {
+          const isSelected =
+            svc.serviceId === currentServiceId ||
+            (currentServiceId === 'srivani-trust' && svc.serviceId === 'srivani') ||
+            (currentServiceId === 'sed-300' && svc.serviceId === 'special-entry-darshan-300');
           return (
             <button
-              key={wf.serviceId}
+              key={svc.serviceId}
               type="button"
               onClick={() => {
-                onSelectService(wf.serviceId);
+                onSelectService(svc.serviceId);
                 onClose();
               }}
               className={`
@@ -48,16 +51,21 @@ export const ServiceSelectorModal: React.FC<ServiceSelectorModalProps> = ({
               <div className="min-w-0 pr-2">
                 <div className="flex items-center gap-1.5 mb-0.5">
                   <p className="text-xs font-bold text-[#321B3F] dark:text-[#F8EFD8] truncate">
-                    {wf.serviceName}
+                    {svc.displayName || svc.serviceName}
                   </p>
-                  {wf.ticketPrice && (
+                  {svc.ticketPrice ? (
                     <Badge variant="gold" size="sm">
-                      ₹{wf.ticketPrice}
+                      ₹{svc.ticketPrice}
+                    </Badge>
+                  ) : null}
+                  {svc.automationPolicy === 'RESTRICTED_MANUAL_ONLY' && (
+                    <Badge variant="actionRequired" size="sm">
+                      Manual Only
                     </Badge>
                   )}
                 </div>
                 <p className="text-[11px] text-[#6B5A70] dark:text-[#A692B4] truncate">
-                  {wf.maxPilgrims ? `Up to ${wf.maxPilgrims} devotees` : 'Devotee service'}
+                  {svc.maxPilgrims ? `Up to ${svc.maxPilgrims} devotees` : 'Devotee service'}
                 </p>
               </div>
 

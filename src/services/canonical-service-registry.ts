@@ -29,6 +29,21 @@ export interface CanonicalFieldRules {
 }
 
 /**
+ * Canonical automation policy per TTD booking regulations and anti-bot rules.
+ * PERMITTED_USER_INITIATED: Human devotee triggers entry assist; no automated CAPTCHA, OTP, payment, or declarations.
+ * RESTRICTED_MANUAL_ONLY: TTD policy explicitly mandates manual entry (e.g. Srivani May 2026 abolished autofill and automated copy-paste).
+ * UNCONFIRMED_FAIL_CLOSED: Service authorization unconfirmed. Fails closed to manual entry only.
+ */
+export const CanonicalAutomationPolicy = {
+  PERMITTED_USER_INITIATED: 'PERMITTED_USER_INITIATED',
+  RESTRICTED_MANUAL_ONLY: 'RESTRICTED_MANUAL_ONLY',
+  UNCONFIRMED_FAIL_CLOSED: 'UNCONFIRMED_FAIL_CLOSED',
+} as const;
+
+export type CanonicalAutomationPolicy =
+  (typeof CanonicalAutomationPolicy)[keyof typeof CanonicalAutomationPolicy];
+
+/**
  * Authoritative canonical definition of a TTD booking service.
  */
 export interface CanonicalServiceDefinition {
@@ -44,6 +59,8 @@ export interface CanonicalServiceDefinition {
   maxPilgrims: number;
   exactPilgrims?: number;
   hasGeneralDetailsStep: boolean;
+  automationPolicy: CanonicalAutomationPolicy;
+  policyNotice?: string;
   fieldRules: CanonicalFieldRules;
   requiredPilgrimFields: string[];
   optionalPilgrimFields: string[];
@@ -77,6 +94,8 @@ export const CANONICAL_SPECIAL_ENTRY_300: CanonicalServiceDefinition = {
   minPilgrims: 1,
   maxPilgrims: 6,
   hasGeneralDetailsStep: true, // Step 2 (General Details) is required after Step 1 (Pilgrims)
+  automationPolicy: 'PERMITTED_USER_INITIATED',
+  policyNotice: 'User-initiated assistance only. Never automates CAPTCHA, OTP, payment, or declarations.',
   fieldRules: {
     pilgrimFields: {
       name: 'REQUIRED',
@@ -149,6 +168,7 @@ export const CANONICAL_PADMAVATHI_200: CanonicalServiceDefinition = {
   minPilgrims: 1,
   maxPilgrims: 6,
   hasGeneralDetailsStep: false, // In verified TTD flow, General Details is NOT requested
+  automationPolicy: 'PERMITTED_USER_INITIATED',
   fieldRules: {
     pilgrimFields: {
       name: 'REQUIRED',
@@ -223,6 +243,7 @@ export const CANONICAL_HOMAM_1600: CanonicalServiceDefinition = {
   maxPilgrims: 2,
   exactPilgrims: 2, // Strictly 2 householders required per booking
   hasGeneralDetailsStep: true, // Step 2 (General Details) precedes Step 3 (Pilgrim Details)
+  automationPolicy: 'PERMITTED_USER_INITIATED',
   fieldRules: {
     pilgrimFields: {
       name: 'REQUIRED',
@@ -295,6 +316,8 @@ export const CANONICAL_SRIVARI_SEVA: CanonicalServiceDefinition = {
   maxPilgrims: 1, // K02 RESOLUTION: Strictly 1 pilgrim per enrollment slot
   exactPilgrims: 1,
   hasGeneralDetailsStep: true, // Unified enrollment form containing full address
+  automationPolicy: 'PERMITTED_USER_INITIATED',
+  policyNotice: 'Voluntary seva enrollment. Strictly 1 devotee, 18-60 age boundary. Declarations remain manual.',
   fieldRules: {
     pilgrimFields: {
       name: 'REQUIRED',
@@ -422,6 +445,76 @@ export const CANONICAL_SRIVARI_SEVA: CanonicalServiceDefinition = {
 };
 
 // ─────────────────────────────────────────────────────────────
+// 5. Service #5: SRIVANI Trust Darshan / Donation (Manual Only)
+// TTD May 2026 Announcement: Autofill & automated copy-paste
+// were abolished. Manual-entry guidance only.
+// ─────────────────────────────────────────────────────────────
+
+export const CANONICAL_SRIVANI_TRUST: CanonicalServiceDefinition = {
+  serviceId: 'srivani',
+  serviceName: 'SRIVANI Trust Darshan',
+  displayName: 'SRIVANI Trust (Manual Only)',
+  serviceType: ServiceType.SRIVANI,
+  workflowId: 'srivani-trust-manual-v1',
+  workflowVersion: '1.0.0',
+  temple: 'Sri Venkateswara Swamy Temple, Tirumala (SRIVANI)',
+  ticketPrice: 10500,
+  minPilgrims: 1,
+  maxPilgrims: 9,
+  hasGeneralDetailsStep: true,
+  automationPolicy: 'RESTRICTED_MANUAL_ONLY',
+  policyNotice:
+    "TTD's May 2026 announcement explicitly abolished autofill and automated copy-paste for Srivani bookings. SevaPilot provides manual-entry checklist guidance only.",
+  fieldRules: {
+    pilgrimFields: {
+      name: 'REQUIRED',
+      age: 'REQUIRED',
+      gender: 'REQUIRED',
+      idProofType: 'REQUIRED',
+      idProofNumber: 'REQUIRED',
+      dateOfBirth: 'OPTIONAL',
+      mobile: 'OPTIONAL',
+    },
+    generalFields: {
+      email: 'REQUIRED',
+      city: 'REQUIRED',
+      state: 'REQUIRED',
+      country: 'REQUIRED',
+      pincode: 'REQUIRED',
+      mobile: 'OPTIONAL',
+    },
+    prohibitedFields: ['otp', 'password', 'paymentMode', 'cvv', 'cardNumber'],
+    userControlledFields: ['declaration'],
+  },
+  requiredPilgrimFields: ['name', 'age', 'gender', 'idProofType', 'idProofNumber'],
+  optionalPilgrimFields: ['dateOfBirth', 'mobile'],
+  requiredGeneralFields: ['email', 'city', 'state', 'country', 'pincode'],
+  optionalGeneralFields: ['mobile'],
+  userControlledFields: ['declaration'],
+  detect(url: string, doc: Document) {
+    let score = 0;
+    const lowerUrl = (url || '').toLowerCase();
+
+    if (
+      lowerUrl.includes('/srivani') ||
+      lowerUrl.includes('srivani-trust') ||
+      lowerUrl.includes('flow=srivani') ||
+      lowerUrl.includes('sri-vani')
+    ) {
+      score += 60;
+    }
+
+    const pageText = (doc.body?.innerText || doc.body?.textContent || '').toLowerCase();
+    if (pageText.includes('srivani') || pageText.includes('aalayala nirmanam') || pageText.includes('sri vani trust')) {
+      score += 40;
+    }
+
+    const confidence = Math.min(100, score);
+    return { matches: confidence >= 40, confidence };
+  },
+};
+
+// ─────────────────────────────────────────────────────────────
 // Registry State & Query Functions
 // ─────────────────────────────────────────────────────────────
 
@@ -430,6 +523,7 @@ const CANONICAL_SERVICES: CanonicalServiceDefinition[] = [
   CANONICAL_PADMAVATHI_200,
   CANONICAL_HOMAM_1600,
   CANONICAL_SRIVARI_SEVA,
+  CANONICAL_SRIVANI_TRUST,
 ];
 
 /**
@@ -497,6 +591,19 @@ export function getCanonicalService(serviceIdOrType: string): CanonicalServiceDe
     return CANONICAL_SRIVARI_SEVA;
   }
 
+  // 5. SRIVANI Trust (Manual Only)
+  if (
+    id === 'srivani' ||
+    id === 'srivani-trust' ||
+    id === 'sri-vani' ||
+    id === 'srivani-darshan' ||
+    id === 'srivani-v1' ||
+    id === 'srivani-trust-manual-v1' ||
+    id === ServiceType.SRIVANI
+  ) {
+    return CANONICAL_SRIVANI_TRUST;
+  }
+
   // Safe fallback by ServiceType enum if exact
   if (id === ServiceType.DARSHAN) {
     return CANONICAL_SPECIAL_ENTRY_300;
@@ -538,6 +645,20 @@ export function resolveCanonicalService(
   if (lowerUrl.includes('/srivari-seva') || lowerUrl.includes('/srivariseva') || lowerUrl.includes('flow=srivari-seva')) {
     return {
       service: CANONICAL_SRIVARI_SEVA,
+      confidence: 100,
+      isUncertain: false,
+    };
+  }
+
+  // Route Dominance: Srivani URLs strictly resolve to Srivani Trust (Manual Only)
+  if (
+    lowerUrl.includes('/srivani') ||
+    lowerUrl.includes('srivani-trust') ||
+    lowerUrl.includes('flow=srivani') ||
+    lowerUrl.includes('sri-vani')
+  ) {
+    return {
+      service: CANONICAL_SRIVANI_TRUST,
       confidence: 100,
       isUncertain: false,
     };
@@ -635,6 +756,8 @@ export const SAFE_CANONICAL_UNKNOWN_SERVICE: CanonicalServiceDefinition = {
   minPilgrims: 1,
   maxPilgrims: 6,
   hasGeneralDetailsStep: false,
+  automationPolicy: 'UNCONFIRMED_FAIL_CLOSED',
+  policyNotice: 'Service requirements unavailable for unknown service ID. Fails closed.',
   fieldRules: {
     pilgrimFields: {
       name: 'REQUIRED',
@@ -657,7 +780,7 @@ export const SAFE_CANONICAL_UNKNOWN_SERVICE: CanonicalServiceDefinition = {
 
 /**
  * Retrieve canonical field rules for a service.
- * Never silently applies ?300 Special Entry requirements to an unknown service.
+ * Never silently applies ₹300 Special Entry requirements to an unknown service.
  */
 export function getCanonicalFieldRules(serviceId: string): CanonicalFieldRules {
   const service = getCanonicalService(serviceId);
@@ -710,3 +833,32 @@ export function isFieldUserControlled(serviceId: string, fieldKey: string): bool
     fieldKey === 'physicallyFit'
   );
 }
+
+/**
+ * Check if extension-assisted autofill is authorized for a service.
+ * Strictly returns false for Srivani and unknown/unconfirmed services.
+ */
+export function isServiceAutofillAllowed(serviceId: string): boolean {
+  const service = getCanonicalService(serviceId);
+  if (!service) return false;
+  return service.automationPolicy === 'PERMITTED_USER_INITIATED';
+}
+
+/**
+ * Check if a service strictly requires manual entry (e.g. Srivani under May 2026 policy).
+ */
+export function isServiceManualOnly(serviceId: string): boolean {
+  const service = getCanonicalService(serviceId);
+  if (!service) return true; // Unknown fails closed to manual only
+  return service.automationPolicy === 'RESTRICTED_MANUAL_ONLY';
+}
+
+/**
+ * Retrieve authoritative automation policy for a service.
+ */
+export function getServiceAutomationPolicy(serviceId: string): CanonicalAutomationPolicy {
+  const service = getCanonicalService(serviceId);
+  if (!service) return 'UNCONFIRMED_FAIL_CLOSED';
+  return service.automationPolicy;
+}
+

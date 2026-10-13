@@ -5,12 +5,14 @@ interface QuickActionsProps {
   onNavigate: (page: string) => void;
   onOpenPrivacy?: () => void;
   onOpenBookingHistory?: () => void;
+  onOpenSafeSessionGuide?: () => void;
 }
 
 export const QuickActions: React.FC<QuickActionsProps> = ({
   onNavigate,
   onOpenPrivacy,
   onOpenBookingHistory,
+  onOpenSafeSessionGuide,
 }) => {
   const handleBookingHistory = () => {
     if (onOpenBookingHistory) {
@@ -79,6 +81,25 @@ export const QuickActions: React.FC<QuickActionsProps> = ({
           </button>
         ))}
       </div>
+
+      {onOpenSafeSessionGuide && (
+        <button
+          type="button"
+          id="sp-open-safe-session-guide-btn"
+          onClick={onOpenSafeSessionGuide}
+          className="w-full flex items-center justify-between p-2.5 rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-[#2A1733] hover:bg-black/5 dark:hover:bg-white/5 transition-all text-left cursor-pointer"
+        >
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-[#54258A] dark:bg-[#D4A72C]" />
+            <span className="text-xs font-bold text-[#30213A] dark:text-[#F8EFD8]">
+              {t('safeSession.guideBtn') || 'Safe Session & Anti-Bot Guidance'}
+            </span>
+          </div>
+          <span className="text-[10px] font-bold text-[#54258A] dark:text-[#D4A72C]">
+            {t('safeSession.viewRules') || 'View Rules →'}
+          </span>
+        </button>
+      )}
     </div>
   );
 };

@@ -63,6 +63,49 @@ function sanitize(input: string): string {
   return output;
 }
 
+const SENSITIVE_PII_KEYS = new Set([
+  'idnumber', 'photoidnumber', 'idproofnumber', 'passportnumber', 'visanumber',
+  'aadhaar', 'mobilenumber', 'mobile', 'phone', 'phonenumber',
+  'email', 'emailid', 'fullname', 'firstname', 'lastname', 'name',
+  'address', 'doornumber', 'street', 'photo', 'document', 'fatherspousename',
+  'gothram', 'dateofbirth', 'dob', 'password', 'otp', 'cvv'
+]);
+
+/** Recursively sanitize objects to prevent PII leakage in logs */
+function sanitizeObject(obj: unknown): unknown {
+  if (obj === null || typeof obj !== 'object') {
+    return sanitizeValue(obj);
+  }
+  if (Array.isArray(obj)) {
+    return obj.map(sanitizeObject);
+  }
+  const clean: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(obj)) {
+    const lowerKey = k.toLowerCase().replace(/[-_]/g, '');
+    if (SENSITIVE_PII_KEYS.has(lowerKey)) {
+      if (typeof v === 'string') {
+        const raw = v.replace(/[\s-]/g, '');
+        if (/^\d{12}$/.test(raw)) {
+          clean[k] = `******${raw.slice(-4)}`;
+        } else if (/^[6-9]\d{9}$/.test(raw)) {
+          clean[k] = `******${raw.slice(-2)}`;
+        } else if (v.includes('@')) {
+          clean[k] = '***@***';
+        } else {
+          clean[k] = '[REDACTED_PII]';
+        }
+      } else {
+        clean[k] = '[REDACTED_PII]';
+      }
+    } else if (typeof v === 'object' && v !== null) {
+      clean[k] = sanitizeObject(v);
+    } else {
+      clean[k] = sanitizeValue(v);
+    }
+  }
+  return clean;
+}
+
 /** Sanitize any value for safe logging */
 function sanitizeValue(value: unknown): unknown {
   if (value instanceof Error) {
@@ -71,13 +114,16 @@ function sanitizeValue(value: unknown): unknown {
   if (typeof value === 'string') return sanitize(value);
   if (typeof value === 'object' && value !== null) {
     try {
-      return JSON.parse(sanitize(JSON.stringify(value)));
+      return sanitizeObject(value);
     } catch {
-      return String(value);
+      return '[REDACTED_OBJECT]';
     }
   }
   return value;
 }
+
+/** Exported for testing PII redaction guarantees */
+export const sanitizeForLogging = sanitizeValue;
 
 /** Prefix for all log messages */
 const PREFIX = '[SevaPilot]';

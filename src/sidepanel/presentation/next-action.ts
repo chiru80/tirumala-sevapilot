@@ -10,6 +10,7 @@ import type { Profile, Pilgrim } from '@shared/types';
 import type { UseReadinessResult } from '../hooks/useReadiness';
 import type { ProductAutomationState } from '../../content/automation/types';
 import type { QueueSession } from '../../services/queue';
+import { isServiceManualOnly } from '../../services/canonical-service-registry';
 import { t } from '@i18n/index';
 
 export type NextActionCategory =
@@ -32,14 +33,14 @@ export interface NextActionModel {
   description: string;
   primaryAction: {
     label: string;
-    actionType: 'NAVIGATE_PROFILE' | 'OPEN_TTD' | 'TRIGGER_FILL' | 'STOP' | 'RETRY_LOCK' | 'VIEW_HISTORY' | 'SELECT_PILGRIMS' | 'NONE';
+    actionType: 'NAVIGATE_PROFILE' | 'OPEN_TTD' | 'TRIGGER_FILL' | 'START_MANUAL_ASSISTANT' | 'STOP' | 'RETRY_LOCK' | 'VIEW_HISTORY' | 'SELECT_PILGRIMS' | 'NONE';
     variant: 'primary' | 'gold' | 'danger' | 'secondary';
     disabled?: boolean;
     disabledReason?: string;
   };
   secondaryAction?: {
     label: string;
-    actionType: 'NAVIGATE_PROFILE' | 'STOP' | 'SELECT_PILGRIMS' | 'TEST_PROFILE' | 'VIEW_HISTORY' | 'RETRY_LOCK' | 'OPEN_TTD' | 'NONE';
+    actionType: 'NAVIGATE_PROFILE' | 'STOP' | 'SELECT_PILGRIMS' | 'TEST_PROFILE' | 'VIEW_HISTORY' | 'RETRY_LOCK' | 'OPEN_TTD' | 'START_MANUAL_ASSISTANT' | 'NONE';
   };
   missingDetails?: string[];
   safetyNotice?: string;
@@ -347,8 +348,32 @@ export function computeNextAction(input: NextActionInput): NextActionModel {
     };
   }
 
+  const isManualOnly =
+    Boolean((readiness as any).isManualOnly) ||
+    (input.serviceId ? isServiceManualOnly(input.serviceId) : false);
+
   // 10. Profile is READY AND TTD page is detected
   if (pageDetected) {
+    if (isManualOnly) {
+      return {
+        category: 'TTD_DETECTED',
+        badgeVariant: 'ready',
+        statusText: t('nextAction.manualEntryReady') || 'Manual-Entry Ready',
+        headline: t('nextAction.manualEntryHeadline') || 'Manual-Entry Assistant Ready',
+        description:
+          t('nextAction.manualEntryDesc', { service: serviceDisplayName }) ||
+          `TTD policy (May 2026) requires manual entry for ${serviceDisplayName}. Open the assistant to follow field-by-field guidance.`,
+        primaryAction: {
+          label: t('nextAction.openManualAssistant') || '📋 OPEN MANUAL ASSISTANT',
+          actionType: 'START_MANUAL_ASSISTANT',
+          variant: 'primary',
+        },
+        safetyNotice:
+          t('safety.srivaniPolicyNotice') ||
+          'Autofill & copy-paste are disabled under TTD May 2026 policy.',
+      };
+    }
+
     return {
       category: 'TTD_DETECTED',
       badgeVariant: 'ready',
@@ -364,6 +389,30 @@ export function computeNextAction(input: NextActionInput): NextActionModel {
   }
 
   // 11. Profile is READY, but not yet on TTD page
+  if (isManualOnly) {
+    return {
+      category: 'READY',
+      badgeVariant: 'ready',
+      statusText: t('nextAction.manualReady') || 'Ready for Manual Entry',
+      headline: t('nextAction.manualPreparedHeadline') || 'Details prepared for manual entry',
+      description:
+        t('nextAction.openSrivaniDesc') ||
+        'Open the official Srivani portal page to begin.',
+      primaryAction: {
+        label: t('nextAction.openTtdBooking') || 'OPEN TTD BOOKING',
+        actionType: 'OPEN_TTD',
+        variant: 'primary',
+      },
+      secondaryAction: {
+        label: t('nextAction.viewChecklist') || 'VIEW CHECKLIST',
+        actionType: 'START_MANUAL_ASSISTANT',
+      },
+      safetyNotice:
+        t('safety.srivaniPolicyNotice') ||
+        'Autofill & copy-paste are disabled under TTD May 2026 policy.',
+    };
+  }
+
   return {
     category: 'READY',
     badgeVariant: 'ready',

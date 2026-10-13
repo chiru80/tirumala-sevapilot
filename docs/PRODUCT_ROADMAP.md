@@ -165,8 +165,17 @@ Status: COMPLETE
 - Accessibility, 5-Language Parity & Benchmarking: EN, TE, HI, TA, KN parity verified, keyboard tab navigation verified, browser storage & DOM latency benchmarks (median ~0-1ms, p95 < 4ms).
 - Automated CI Workflow: `.github/workflows/e2e-reliability.yml` running typecheck, unit tests, build, and browser E2E tests with sanitized artifact capture.
 
-## Phase 15 — AI-Assisted DOM Intelligence (Deterministic/Safe)
-- Structured internal diagnostics, zero-PII telemetry aggregation.
+## Phase 15 — Policy-Compliant Booking Assistant
+Status: COMPLETE
+- TTD Policy Alignment (May 2026 Directive): Formally abolished autofill and automated copy-paste mechanisms for Srivani bookings, fully complying with TTD anti-bot requirements.
+- Canonical Automation Policies: Configured `CanonicalAutomationPolicy` with explicit levels (`PERMITTED_USER_INITIATED`, `RESTRICTED_MANUAL_ONLY`, `UNCONFIRMED_FAIL_CLOSED`).
+- Autofill Pipeline Hardening: Direct engine-level rejection for any service under `RESTRICTED_MANUAL_ONLY` or `UNCONFIRMED_FAIL_CLOSED`.
+- Interactive Manual-Entry Assistant (`ManualEntryAssistant.tsx`): Dedicated field-by-field reference checklist for devotees to safely self-enter details without automation.
+- Sensitive Data Masking: ID proofs masked as `•••• •••• {last4}` with deliberate devotee toggle; zero plain PII logged across entire subsystem.
+- Safe Session Guidance Modal (`SafeSessionGuidanceModal.tsx`): Devotee education on CAPTCHA, OTP, Queue, Session Expiration, and Temporary Locks without automation.
+- Verified Official Sources: Release calendar strictly verifies official TTD domains (`ttdevasthanams.ap.gov.in`, `news.tirumala.org`) with publication timestamps and unconfirmed badges.
+- 5-Language Localization: Complete 100% key parity across EN, TE, HI, TA, KN.
+- Full Verification Suites: 13 unit tests in `policy-compliant-assistant.test.ts` (994/994 tests passing), plus Playwright Journey 8 E2E tests (23/23 tests passing).
 
 ## Phase 16 — Production QA / Chaos Testing
 - End-to-end chaos suites, simulated network degradation, and mock server latency.

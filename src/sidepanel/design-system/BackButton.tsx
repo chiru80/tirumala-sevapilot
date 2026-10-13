@@ -16,7 +16,13 @@ export const BackButton: React.FC<BackButtonProps> = ({
   className = '',
   ...props
 }) => {
-  const accessibleLabel = label || t('common.back') || t('nav.back') || 'Back';
+  const tCommon = t('common.back');
+  const tNav = t('nav.back');
+  const accessibleLabel =
+    label ||
+    (tCommon && !tCommon.includes('.') ? tCommon : undefined) ||
+    (tNav && !tNav.includes('.') ? tNav : undefined) ||
+    'Back';
 
   return (
     <button

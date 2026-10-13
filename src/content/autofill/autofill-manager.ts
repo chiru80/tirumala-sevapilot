@@ -18,7 +18,7 @@ import { retryWithVerification, waitForElementInContainer } from './retry-engine
 import { verifyField } from './verification';
 import { detectWorkflowStep } from './page-workflow';
 import { getWorkflowById, detectActiveWorkflow, resolveWorkflowWithConfidence } from '../../services/workflows/registry';
-import { getCanonicalService } from '../../services/canonical-service-registry';
+import { getCanonicalService, isServiceAutofillAllowed } from '../../services/canonical-service-registry';
 import {
   detectPageTicketLimit,
   detectDigitalQueue,
@@ -252,6 +252,34 @@ export async function executeAutofill(opts: AutofillOptions = {}): Promise<Autof
     // ─── DETECT_STEP ───
     progress.state = 'DETECT_STEP';
     emit();
+
+    // TTD Policy Compliance & Service Authorization Boundary (Phase 15):
+    // 1. May 2026 Policy: Autofill and automated copy-paste were abolished for Srivani.
+    // 2. Anti-bot compliance: Never automate restricted/unconfirmed services.
+    const requestedServiceId = (opts as any).serviceId || workflow?.serviceId || '';
+    const lowerUrl = url.toLowerCase();
+    const isSrivani =
+      requestedServiceId === 'srivani' ||
+      requestedServiceId === 'srivani-trust' ||
+      lowerUrl.includes('/srivani') ||
+      lowerUrl.includes('srivani-trust') ||
+      lowerUrl.includes('sri-vani');
+
+    if (isSrivani) {
+      progress.state = 'ERROR';
+      progress.errors.push(
+        'Autofill and automated copy-paste are prohibited for Srivani bookings under TTD policy (May 2026). Please use the Manual-Entry Assistant.'
+      );
+      emit();
+      return buildResult(progress, 'unknown', startedAt);
+    }
+
+    if (requestedServiceId && !isServiceAutofillAllowed(requestedServiceId)) {
+      progress.state = 'ERROR';
+      progress.errors.push('Service workflow not recognized or not authorized for autofill. Autofill is paused.');
+      emit();
+      return buildResult(progress, 'unknown', startedAt);
+    }
 
     // CAPTCHA safety boundary (Priority 1 - Phase 6 Section 26)
     const captchaDetected = doc.querySelector('#captcha-container, .captcha-container, img[src*="captcha" i], input[placeholder*="captcha" i], .g-recaptcha, .cf-turnstile');
