@@ -10,6 +10,7 @@ import { detectDuplicateIds } from '@validation/duplicates';
 import { IdType } from '@shared/types';
 import type { Profile, Pilgrim, ValidationResult } from '@shared/types';
 import { TempleDivider } from '../components/TempleDivider';
+import { BackButton } from '../design-system';
 
 interface PilgrimValidation {
   pilgrim: Pilgrim;
@@ -17,7 +18,7 @@ interface PilgrimValidation {
   isComplete: boolean;
 }
 
-export function Validation() {
+export function Validation({ onBack }: { onBack?: () => void } = {}) {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [selectedProfileId, setSelectedProfileId] = useState<string>('');
   const [validations, setValidations] = useState<PilgrimValidation[]>([]);
@@ -117,13 +118,16 @@ export function Validation() {
 
   return (
     <div className="p-4 space-y-3.5 animate-fade-in text-[#321B3F] dark:text-[#F8EFD8]">
-      <div>
-        <h2 className="text-xl font-bold font-serif text-[#5B2A86] dark:text-[#F8EFD8]">
-          {t('validation.title')}
-        </h2>
-        <p className="text-xs text-[#6B5A70] dark:text-[#A692B4] mt-0.5">
-          {t('validation.subtitle')}
-        </p>
+      <div className="flex items-center gap-2">
+        {onBack && <BackButton onClick={onBack} />}
+        <div>
+          <h2 className="text-xl font-bold font-serif text-[#5B2A86] dark:text-[#F8EFD8]">
+            {t('validation.title')}
+          </h2>
+          <p className="text-xs text-[#6B5A70] dark:text-[#A692B4] mt-0.5">
+            {t('validation.subtitle')}
+          </p>
+        </div>
       </div>
 
       <TempleDivider variant="compact" />

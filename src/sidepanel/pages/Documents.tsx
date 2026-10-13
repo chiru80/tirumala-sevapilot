@@ -3,9 +3,10 @@ import { getProfiles } from '@storage/repository';
 import { maskSensitiveValue } from '@shared/utils';
 import type { Profile } from '@shared/types';
 import { TempleDivider } from '../components/TempleDivider';
+import { BackButton } from '../design-system';
 import { t } from '@i18n/index';
 
-export function Documents() {
+export function Documents({ onBack }: { onBack?: () => void } = {}) {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [selectedProfileId, setSelectedProfileId] = useState<string>('');
   const [revealedIds, setRevealedIds] = useState<Record<string, boolean>>({});
@@ -37,13 +38,16 @@ export function Documents() {
 
   return (
     <div className="p-4 space-y-3.5 animate-fade-in text-[#321B3F] dark:text-[#F8EFD8]">
-      <div>
-        <h2 className="text-xl font-bold font-serif text-[#5B2A86] dark:text-[#F8EFD8]">
-          {t('documents.title')}
-        </h2>
-        <p className="text-sm text-[#6B5A70] dark:text-[#A692B4] mt-0.5">
-          {t('documents.subtitle')}
-        </p>
+      <div className="flex items-center gap-2">
+        {onBack && <BackButton onClick={onBack} />}
+        <div>
+          <h2 className="text-xl font-bold font-serif text-[#5B2A86] dark:text-[#F8EFD8]">
+            {t('documents.title')}
+          </h2>
+          <p className="text-sm text-[#6B5A70] dark:text-[#A692B4] mt-0.5">
+            {t('documents.subtitle')}
+          </p>
+        </div>
       </div>
 
       <TempleDivider variant="compact" />

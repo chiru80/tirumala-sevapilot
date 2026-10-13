@@ -324,7 +324,7 @@ export class QueueManager {
     }
     this.stopMonitoringInternal();
     this.activeSession = null;
-    logger.warn('[QueueManager] Emergency stop invoked. Observers disconnected.');
+    logger.info('[QueueManager] Emergency stop invoked. Observers disconnected.');
   }
 }
 

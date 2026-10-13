@@ -1,7 +1,7 @@
 import React from 'react';
 import { t } from '@i18n/index';
 
-type Page = 'dashboard' | 'profiles' | 'pilgrims' | 'bookings' | 'validation' | 'documents' | 'backup' | 'settings';
+type Page = 'dashboard' | 'profiles' | 'more' | 'pilgrims' | 'bookings' | 'validation' | 'documents' | 'backup' | 'settings';
 
 interface NavigationProps {
   currentPage: Page;
@@ -12,27 +12,21 @@ export function Navigation({ currentPage, onNavigate }: NavigationProps) {
   const navItems: Array<{ page: Page; label: string; ariaLabel: string; iconPath: string }> = [
     {
       page: 'dashboard',
-      label: t('nav.home'),
-      ariaLabel: `Home — ${t('nav.homeA11y')}`,
+      label: t('nav.home') || 'Home',
+      ariaLabel: `Home — ${t('nav.homeA11y') || 'View booking status'}`,
       iconPath: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1',
     },
     {
-      page: 'pilgrims',
-      label: t('nav.pilgrims'),
-      ariaLabel: `Pilgrims — ${t('nav.pilgrimsA11y')}`,
+      page: 'profiles',
+      label: t('nav.profiles') || 'Profile',
+      ariaLabel: `Profiles — ${t('nav.profilesA11y') || 'Manage devotee profiles'}`,
       iconPath: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z',
     },
     {
-      page: 'bookings',
-      label: t('nav.bookings') || 'Bookings',
-      ariaLabel: `Bookings — ${t('nav.bookingsA11y') || 'View booking records'}`,
-      iconPath: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z',
-    },
-    {
-      page: 'settings',
-      label: t('nav.settings'),
-      ariaLabel: `Settings — ${t('nav.settingsA11y')}`,
-      iconPath: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z',
+      page: 'more',
+      label: t('nav.more') || 'More',
+      ariaLabel: `More — ${t('nav.moreA11y') || 'Settings and secondary tools'}`,
+      iconPath: 'M4 6h16M4 12h16M4 18h16',
     },
   ];
 

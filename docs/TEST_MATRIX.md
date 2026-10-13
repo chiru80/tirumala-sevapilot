@@ -258,6 +258,20 @@ Automated suites:
 - [x] existing-profile Home (renders PREPARE BOOKING and secondary OPEN TTD BOOKING)
 - [x] TTD-detected Home (renders TTD PAGE READY, service context, ⚡ FILL & VERIFY)
 - [x] temporary-lock Home (renders TRY AGAIN, CHECK BOOKING HISTORY, non-auto-retry)
+
+## Phase 13 — Professional UI/UX & User-First Booking Experience tests
+
+Automated suite:
+- [`tests/sidepanel/phase13-user-experience.test.tsx`](file:///tests/sidepanel/phase13-user-experience.test.tsx) (15/15 tests passing)
+
+- [x] Next Action presentation mapper: authoritative single-action calculation across 8 state categories (`NO_PROFILE`, `PROFILE_INCOMPLETE`, `READY`, `TTD_DETECTED`, `WORKING`, `USER_ACTION_REQUIRED`, `QUEUE_WAITING`, `BLOCKED`)
+- [x] Zero engineering leaks: verifies technical states (`FIELD_RESOLUTION`, `DOM_REPLACED`, `MUTATION_BATCH`) never surface in UI copy
+- [x] Service-aware readiness validation: SED ₹300 enforces general details + photo + valid ID; Padmavathi ₹200 does not require general details; Homam ₹1600 enforces Gothram
+- [x] NextActionCard component: accessible primary button with `#sp-hero-primary-action-btn`, sticky positioning, click callback dispatch
+- [x] BookingModeView: full-screen high-focus mode, single dominant CTA, clean devotee count summary, smooth exit mechanism
+- [x] ServiceSelectorModal: instant service switching across SED ₹300, Padmavathi ₹200, Homam ₹1600, Srivari Seva
+- [x] TestProfileModal: pre-booking simulator validating devotee data against canonical TTD rules with zero network calls
+- [x] Multilingual dictionary parity: 100% key parity across `en`, `te`, `hi`, `ta`, and `kn` (5/5 suites passing)
 - [x] diagnostics hidden from primary Home (internal scores kept off main dashboard)
 - [x] diagnostics available in Settings (System Diagnostics modal opens on demand)
 - [x] one dominant CTA (single primary sticky button adapts contextually)

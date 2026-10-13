@@ -8,19 +8,68 @@ import { Bookings } from './pages/Bookings';
 import { Documents } from './pages/Documents';
 import { Backup } from './pages/Backup';
 import { Onboarding } from './pages/Onboarding';
+import { More } from './pages/More';
 import { getSettings } from '@storage/repository';
 import { EXTENSION_VERSION } from '@shared/constants';
 import { setLanguage, useI18n, type Language } from '@i18n/index';
 import type { Settings as SettingsType } from '@shared/types';
 
-type Page = 'dashboard' | 'profiles' | 'pilgrims' | 'bookings' | 'validation' | 'documents' | 'backup' | 'settings';
+type Page = 'dashboard' | 'profiles' | 'more' | 'pilgrims' | 'bookings' | 'validation' | 'documents' | 'backup' | 'settings';
 
 export default function App() {
   const { language: activeLanguage } = useI18n();
-  const [currentPage, setCurrentPage] = useState<Page>('dashboard');
+  const [history, setHistory] = useState<Page[]>(['dashboard']);
   const [settings, setSettings] = useState<SettingsType | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
+
+  const currentPage: Page = history[history.length - 1] || 'dashboard';
+
+  const navigate = (page: Page) => {
+    setHistory((prev) => {
+      const current = prev[prev.length - 1];
+      if (current === page) return prev;
+      const nextHistory = [...prev, page];
+      if (nextHistory.length > 25) {
+        return nextHistory.slice(nextHistory.length - 25);
+      }
+      return nextHistory;
+    });
+
+    try {
+      window.history.pushState({ page }, '');
+    } catch {
+      // Safe fallback if environment restricts pushState
+    }
+  };
+
+  const goBack = () => {
+    setHistory((prev) => {
+      if (prev.length <= 1) {
+        return ['dashboard'];
+      }
+      const next = prev.slice(0, prev.length - 1);
+      return next.length > 0 ? next : ['dashboard'];
+    });
+  };
+
+  const canGoBack = history.length > 1 && currentPage !== 'dashboard';
+
+  useEffect(() => {
+    const handlePopState = (event: PopStateEvent) => {
+      if (event.state && event.state.page) {
+        setHistory((prev) => {
+          if (prev.length <= 1) return ['dashboard'];
+          return prev.slice(0, prev.length - 1);
+        });
+      } else {
+        goBack();
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   useEffect(() => {
     loadSettings();
@@ -78,7 +127,7 @@ export default function App() {
   return (
     <div key={activeLanguage} className="flex flex-col h-screen bg-[#FFFDF7] dark:bg-[#211526] text-[#321B3F] dark:text-[#F8EFD8] temple-watermark transition-colors duration-200">
       {/* Clean Premium Header */}
-      <header className="relative bg-[#FFFDF7] dark:bg-[#2C1A35] border-b border-[rgba(84,37,138,0.08)] px-4 py-3">
+      <header className="relative bg-[#FFFDF7] dark:bg-[#2C1A35] border-b border-[rgba(84,37,138,0.08)] px-4 py-3 shrink-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             {/* Temple Emblem / Logo */}
@@ -111,14 +160,25 @@ export default function App() {
 
       {/* Main Content Area */}
       <main className="flex-1 overflow-y-auto">
-        {currentPage === 'dashboard' && <Dashboard onNavigate={(page) => setCurrentPage(page as Page)} />}
-        {(currentPage === 'profiles' || currentPage === 'pilgrims') && <Profiles />}
-        {currentPage === 'bookings' && <Bookings />}
-        {currentPage === 'documents' && <Documents />}
-        {currentPage === 'validation' && <Validation />}
-        {currentPage === 'backup' && <Backup />}
+        {currentPage === 'dashboard' && <Dashboard onNavigate={(page) => navigate(page as Page)} />}
+        {(currentPage === 'profiles' || currentPage === 'pilgrims') && (
+          <Profiles onBack={canGoBack ? goBack : undefined} onNavigate={(page) => navigate(page as Page)} />
+        )}
+        {currentPage === 'more' && (
+          <More
+            onNavigate={(page) => navigate(page as Page)}
+            onBack={canGoBack ? goBack : undefined}
+            onThemeToggle={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+            isDark={theme === 'dark'}
+          />
+        )}
+        {currentPage === 'bookings' && <Bookings onBack={goBack} />}
+        {currentPage === 'documents' && <Documents onBack={goBack} />}
+        {currentPage === 'validation' && <Validation onBack={goBack} />}
+        {currentPage === 'backup' && <Backup onBack={goBack} />}
         {currentPage === 'settings' && (
           <Settings
+            onBack={goBack}
             onSettingsChange={() => loadSettings()}
           />
         )}
@@ -127,7 +187,7 @@ export default function App() {
       {/* Traditional Temple Navigation Bar */}
       <Navigation
         currentPage={currentPage}
-        onNavigate={setCurrentPage}
+        onNavigate={navigate}
       />
     </div>
   );

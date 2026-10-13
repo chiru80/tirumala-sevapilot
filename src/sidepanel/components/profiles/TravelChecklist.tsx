@@ -1,5 +1,7 @@
 import React from 'react';
 import type { Profile } from '@shared/types';
+import { BackButton } from '../../design-system';
+import { t } from '@i18n/index';
 
 function maskIdDisplay(val?: string): string {
   if (!val) return '—';
@@ -34,14 +36,17 @@ export function TravelChecklist({ slipProfile, onClose }: TravelChecklistProps) 
     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 animate-fade-in">
       <div className="bg-[#FFFDF7] dark:bg-[#2C1A35] rounded-2xl max-w-sm w-full p-4 shadow-2xl border border-gold-500/40 max-h-[90vh] overflow-y-auto space-y-3">
         <div className="flex items-center justify-between border-b border-gold-500/20 pb-2">
-          <div>
-            <h3 className="text-sm font-bold font-serif text-[#5B2A86] dark:text-[#F8EFD8]">Pilgrim Travel Checklist</h3>
-            <p className="text-[10px] text-[#6B5A70] dark:text-[#A692B4]">{slipProfile.name} • {slipProfile.pilgrims.length} {slipProfile.pilgrims.length === 1 ? 'pilgrim' : 'pilgrims'}</p>
+          <div className="flex items-center gap-1.5">
+            <BackButton onClick={onClose} aria-label={t('common.back') || 'Back'} />
+            <div>
+              <h3 className="text-sm font-bold font-serif text-[#5B2A86] dark:text-[#F8EFD8]">Pilgrim Travel Checklist</h3>
+              <p className="text-[10px] text-[#6B5A70] dark:text-[#A692B4]">{slipProfile.name} • {slipProfile.pilgrims.length} {slipProfile.pilgrims.length === 1 ? 'pilgrim' : 'pilgrims'}</p>
+            </div>
           </div>
           <button
             onClick={onClose}
             className="p-1 rounded-lg text-[#6B5A70] hover:text-[#5B2A86] dark:hover:text-[#F8EFD8]"
-            aria-label="Close"
+            aria-label={t('common.close') || 'Close'}
           >
             ✕
           </button>

@@ -9,6 +9,6 @@ export { QuickPilgrimForm } from '../components/profiles/QuickPilgrimForm';
 export { GeneralDetailsSection } from '../components/profiles/GeneralDetailsSection';
 export { TravelChecklist } from '../components/profiles/TravelChecklist';
 
-export function Profiles() {
-  return <ProfilesPage />;
+export function Profiles({ onBack, onNavigate }: { onBack?: () => void; onNavigate?: (page: string) => void }) {
+  return <ProfilesPage onBack={onBack} onNavigate={onNavigate} />;
 }

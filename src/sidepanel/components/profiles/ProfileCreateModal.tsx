@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ServiceType } from '@shared/types';
 import { t } from '@i18n/index';
+import { BackButton } from '../../design-system';
 
 export interface ProfileCreateModalProps {
   isOpen: boolean;
@@ -31,8 +32,11 @@ export function ProfileCreateModal({ isOpen, onClose, onCreate }: ProfileCreateM
   return (
     <div className="sp-card bg-cream/60 dark:bg-[#2D1A38] border-gold-500/40 animate-slide-up space-y-3">
       <div className="flex items-center justify-between pb-1.5 border-b border-gold-500/15">
-        <h3 className="text-sm font-serif font-bold text-[#5B2A86] dark:text-[#F8EFD8]">{t('profiles.createGroup')}</h3>
-        <button onClick={onClose} className="text-sm text-[#8B7D8F] hover:text-[#321B3F] cursor-pointer p-1">✕</button>
+        <div className="flex items-center gap-1.5">
+          <BackButton onClick={onClose} aria-label={t('common.back') || 'Back'} />
+          <h3 className="text-sm font-serif font-bold text-[#5B2A86] dark:text-[#F8EFD8]">{t('profiles.createGroup')}</h3>
+        </div>
+        <button onClick={onClose} aria-label={t('common.close') || 'Close'} className="text-sm text-[#8B7D8F] hover:text-[#321B3F] cursor-pointer p-1">✕</button>
       </div>
 
       <div>
