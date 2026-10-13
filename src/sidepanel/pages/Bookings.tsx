@@ -4,7 +4,7 @@ import { getProfiles, updateSelectedPilgrims, updatePilgrim } from '@storage/rep
 import { getAllAdapters } from '@services/registry';
 import type { Profile } from '@shared/types';
 import { TempleDivider } from '../components/TempleDivider';
-import { BackButton } from '../design-system';
+import { PageHeader, BackButton } from '../design-system';
 
 export function Bookings({ onBack }: { onBack?: () => void } = {}) {
   const [profiles, setProfiles] = useState<Profile[]>([]);
@@ -73,20 +73,11 @@ export function Bookings({ onBack }: { onBack?: () => void } = {}) {
 
   return (
     <div className="p-4 space-y-3.5 animate-fade-in text-[#321B3F] dark:text-[#F8EFD8]">
-      {/* Header */}
-      <div className="flex items-center gap-2">
-        {onBack && <BackButton onClick={onBack} />}
-        <div>
-          <h2 className="text-xl font-bold font-serif text-[#5B2A86] dark:text-[#F8EFD8]">
-            {t('bookings.title')}
-          </h2>
-          <p className="text-sm text-[#6B5A70] dark:text-[#A692B4] mt-0.5">
-            {t('bookings.subtitle')}
-          </p>
-        </div>
-      </div>
-
-      <TempleDivider variant="compact" />
+      <PageHeader
+        title={t('bookings.title')}
+        subtitle={t('bookings.subtitle')}
+        onBack={onBack}
+      />
 
       {statusMessage && (
         <div className="p-2.5 rounded-xl text-xs bg-gold-50 dark:bg-gold-950/40 border border-gold-300 dark:border-gold-800 text-gold-900 dark:text-gold-200">

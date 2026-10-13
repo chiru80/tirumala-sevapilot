@@ -38,7 +38,14 @@ export function Navigation({ currentPage, onNavigate }: NavigationProps) {
       aria-label="Main navigation"
     >
       {navItems.map(({ page, iconPath, label, ariaLabel }) => {
-        const isActive = currentPage === page;
+        const isActive =
+          page === 'dashboard'
+            ? currentPage === 'dashboard'
+            : page === 'profiles'
+            ? currentPage === 'profiles' || currentPage === 'pilgrims'
+            : page === 'more'
+            ? ['more', 'bookings', 'validation', 'documents', 'backup', 'settings'].includes(currentPage)
+            : false;
         return (
           <button
             key={page}

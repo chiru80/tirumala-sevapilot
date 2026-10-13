@@ -411,7 +411,16 @@ export function Dashboard({ onNavigate }: DashboardProps = {}) {
         </div>
       )}
 
-      {/* 4. THE HERO: NEXT ACTION CARD */}
+      {/* 4. ACTIVE PROFILE CARD */}
+      <ActiveProfileCard
+        profile={activeProfile}
+        selectedCount={selectedPilgrims.length}
+        health={profileHealth}
+        onChangeProfile={() => onNavigate?.('profiles')}
+        onManage={() => onNavigate?.('profiles')}
+      />
+
+      {/* 5. THE HERO: NEXT ACTION CARD */}
       <div className="sticky top-0 z-20 bg-[#FAF7F2] dark:bg-[#1E1028] pt-1 pb-1">
         <NextActionCard
           model={nextAction}
@@ -439,7 +448,7 @@ export function Dashboard({ onNavigate }: DashboardProps = {}) {
         />
       </div>
 
-      {/* 4b. AUTOFILL STATUS / ERROR BANNER */}
+      {/* 5b. AUTOFILL STATUS / ERROR BANNER */}
       {fillStatus && !isFilling && (statusType === 'error' || statusType === 'warning') && (
         <div
           id="sp-fill-status-alert"
@@ -464,7 +473,7 @@ export function Dashboard({ onNavigate }: DashboardProps = {}) {
         </div>
       )}
 
-      {/* 5. BOOKING ACTION AREA (Command Center with Select Profile, Fill Details, Review Fields, Save Profile) */}
+      {/* 6. BOOKING ACTION AREA (Command Center with Select Profile, Fill Details, Review Fields, Save Profile) */}
       <BookingActionArea
         serviceId={selectedServiceId}
         serviceDisplayName={effectiveDisplayName}
@@ -486,15 +495,6 @@ export function Dashboard({ onNavigate }: DashboardProps = {}) {
         onEmergencyStop={handleFullEmergencyStop}
         onOpenTtdPortal={openTtdWebsite}
         onEditProfile={() => onNavigate?.('profiles')}
-      />
-
-      {/* 6. ACTIVE PROFILE CARD */}
-      <ActiveProfileCard
-        profile={activeProfile}
-        selectedCount={selectedPilgrims.length}
-        health={profileHealth}
-        onChangeProfile={() => onNavigate?.('profiles')}
-        onManage={() => onNavigate?.('profiles')}
       />
 
       {/* 6. TTD DIGITAL QUEUE CARD (Only shown when queue active!) */}

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Card, Icon, Button, Badge, BackButton } from '../design-system';
+import { Card, Icon, Button, Badge, BackButton, PageHeader } from '../design-system';
 import { t, setLanguage, useI18n, type Language } from '@i18n/index';
 import { getSettings, saveSettings } from '@storage/repository';
 import { EXTENSION_VERSION } from '@shared/constants';
@@ -37,12 +37,11 @@ export const More: React.FC<MoreProps> = ({
   if (activeTab === 'shortcuts') {
     return (
       <div className="p-4 space-y-4">
-        <div className="flex items-center justify-between border-b border-black/5 dark:border-white/5 pb-2">
-          <BackButton onClick={() => setActiveTab('hub')} showText />
-          <h2 className="text-xs font-bold uppercase tracking-wider text-[#321B3F] dark:text-[#F8EFD8]">
-            Keyboard Shortcuts
-          </h2>
-        </div>
+        <PageHeader
+          title="Keyboard Shortcuts"
+          subtitle="Speed commands for quick booking"
+          onBack={() => setActiveTab('hub')}
+        />
 
         <Card padding="md" className="space-y-3">
           <div className="flex items-center justify-between text-xs py-1 border-b border-black/5 dark:border-white/5">
@@ -69,12 +68,11 @@ export const More: React.FC<MoreProps> = ({
   if (activeTab === 'diagnostics') {
     return (
       <div className="p-4 space-y-4">
-        <div className="flex items-center justify-between border-b border-black/5 dark:border-white/5 pb-2">
-          <BackButton onClick={() => setActiveTab('hub')} showText />
-          <h2 className="text-xs font-bold uppercase tracking-wider text-[#321B3F] dark:text-[#F8EFD8]">
-            System Diagnostics
-          </h2>
-        </div>
+        <PageHeader
+          title="System Diagnostics"
+          subtitle="Telemetry & Phase 12 engine metrics"
+          onBack={() => setActiveTab('hub')}
+        />
 
         <Card padding="md" className="space-y-3">
           <div className="flex items-center justify-between text-xs py-1 border-b border-black/5 dark:border-white/5">
@@ -110,17 +108,11 @@ export const More: React.FC<MoreProps> = ({
   return (
     <div className="p-4 space-y-4 pb-8">
       {/* Page Title */}
-      <div className="border-b border-black/5 dark:border-white/5 pb-2 flex items-center gap-2">
-        {onBack && <BackButton onClick={onBack} />}
-        <div>
-          <h2 className="text-sm font-bold text-[#321B3F] dark:text-[#F8EFD8]">
-            {t('more.title') || 'More & Preferences'}
-          </h2>
-          <p className="text-xs text-[#6B5A70] dark:text-[#A692B4] mt-0.5">
-            {t('more.subtitle') || 'Preferences, data management, and system tools.'}
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title={t('more.title') || 'More & Preferences'}
+        subtitle={t('more.subtitle') || 'Preferences, data management, and system tools.'}
+        onBack={onBack}
+      />
 
       {/* 1. Language Preference */}
       <Card padding="md" className="space-y-2.5">

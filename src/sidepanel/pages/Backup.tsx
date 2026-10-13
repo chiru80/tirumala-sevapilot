@@ -4,7 +4,7 @@ import { createBackup, restoreBackup, downloadBackup, readBackupFile } from '@se
 import type { BackupFile, Profile } from '@shared/types';
 import { TempleDivider } from '../components/TempleDivider';
 import { StorageManager } from '../../storage/storage-manager';
-import { BackButton } from '../design-system';
+import { PageHeader, BackButton } from '../design-system';
 import { t } from '@i18n/index';
 
 export function Backup({ onBack }: { onBack?: () => void } = {}) {
@@ -156,19 +156,11 @@ export function Backup({ onBack }: { onBack?: () => void } = {}) {
 
   return (
     <div className="p-4 space-y-4 animate-fade-in text-[#321B3F] dark:text-[#F8EFD8]">
-      <div className="flex items-center gap-2">
-        {onBack && <BackButton onClick={onBack} />}
-        <div>
-          <h2 className="text-xl font-bold font-serif text-[#5B2A86] dark:text-[#F8EFD8]">
-            {t('backup.title')}
-          </h2>
-          <p className="text-sm text-[#6B5A70] dark:text-[#A692B4] mt-0.5">
-            Zero-telemetry AES-GCM-256 encrypted .spbk export & safe JSON import
-          </p>
-        </div>
-      </div>
-
-      <TempleDivider variant="compact" />
+      <PageHeader
+        title={t('backup.title')}
+        subtitle="Zero-telemetry AES-GCM-256 encrypted .spbk export & safe JSON import"
+        onBack={onBack}
+      />
 
       {status && (
         <div

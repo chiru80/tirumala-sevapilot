@@ -168,7 +168,7 @@
 
   .sp-pill-warning {
     background-color: #FFF8E8;
-    color: #A97916;
+    color: #92400E;
     border: 1px solid rgba(212, 167, 44, 0.35);
   }
 
@@ -430,6 +430,16 @@
     .animate-marquee {
       animation: none !important;
     }
+
+    *,
+    ::before,
+    ::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 }
+
 

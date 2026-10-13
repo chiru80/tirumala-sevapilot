@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { t } from '@i18n/index';
-import { BackButton } from '../../design-system';
+import { PageHeader, BackButton } from '../../design-system';
 import {
   getProfiles,
   getSettings,
@@ -161,19 +161,17 @@ export function ProfilesPage({ onBack, onNavigate }: { onBack?: () => void; onNa
 
   return (
     <div className="p-4 space-y-3.5 animate-fade-in text-[#321B3F] dark:text-[#F8EFD8]">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          {canGoBack && <BackButton onClick={handleBack} />}
-          <div>
-            <h2 className="text-xl font-bold font-serif text-[#5B2A86] dark:text-[#F8EFD8]">{t('profiles.title')}</h2>
-            <p className="text-xs text-[#6B5A70] dark:text-[#A692B4] mt-0.5">{t('profiles.manageGroups')}</p>
-          </div>
-        </div>
-        <button onClick={() => setShowCreate(true)} className="sp-btn-primary min-h-[44px] text-xs py-2 px-3.5">
-          <svg className="w-4 h-4 text-gold-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 4v16m8-8H4"/></svg>
-          <span>{t('profiles.createProfile')}</span>
-        </button>
-      </div>
+      <PageHeader
+        title={t('profiles.title')}
+        subtitle={t('profiles.manageGroups')}
+        onBack={canGoBack ? handleBack : undefined}
+        action={
+          <button onClick={() => setShowCreate(true)} className="sp-btn-primary min-h-[44px] text-xs py-2 px-3.5">
+            <svg className="w-4 h-4 text-gold-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 4v16m8-8H4"/></svg>
+            <span>{t('profiles.createProfile')}</span>
+          </button>
+        }
+      />
 
       {/* Service-Specific Context Switcher */}
       <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">

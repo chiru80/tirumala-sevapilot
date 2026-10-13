@@ -53,7 +53,7 @@ export function useI18n() {
  * Translate a key path (e.g., "dashboard.scanPage").
  * Falls back to English if the key is missing in the current language.
  */
-export function t(keyPath: string, params?: Record<string, string | number>): string {
+export function t(keyPath: string, params?: Record<string, string | number>, fallback?: string): string {
   const keys = keyPath.split('.');
   let value: unknown = translations[currentLanguage];
 
@@ -67,14 +67,14 @@ export function t(keyPath: string, params?: Record<string, string | number>): st
         if (value && typeof value === 'object' && k in value) {
           value = (value as Record<string, unknown>)[k];
         } else {
-          return keyPath; // Key not found
+          return fallback !== undefined ? fallback : keyPath; // Key not found
         }
       }
       break;
     }
   }
 
-  if (typeof value !== 'string') return keyPath;
+  if (typeof value !== 'string') return fallback !== undefined ? fallback : keyPath;
 
   // Replace parameters
   if (params) {

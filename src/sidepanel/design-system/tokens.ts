@@ -125,4 +125,27 @@ export const colors = {
       darkBorder: 'rgba(139, 92, 246, 0.35)',
     },
   },
+  text: {
+    primary: '#321B3F',
+    primaryDark: '#F8EFD8',
+    secondary: '#6B5A70',
+    secondaryDark: '#D4C3E0',
+    muted: '#8B7D8F',
+    mutedDark: '#A692B4',
+  },
+  semantic: {
+    success: '#237A57',
+    successLight: '#EBF5F0',
+    successDark: '#4ADE80',
+    warning: '#B45309',
+    warningLight: '#FFF8E8',
+    warningDark: '#FBBF24',
+    danger: '#B91C1C',
+    dangerLight: '#FEF2F2',
+    dangerDark: '#F87171',
+    info: '#54258A',
+    infoLight: '#FAF5FF',
+    infoDark: '#C084FC',
+  },
 } as const;
+
