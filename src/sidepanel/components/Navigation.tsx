@@ -1,5 +1,5 @@
 import React from 'react';
-import { t } from '@i18n/index';
+import { useI18n } from '@i18n/index';
 
 type Page = 'dashboard' | 'profiles' | 'more' | 'pilgrims' | 'bookings' | 'validation' | 'documents' | 'backup' | 'settings';
 
@@ -9,23 +9,24 @@ interface NavigationProps {
 }
 
 export function Navigation({ currentPage, onNavigate }: NavigationProps) {
+  const { t } = useI18n();
   const navItems: Array<{ page: Page; label: string; ariaLabel: string; iconPath: string }> = [
     {
       page: 'dashboard',
       label: t('nav.home') || 'Home',
-      ariaLabel: `Home — ${t('nav.homeA11y') || 'View booking status'}`,
+      ariaLabel: `${t('nav.home') || 'Home'} — ${t('nav.homeA11y') || 'View booking status'}`,
       iconPath: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1',
     },
     {
       page: 'profiles',
       label: t('nav.profiles') || 'Profile',
-      ariaLabel: `Profiles — ${t('nav.profilesA11y') || 'Manage devotee profiles'}`,
+      ariaLabel: `${t('nav.profiles') || 'Profiles'} — ${t('nav.profilesA11y') || 'Manage devotee profiles'}`,
       iconPath: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z',
     },
     {
       page: 'more',
       label: t('nav.more') || 'More',
-      ariaLabel: `More — ${t('nav.moreA11y') || 'Settings and secondary tools'}`,
+      ariaLabel: `${t('nav.more') || 'More'} — ${t('nav.moreA11y') || 'Settings and secondary tools'}`,
       iconPath: 'M4 6h16M4 12h16M4 18h16',
     },
   ];
