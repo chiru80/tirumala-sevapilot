@@ -2183,7 +2183,12 @@ async function repairSinglePilgrimField(
   doc: Document,
 ): Promise<FieldTransactionResult | null> {
   const container = row.element;
-  const resolution = reResolveField(field, container, new Set(), doc);
+  const excludeElements = new Set<HTMLElement>(row.fields ? Array.from(row.fields.values()) : []);
+  const currentEl = row.fields?.get(field);
+  if (currentEl) {
+    excludeElements.delete(currentEl);
+  }
+  const resolution = reResolveField(field, container, excludeElements, doc);
   if (!resolution || !doc.contains(resolution.element)) {
     return null;
   }

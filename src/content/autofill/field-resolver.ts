@@ -144,7 +144,7 @@ const FIELD_SIGNALS: Record<LogicalFieldType, FieldSignalProfile> = {
   },
   photoIdProof: {
     positiveLabels: ['photo id proof', 'photo id type', 'id proof', 'identity proof', 'id type', 'proof type', 'document type', 'id doc type', 'proof of id'],
-    negativeLabels: ['number', 'no', 'digit', 'card number', 'id number', 'photo id number'],
+    negativeLabels: ['name', 'devotee', 'pilgrim', 'number', 'no', 'digit', 'card number', 'id number', 'photo id number'],
     expectedTypes: ['select'],
     formControlNames: ['photoidproof', 'idproof', 'idtype', 'prooftype', 'identityproof', 'photoidtype', 'idcard', 'doctype'],
     nameAttrs: ['photoIdProof', 'idProof', 'idType', 'proofType'],
@@ -152,8 +152,8 @@ const FIELD_SIGNALS: Record<LogicalFieldType, FieldSignalProfile> = {
     placeholders: ['select id proof', 'id proof', 'select id type', 'photo id proof'],
   },
   photoIdNumber: {
-    positiveLabels: ['photo id number', 'photo id no', 'id number', 'identity card number', 'aadhaar number', 'aadhar number', 'card number', 'proof number', 'aadhaar', 'aadhar', 'identity number', 'document number', 'id no', 'photo id', 'proof no'],
-    negativeLabels: ['otp', 'login', 'user', 'booking', 'ticket', 'captcha', 'email', 'mobile', 'phone', 'password', 'age', 'pin'],
+    positiveLabels: ['photo id number', 'photo id no', 'id number', 'identity card number', 'aadhaar number', 'aadhar number', 'card number', 'proof number', 'aadhaar', 'aadhar', 'identity number', 'document number', 'id no', 'proof no'],
+    negativeLabels: ['name', 'devotee', 'pilgrim', 'otp', 'login', 'user', 'booking', 'ticket', 'captcha', 'email', 'mobile', 'phone', 'password', 'age', 'pin'],
     expectedTypes: ['text'],
     formControlNames: ['photoidnumber', 'idnumber', 'proofnumber', 'aadhaarnumber', 'identitynumber', 'cardnumber', 'photoid', 'idproofnumber', 'idproofno', 'proofno'],
     nameAttrs: ['photoIdNumber', 'idNumber', 'proofNumber', 'aadhaarNumber', 'photoId', 'idProofNumber', 'idNum', 'idProofNo'],
@@ -545,6 +545,13 @@ function scoreElement(
     const labelIsPositive = signals.positiveLabels.some(pl => labelText.includes(pl.toLowerCase()));
     if (labelIsPositive && !labelText.includes(negClean)) {
       continue;
+    }
+    // Specific exception: for 'name', official forms frequently label "Name as per Photo ID" or "Full Name (as per ID card)"
+    if (fieldType === 'name' && labelIsPositive && (negClean === 'id' || negClean === 'photo')) {
+      const isExplicitIdNumberOrUpload = /photo\s*upload|upload\s*photo|id\s*number|id\s*no\b|proof\s*number|card\s*number/i.test(labelText);
+      if (!isExplicitIdNumberOrUpload) {
+        continue;
+      }
     }
     if (negClean.length <= 2) {
       // Short negatives: use word boundary match

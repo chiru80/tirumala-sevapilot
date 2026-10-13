@@ -179,12 +179,13 @@ async function handleMessage(
           }).catch(() => {});
         }
 
+        const activeRec = ServiceRecognitionEngine.recognize(window.location.href, document);
         const lockCheck = detectTtdTemporaryLock(document, window.location.href);
         const scanResult: ScanResult = {
-          serviceType: state.serviceType ?? ServiceType.GENERIC,
-          serviceId: state.serviceId ?? recognition.serviceId,
-          workflowId: state.workflowId ?? recognition.workflowId,
-          serviceConfidence: state.serviceConfidence ?? 0,
+          serviceType: activeRec.status !== 'not-detected' ? activeRec.serviceType : (state.serviceType ?? ServiceType.GENERIC),
+          serviceId: activeRec.status !== 'not-detected' ? activeRec.serviceId : state.serviceId,
+          workflowId: activeRec.status !== 'not-detected' ? activeRec.workflowId : state.workflowId,
+          serviceConfidence: activeRec.status !== 'not-detected' ? activeRec.confidenceScore : (state.serviceConfidence ?? 0),
           url: window.location.href,
           totalFields: scannedFields.length,
           mappedFields: mappedResult.allMapped.filter(m => m.pilgrimKey !== null),
@@ -261,6 +262,9 @@ async function handleMessage(
           }).catch(() => {});
         };
 
+        const activeRec = ServiceRecognitionEngine.recognize(window.location.href, document);
+        const effectiveServiceId = (payload as any).serviceId || getPageState().serviceId || (activeRec.status !== 'not-detected' ? activeRec.serviceId : undefined);
+
         // Run unified state-machine autofill pipeline with real-time progress
         const managerResult = payload?.onlyRepairFailed
           ? await repairFailedFields({
@@ -268,7 +272,7 @@ async function handleMessage(
               profile: safeProfile,
               doc: document,
               targetFailedItems: payload.targetFailedItems,
-              serviceId: (payload as any).serviceId || recognition.serviceId,
+              serviceId: effectiveServiceId,
               workflow: (payload as any).workflow,
               onProgress: onProg,
             })
@@ -277,7 +281,7 @@ async function handleMessage(
               profile: safeProfile,
               doc: document,
               url: window.location.href,
-              serviceId: (payload as any).serviceId || recognition.serviceId,
+              serviceId: effectiveServiceId,
               workflow: (payload as any).workflow,
               onProgress: onProg,
             });
