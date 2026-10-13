@@ -109,3 +109,35 @@ export const mockSrivariSevaProfile = {
     'srivari-seva': ['s1'],
   },
 };
+
+export const mockSrivaniProfile = {
+  id: 'profile-srivani-e2e',
+  name: 'Srivani Trust Devotee',
+  pilgrims: [
+    {
+      id: 'sv1',
+      firstName: 'Govinda',
+      lastName: 'Rao',
+      fullName: 'Govinda Rao',
+      age: 42,
+      gender: 'Male',
+      idType: 'Aadhaar',
+      idNumber: validAadhaar1,
+      mobile: '9876543210',
+      country: 'India',
+    },
+  ],
+  general: {
+    mobile: '9876543210',
+    email: 'srivani.devotee@example.com',
+    city: 'Tirupati',
+    state: 'Andhra Pradesh',
+    country: 'India',
+    pinCode: '517501',
+  },
+  selectedPilgrims: {
+    'srivani': ['sv1'],
+    'srivani-trust': ['sv1'],
+  },
+};
+

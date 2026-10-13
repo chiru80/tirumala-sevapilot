@@ -37,6 +37,9 @@ export interface ProfileReadinessReport {
   ticketPrice?: number;
   isReady: boolean;
   isUnknownService?: boolean;
+  isManualOnly?: boolean;
+  automationPolicy?: string;
+  policyNotice?: string;
   totalChecks: number;
   passedChecks: number;
   headline: string;
@@ -76,6 +79,20 @@ export function testProfileReadiness(
         'Service requirements cannot be determined for unknown service ID. Select or navigate to a recognized TTD service.',
     });
     missingItems.push(t('readiness.serviceRequirementsUnavailable') || 'Service requirements unavailable');
+  }
+
+  const isManualOnly = service.automationPolicy === 'RESTRICTED_MANUAL_ONLY';
+  if (isManualOnly) {
+    checklist.push({
+      id: 'policy-manual-entry-required',
+      category: 'special',
+      label: t('readiness.manualEntryPolicy') || 'TTD Manual-Entry Policy (May 2026)',
+      passed: true,
+      message:
+        service.policyNotice ||
+        t('readiness.srivaniPolicyDesc') ||
+        'Autofill and automated copy-paste abolished by TTD. Manual-entry guidance active.',
+    });
   }
 
   const minPilgrims = service.minPilgrims || 1;
@@ -257,13 +274,17 @@ export function testProfileReadiness(
   const headline = isUnknownService
     ? (t('readiness.requirementsUnavailable') || 'Requirements Unavailable')
     : isReady
-    ? (t('readiness.readyForBooking') || 'Ready for Booking')
+    ? isManualOnly
+      ? (t('readiness.readyForManualEntry') || 'Ready for Manual Entry')
+      : (t('readiness.readyForBooking') || 'Ready for Booking')
     : (t('readiness.actionRequired') || 'Action Required');
 
   const summary = isUnknownService
     ? (t('readiness.unknownServiceSummary') || 'Service requirements cannot be determined for this service. Please select a recognized service.')
     : isReady
-    ? (t('readiness.allItemsReady', { passed: passedChecks, total: totalChecks }) || `${passedChecks}/${totalChecks} required items ready`)
+    ? isManualOnly
+      ? (t('readiness.readyForManualSummary') || 'All required items verified. Use the Manual-Entry Assistant on the TTD booking page.')
+      : (t('readiness.allItemsReady', { passed: passedChecks, total: totalChecks }) || `${passedChecks}/${totalChecks} required items ready`)
     : missingItems.length === 1
     ? (t('readiness.singleItemMissing', { item: missingItems[0] }) || `⚠️ ${missingItems[0]} is missing`)
     : (t('readiness.multipleItemsMissing', { count: missingItems.length - 1, item: missingItems[0] }) || `⚠️ ${missingItems[0]} and ${missingItems.length - 1} more item(s) needed`);
@@ -274,6 +295,9 @@ export function testProfileReadiness(
     ticketPrice: isUnknownService ? undefined : service.ticketPrice,
     isReady,
     isUnknownService,
+    isManualOnly,
+    automationPolicy: service.automationPolicy,
+    policyNotice: service.policyNotice,
     totalChecks,
     passedChecks,
     headline,

@@ -33,6 +33,7 @@ import { ActiveProfileCard } from '../components/dashboard/ActiveProfileCard';
 import { HowItWorksCard } from '../components/dashboard/HowItWorksCard';
 import { QuickActions } from '../components/dashboard/QuickActions';
 import { PrivacyBadge } from '../components/dashboard/PrivacyBadge';
+import { SafeSessionGuidanceModal, type SessionStateType } from '../components/dashboard/SafeSessionGuidanceModal';
 
 export interface DashboardProps {
   onNavigate?: (page: string) => void;
@@ -59,6 +60,8 @@ export function Dashboard({ onNavigate }: DashboardProps = {}) {
   const [isTestProfileOpen, setIsTestProfileOpen] = useState(false);
   const [isPreFlightOpen, setIsPreFlightOpen] = useState(false);
   const [isBookingMode, setIsBookingMode] = useState(false);
+  const [isSafeSessionModalOpen, setIsSafeSessionModalOpen] = useState(false);
+  const [safeSessionInitialState, setSafeSessionInitialState] = useState<SessionStateType>('CAPTCHA');
 
   // Sync selected service when TTD page detection detects a specific service
   useEffect(() => {
@@ -155,6 +158,11 @@ export function Dashboard({ onNavigate }: DashboardProps = {}) {
     await scanPage();
   };
 
+  const handleOpenSafeSessionGuide = (state: SessionStateType = 'CAPTCHA') => {
+    setSafeSessionInitialState(state);
+    setIsSafeSessionModalOpen(true);
+  };
+
   // ─── Profile Readiness Report ───
   const readinessReport = testProfileReadiness(activeProfile, selectedPilgrims, selectedServiceId);
 
@@ -201,6 +209,14 @@ export function Dashboard({ onNavigate }: DashboardProps = {}) {
       case 'TRIGGER_FILL':
         await executeFillPipeline();
         break;
+
+      case 'START_MANUAL_ASSISTANT': {
+        const btn = document.getElementById('sp-booking-open-manual-assistant-btn');
+        if (btn) btn.click();
+        const container = document.getElementById('sp-manual-assistant-container');
+        container?.scrollIntoView({ behavior: 'smooth' });
+        break;
+      }
 
       case 'VIEW_HISTORY':
         await safeOpenUrl('https://ttdevasthanams.ap.gov.in/booking-history');
@@ -413,6 +429,11 @@ export function Dashboard({ onNavigate }: DashboardProps = {}) {
               handleFullEmergencyStop();
             } else if (nextAction.secondaryAction?.actionType === 'RETRY_LOCK') {
               handlePrimaryActionTrigger();
+            } else if (nextAction.secondaryAction?.actionType === 'START_MANUAL_ASSISTANT') {
+              const btn = document.getElementById('sp-booking-open-manual-assistant-btn');
+              if (btn) btn.click();
+              const container = document.getElementById('sp-manual-assistant-container');
+              container?.scrollIntoView({ behavior: 'smooth' });
             }
           }}
         />
@@ -420,6 +441,7 @@ export function Dashboard({ onNavigate }: DashboardProps = {}) {
 
       {/* 5. BOOKING ACTION AREA (Command Center with Select Profile, Fill Details, Review Fields, Save Profile) */}
       <BookingActionArea
+        serviceId={selectedServiceId}
         serviceDisplayName={effectiveDisplayName}
         ticketPrice={activeWorkflow?.ticketPrice}
         maxPilgrims={activeWorkflow?.maxPilgrims || 6}
@@ -495,6 +517,7 @@ export function Dashboard({ onNavigate }: DashboardProps = {}) {
         onNavigate={(page) => onNavigate?.(page)}
         onOpenBookingHistory={() => safeOpenUrl('https://ttdevasthanams.ap.gov.in/booking-history')}
         onOpenPrivacy={() => onNavigate?.('more')}
+        onOpenSafeSessionGuide={() => handleOpenSafeSessionGuide('CAPTCHA')}
       />
 
       <div className="flex items-center justify-between pt-1">
@@ -529,6 +552,12 @@ export function Dashboard({ onNavigate }: DashboardProps = {}) {
         activeProfile={activeProfile}
         report={generatePreFlightReport()}
         fieldCount={selectedPilgrims.length * 5}
+      />
+
+      <SafeSessionGuidanceModal
+        isOpen={isSafeSessionModalOpen}
+        onClose={() => setIsSafeSessionModalOpen(false)}
+        initialState={safeSessionInitialState}
       />
     </div>
   );

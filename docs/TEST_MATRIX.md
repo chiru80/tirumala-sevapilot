@@ -307,5 +307,21 @@ Key Invariants Verified:
 - [x] Keyboard focus management via Tab navigation verified
 - [x] Real browser performance benchmarked (median ~0-1ms, p95 < 4ms)
 
+## Phase 15 — Policy-Compliant Booking Assistant tests
 
+Automated suites:
+- Unit suite: [`tests/services/policy-compliant-assistant.test.ts`](file:///tests/services/policy-compliant-assistant.test.ts) (13/13 tests passing)
+- Playwright E2E suite: [`tests/e2e/08-policy-compliant-assistant.spec.ts`](file:///tests/e2e/08-policy-compliant-assistant.spec.ts) (3/3 tests passing)
 
+Key Invariants Verified:
+- [x] Canonical automation policies (`PERMITTED_USER_INITIATED`, `RESTRICTED_MANUAL_ONLY`, `UNCONFIRMED_FAIL_CLOSED`) strictly enforced
+- [x] Srivani Trust darshan registered as `RESTRICTED_MANUAL_ONLY` per TTD May 2026 announcement
+- [x] Autofill Manager explicitly rejects autofill execution for Srivani Trust and unconfirmed services
+- [x] Profile readiness tester sets `isManualOnly: true` and generates manual entry headline and summary
+- [x] Next action presentation engine routes Srivani and manual-only states to `START_MANUAL_ASSISTANT` (never `TRIGGER_FILL`)
+- [x] Interactive Manual-Entry Assistant provides field-by-field reference checklist with zero automated copy-paste
+- [x] Devotee ID proofs masked by default as `•••• •••• {last4}` with interactive reveal toggle
+- [x] Zero devotee PII logged to console or logger (Aadhaar, mobile, email, name recursively sanitized)
+- [x] Safe Session Guidance modal provides human-centered education for CAPTCHA, OTP, Queue, Expired Session, and Temporary Lock without bypasses
+- [x] Upcoming Releases card verifies official TTD domains (`ttdevasthanams.ap.gov.in`, `news.tirumala.org`) with publication date and unconfirmed date indicator
+- [x] Complete 5-language parity maintained across all Phase 15 components with zero missing keys
