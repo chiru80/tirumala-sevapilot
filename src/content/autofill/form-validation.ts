@@ -17,6 +17,37 @@ export interface FormValidationState {
 }
 
 /**
+ * Determines whether a DOM element is a genuine validation error message,
+ * rather than a required-field asterisk, label, or decorative indicator.
+ */
+export function isGenuineErrorMessageElement(el: HTMLElement): boolean {
+  if (!el) return false;
+
+  // Ignore if element is a label or inside a label / placeholder / prefix / suffix
+  if (el.closest('label, mat-label, .mat-form-field-label, .form-label, legend, [matPrefix], [matSuffix], .mat-select-placeholder, .mat-placeholder')) {
+    return false;
+  }
+
+  if (['LABEL', 'MAT-LABEL', 'LEGEND'].includes(el.tagName)) {
+    return false;
+  }
+
+  const text = (el.textContent || '').trim();
+
+  // Asterisks, colons, bullets, and pure punctuation are required field indicators, not error messages
+  if (!text || /^[\s*#:•\-_]+$/.test(text)) {
+    return false;
+  }
+
+  // Legitimate validation errors always contain natural language words (e.g. "Name cannot be empty", "Please enter the age")
+  if (!/[a-zA-Z]/.test(text)) {
+    return false;
+  }
+
+  return true;
+}
+
+/**
  * Checks whether an element or its containing form field has visible validation errors.
  */
 export function inspectElementValidation(
@@ -28,21 +59,24 @@ export function inspectElementValidation(
   }
 
   // 1. Check Angular Material validation indicators & visible errors first
+  // Only search inside the specific column/field container to prevent cross-field false alarms
   const parentFormField = element.closest(
-    'mat-form-field, .mat-form-field, .mat-mdc-form-field, .form-group, .field-wrap, .field, tr, .pilgrim-row, .card'
-  );
-  const searchContainer = parentFormField || element.parentElement;
+    'mat-form-field, .mat-form-field, .mat-mdc-form-field, .form-group, .field-wrap, .field, [class*="col-"]'
+  ) || element.parentElement;
 
-  if (searchContainer) {
+  if (parentFormField) {
     // Look for visible error text
-    const errorEl = searchContainer.querySelector(
+    const errorEls = parentFormField.querySelectorAll(
       'mat-error, .mat-mdc-form-field-error, .invalid-feedback, .error-message, [role="alert"], .text-danger, .has-error'
     );
 
-    if (errorEl && isElementVisible(errorEl as HTMLElement)) {
-      const msg = (errorEl.textContent || '').trim();
-      if (msg) {
-        return { hasError: true, errorMessage: msg };
+    for (const errorEl of Array.from(errorEls)) {
+      const el = errorEl as HTMLElement;
+      if (isGenuineErrorMessageElement(el) && isElementVisible(el)) {
+        const msg = (el.textContent || '').trim();
+        if (msg) {
+          return { hasError: true, errorMessage: msg };
+        }
       }
     }
   }
@@ -83,12 +117,15 @@ export function inspectElementValidation(
     const isNgInvalid = element.classList.contains('ng-invalid') || parentFormField.classList.contains('ng-invalid');
     const isTouched = element.classList.contains('ng-touched') || element.classList.contains('ng-dirty');
     if (isNgInvalid && isTouched) {
-      const visibleErr = searchContainer?.querySelector(
-        'mat-error, .mat-mdc-form-field-error, .invalid-feedback, [role="alert"]'
+      const errorEls = parentFormField.querySelectorAll(
+        'mat-error, .mat-mdc-form-field-error, .invalid-feedback, [role="alert"], .text-danger'
       );
-      if (visibleErr && isElementVisible(visibleErr as HTMLElement)) {
-        const msg = (visibleErr.textContent || '').trim();
-        if (msg) return { hasError: true, errorMessage: msg };
+      for (const visibleErr of Array.from(errorEls)) {
+        const el = visibleErr as HTMLElement;
+        if (isGenuineErrorMessageElement(el) && isElementVisible(el)) {
+          const msg = (el.textContent || '').trim();
+          if (msg) return { hasError: true, errorMessage: msg };
+        }
       }
       // If no visible text but element is empty, flag it
       if (element instanceof HTMLInputElement && !element.value.trim()) {
@@ -107,12 +144,12 @@ export function inspectFormValidation(container: HTMLElement = document.body): F
   const errors: FormFieldError[] = [];
 
   const errorNodes = container.querySelectorAll(
-    'mat-error, .invalid-feedback, .error-message, [role="alert"], .mat-mdc-form-field-error'
+    'mat-error, .invalid-feedback, .error-message, [role="alert"], .mat-mdc-form-field-error, .text-danger'
   );
 
   for (let i = 0; i < errorNodes.length; i++) {
     const node = errorNodes[i] as HTMLElement;
-    if (isElementVisible(node)) {
+    if (isGenuineErrorMessageElement(node) && isElementVisible(node)) {
       const msg = (node.textContent || '').trim();
       if (msg) {
         // Try to identify associated field

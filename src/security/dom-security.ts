@@ -43,14 +43,35 @@ export function isForbiddenAutofillTarget(
   }
 
   // 3. Readonly controls (allow custom combobox dropdowns which are legitimately readonly text inputs)
-  const isCombobox =
-    inputEl.getAttribute('role') === 'combobox' ||
-    inputEl.getAttribute('role') === 'listbox' ||
+  const hasDropdownRole =
+    inputEl.getAttribute?.('role') === 'combobox' ||
+    inputEl.getAttribute?.('role') === 'listbox' ||
+    inputEl.getAttribute?.('aria-haspopup') === 'listbox' ||
+    inputEl.getAttribute?.('aria-haspopup') === 'menu' ||
+    inputEl.getAttribute?.('aria-haspopup') === 'true';
+
+  const hasDropdownClassOrTag =
     inputEl.tagName?.toLowerCase() === 'mat-select' ||
     inputEl.classList?.contains('mat-select') ||
-    inputEl.classList?.contains('p-dropdown');
+    inputEl.classList?.contains('p-dropdown') ||
+    inputEl.classList?.contains('custom-select') ||
+    inputEl.classList?.contains('dropdown-toggle');
 
-  if (inputEl.readOnly || el.hasAttribute('readonly')) {
+  const parent = el.parentElement;
+  const parentOrSelfHasDropdownIndicator =
+    hasDropdownRole ||
+    hasDropdownClassOrTag ||
+    Boolean(parent?.querySelector('.mat-select-arrow, [class*="chevron"], [class*="arrow"], .dropdown-toggle, [data-toggle="dropdown"]')) ||
+    Boolean(el.closest?.('mat-select, .p-dropdown, .custom-select, [role="combobox"], [role="listbox"], .dropdown, .select-wrapper, .mat-mdc-select'));
+
+  const isDropdownFieldIdentity =
+    /\b(gender|sex|photo.?id.?proof|id.?proof|id.?type|state|country|title)\b/i.test(
+      `${inputEl.getAttribute?.('formcontrolname') || ''} ${inputEl.getAttribute?.('name') || ''} ${inputEl.id || ''} ${(inputEl as HTMLInputElement).placeholder || ''}`
+    );
+
+  const isCombobox = parentOrSelfHasDropdownIndicator || isDropdownFieldIdentity;
+
+  if (inputEl.readOnly || el.hasAttribute?.('readonly')) {
     if (!(options.allowComboboxReadOnly && isCombobox)) {
       return true;
     }

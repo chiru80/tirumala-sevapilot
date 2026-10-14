@@ -16,20 +16,21 @@ export function setNativeValue(
   let descriptor = Object.getOwnPropertyDescriptor(targetProto, 'value');
 
   if (!descriptor?.set && win) {
-    if (element instanceof (win.HTMLInputElement || HTMLInputElement)) {
+    if (element instanceof (win.HTMLInputElement || HTMLInputElement) || element.tagName === 'INPUT') {
       descriptor = Object.getOwnPropertyDescriptor(win.HTMLInputElement?.prototype || HTMLInputElement.prototype, 'value');
-    } else if (element instanceof (win.HTMLTextAreaElement || HTMLTextAreaElement)) {
+    } else if (element instanceof (win.HTMLTextAreaElement || HTMLTextAreaElement) || element.tagName === 'TEXTAREA') {
       descriptor = Object.getOwnPropertyDescriptor(win.HTMLTextAreaElement?.prototype || HTMLTextAreaElement.prototype, 'value');
-    } else if (element instanceof (win.HTMLSelectElement || HTMLSelectElement)) {
+    } else if (element instanceof (win.HTMLSelectElement || HTMLSelectElement) || element.tagName === 'SELECT') {
       descriptor = Object.getOwnPropertyDescriptor(win.HTMLSelectElement?.prototype || HTMLSelectElement.prototype, 'value');
     }
   }
 
   if (descriptor?.set) {
-    descriptor.set.call(element, value);
-  } else {
-    element.value = value;
+    try {
+      descriptor.set.call(element, value);
+    } catch {}
   }
+  element.value = value;
 }
 
 /**
@@ -51,8 +52,8 @@ export function dispatchAngularCompatibleEvents(element: HTMLElement, value: str
   }
 
   // 2. Value assignment via prototype
-  if (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement) {
-    setNativeValue(element, value);
+  if (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement || element.tagName === 'INPUT' || element.tagName === 'TEXTAREA') {
+    setNativeValue(element as any, value);
   }
 
   // 3. Simulated typing & beforeinput

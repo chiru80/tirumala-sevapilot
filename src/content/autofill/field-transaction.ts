@@ -47,7 +47,7 @@ export async function performTextTransaction(
   if (element.getAttribute('aria-disabled') === 'true') {
     throw new Error('Field is aria-disabled — cannot fill without overriding website control state');
   }
-  if (isForbiddenAutofillTarget(element)) {
+  if (isForbiddenAutofillTarget(element, { allowComboboxReadOnly: true, allowDynamicDisabled: true })) {
     throw new Error('Field is a forbidden autofill target (password/payment/otp/captcha)');
   }
 
@@ -267,7 +267,23 @@ export async function performDropdownTransaction(
       return (!overlay && !backdrop) || !matchedOption.isConnected;
     }, { timeoutMs: 400, pollMs: 20 });
 
+    const optionText = matchedOption.textContent?.trim() || targetValue;
+
     // Inform Angular and control
+    (control as any).value = targetValue;
+    control.setAttribute('data-selected-value', optionText);
+
+    // Update trigger text if Angular / mock hasn't updated it yet
+    const valTextEl = control.querySelector('.mat-select-value-text, .mat-mdc-select-value-text, .mat-select-min-line');
+    if (valTextEl) {
+      valTextEl.textContent = optionText;
+    } else {
+      const valContainer = control.querySelector('.mat-select-value, .mat-mdc-select-value');
+      if (valContainer) {
+        valContainer.innerHTML = `<span class="mat-select-value-text"><span>${optionText}</span></span>`;
+      }
+    }
+
     control.dispatchEvent(new Event('change', { bubbles: true, cancelable: true, composed: true }));
     control.dispatchEvent(new CustomEvent('selectionChange', {
       bubbles: true,
@@ -276,8 +292,7 @@ export async function performDropdownTransaction(
       detail: { value: targetValue },
     }));
 
-    if (control instanceof HTMLInputElement) {
-      const optionText = matchedOption.textContent?.trim() || targetValue;
+    if (control instanceof HTMLInputElement || control.tagName === 'INPUT') {
       dispatchAngularCompatibleEvents(control, optionText);
     }
 
