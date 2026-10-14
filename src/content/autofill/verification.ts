@@ -288,13 +288,42 @@ export function verifyDropdownSelection(
     }
   }
 
+  // Check custom data-selected-value or value property
+  const customVal = control.getAttribute('data-selected-value') || (control as any).value;
+  if (typeof customVal === 'string' && customVal.trim()) {
+    if (isDropdownMatch(customVal.toLowerCase(), customVal.toLowerCase(), normTarget, fieldKey)) {
+      reasons.push(`Custom control value verified: "${customVal}"`);
+      return {
+        field: fieldKey,
+        status: 'verified',
+        expectedValue: targetValue,
+        actualValue: customVal,
+        maskedExpected: targetValue,
+        maskedActual: customVal,
+        reasons,
+      };
+    }
+  }
+
   // Angular Material mat-select or wrapper: check trigger text on control or parent/wrapper
   const parentWrapper = (control.closest('mat-form-field, .mat-form-field, .mat-mdc-form-field, .form-group, .field') as HTMLElement) || control.parentElement;
-  const triggerTextEl = control.querySelector(
-    '.mat-select-value-text, .mat-mdc-select-value-text, .mat-select-min-line, .mat-mdc-select-min-line, .mat-select-value, .mat-mdc-select-value, [class*="select-value"]'
+  
+  // Explicitly check for genuine selected value text element first
+  let triggerTextEl = control.querySelector(
+    '.mat-select-value-text, .mat-mdc-select-value-text, .mat-select-min-line, .mat-mdc-select-min-line'
   ) || parentWrapper?.querySelector(
-    '.mat-select-value-text, .mat-mdc-select-value-text, .mat-select-min-line, .mat-mdc-select-min-line, .mat-select-value, .mat-mdc-select-value, [class*="select-value"]'
+    '.mat-select-value-text, .mat-mdc-select-value-text, .mat-select-min-line, .mat-mdc-select-min-line'
   );
+
+  // If no explicit value-text element, check container only if it does NOT contain placeholder
+  if (!triggerTextEl) {
+    const candidateContainer = control.querySelector('.mat-select-value, .mat-mdc-select-value, [class*="select-value"]')
+      || parentWrapper?.querySelector('.mat-select-value, .mat-mdc-select-value, [class*="select-value"]');
+    if (candidateContainer && !candidateContainer.querySelector('.mat-select-placeholder, .mat-mdc-select-placeholder, [class*="placeholder"]')) {
+      triggerTextEl = candidateContainer;
+    }
+  }
+
   if (triggerTextEl?.textContent) {
     const triggerText = triggerTextEl.textContent.trim().toLowerCase();
     if (isDropdownMatch(triggerText, '', normTarget, fieldKey)) {
