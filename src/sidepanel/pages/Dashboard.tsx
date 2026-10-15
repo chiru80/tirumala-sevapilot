@@ -104,6 +104,7 @@ export function Dashboard({ onNavigate }: DashboardProps = {}) {
     currentProgressPilgrim,
     currentProgressField,
     pilgrimReports,
+    fieldResults,
     executeFill,
     handleEmergencyStop,
     handleRepairMissing,
@@ -535,9 +536,14 @@ export function Dashboard({ onNavigate }: DashboardProps = {}) {
         />
       )}
 
-      {/* 9. BOOKING READINESS CHECKLIST (Service-specific, 0% percentages) */}
+      {/* 9. BOOKING READINESS CHECKLIST (Separated Profile checks vs Live Form Verification) */}
       <BookingReadinessSummary
         report={readinessReport}
+        pageDetected={pageDetected}
+        isFilling={isFilling}
+        pilgrimReports={pilgrimReports}
+        fieldResults={fieldResults}
+        fillStatus={fillStatus}
         onFixClick={() => onNavigate?.('profiles')}
         onTestClick={() => setIsTestProfileOpen(true)}
       />

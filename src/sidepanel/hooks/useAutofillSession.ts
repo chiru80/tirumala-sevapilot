@@ -253,12 +253,15 @@ export function useAutofillSession(): UseAutofillSessionResult {
         const totalExpected = results.length || targetPilgrims.length * 5;
         if (filled === 0) {
           setFillStage(prev => ({ ...prev, stage: 'preparing', active: false }));
-          const failureReason = fillResponse?.error || 'Form not filled — could not identify eligible fields. Please use the Manual-Entry Assistant below.';
+          const isRejection = fillResponse?.error?.includes('not accepted') || results.some(r => r.error?.includes('not accepted') || r.error?.includes('rejected'));
+          const failureReason = isRejection
+            ? 'Automatic fill was not accepted by the page. Please use Paste Assist below.'
+            : (fillResponse?.error || 'Automatic fill was not accepted by the page. Please use Paste Assist below.');
           setFillStatus(`0/${totalExpected} fields verified — ${failureReason}`);
           setStatusType('warning');
           addNotification({
             type: 'warning',
-            title: 'Form Not Filled',
+            title: 'Automatic Fill Not Accepted',
             message: failureReason,
           }).catch(() => {});
           return false;
@@ -295,12 +298,15 @@ export function useAutofillSession(): UseAutofillSessionResult {
         return false;
       } else {
         setFillStage(prev => ({ ...prev, active: false }));
-        const err = fillResponse?.error || 'Form fields could not be safely identified. Please use manual entry.';
+        const isRejection = fillResponse?.error?.includes('not accepted');
+        const err = isRejection
+          ? 'Automatic fill was not accepted by the page. Please use Paste Assist below.'
+          : (fillResponse?.error || 'Automatic fill was not accepted by the page. Please use Paste Assist below.');
         setFillStatus(`Fill failed: ${err}`);
         setStatusType('error');
         addNotification({
           type: 'error',
-          title: 'Autofill Failed',
+          title: 'Autofill Not Accepted',
           message: err,
         }).catch(() => {});
         return false;

@@ -173,6 +173,24 @@ export async function retryWithVerification(opts: {
       };
     }
 
+    // Detect when TTD / Angular rejects or resets a value:
+    // If the expected value was non-empty, but the element's actual value is empty (reset/wiped),
+    // or if the element has visible validation errors, the page has actively rejected the input.
+    // In accordance with TTD safety policies, halt retries immediately instead of using aggressive injections.
+    const isReset = expectedValue.trim().length > 0 && lastVerification.actualValue.trim().length === 0;
+    const hasValidationError = lastVerification.reasons.some(r => r.toLowerCase().includes('validation error'));
+
+    if (isReset || hasValidationError) {
+      logger.warn(`TTD rejected or reset field value for ${fieldType} (reset=${isReset}, validationError=${hasValidationError}). Halting retries.`);
+      return {
+        success: false,
+        attempts: attempt + 1,
+        verification: lastVerification,
+        error: 'Automatic fill was not accepted by the page.',
+        retriedElement: currentElement,
+      };
+    }
+
     // On failure: re-resolve field for next attempt
     if (attempt < config.maxAttempts - 1) {
       logger.debug(`Retry ${attempt + 1}: Verification failed for ${fieldType}, will re-resolve for next attempt`);

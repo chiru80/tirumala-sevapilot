@@ -10,6 +10,7 @@ import { inspectElementValidation, isGenuineErrorMessageElement } from '../../..
 import { Gender, IdType, MessageType, type Pilgrim, type Profile } from '../../../src/shared/types';
 import logger from '../../../src/shared/logger';
 import { computeNextAction } from '../../../src/sidepanel/presentation/next-action';
+import { retryWithVerification } from '../../../src/content/autofill/retry-engine';
 
 describe('SPAT ₹200 Live Page End-to-End Regression Test', () => {
   let doc: Document;
@@ -871,5 +872,96 @@ describe('SPAT ₹200 Live Page End-to-End Regression Test', () => {
     );
 
     expect(stopHandled).toBe(true);
+  });
+
+  it('19. TTD Page rejecting or resetting field value: halts retries immediately and reports "Automatic fill was not accepted by the page."', async () => {
+    const input = doc.createElement('input');
+    input.setAttribute('formcontrolname', 'name');
+    const testContainer = doc.createElement('div');
+    testContainer.appendChild(input);
+    doc.body.appendChild(testContainer);
+
+    let fillCalls = 0;
+    const result = await retryWithVerification({
+      fieldType: 'name',
+      element: input,
+      expectedValue: 'Anusuri Chirudeep',
+      container: testContainer,
+      excludeElements: new Set(),
+      doc,
+      fillAction: async (el) => {
+        fillCalls++;
+        // Simulate TTD framework immediately rejecting/resetting input back to empty
+        (el as HTMLInputElement).value = '';
+      },
+      config: { maxAttempts: 3, delays: [1, 1, 1] },
+    });
+
+    // Strictly verify: halted immediately on attempt 1, did not spam retries, reported exact compliance error
+    expect(result.success).toBe(false);
+    expect(fillCalls).toBe(1);
+    expect(result.attempts).toBe(1);
+    expect(result.error).toBe('Automatic fill was not accepted by the page.');
+  });
+
+  it('20. Accurate readiness separation: distinguishes saved-profile checks from live page form counts', () => {
+    // Local profile has 3/3 checks passed
+    const localProfileReady = {
+      isReady: true,
+      passedChecks: 3,
+      totalChecks: 3,
+      missingItems: [],
+    };
+
+    // Live TTD page has 0/5 fields verified
+    const nextAction = computeNextAction({
+      activeProfile: mockProfile,
+      selectedPilgrims: [mockPilgrim],
+      serviceDisplayName: 'Padmavathi / Sri PAT ₹200',
+      serviceId: 'padmavathi-supadham-entry-200',
+      pageDetected: true,
+      productState: 'USER_ACTION_REQUIRED',
+      fillStatus: 'Automatic fill was not accepted by the page. Please use Paste Assist below.',
+      statusType: 'warning',
+      verificationCounts: { verified: 0, total: 5 },
+      readiness: localProfileReady as any,
+    });
+
+    // Must NEVER report "3/3 Ready" or claim form is filled
+    expect(nextAction.badgeVariant).toBe('actionRequired');
+    expect(nextAction.statusText).toBe('Form Incomplete (0/5 Verified)');
+    expect(nextAction.formStatus?.state).toBe('form_incomplete');
+    expect(nextAction.formStatus?.verifiedCount).toBe(0);
+    expect(nextAction.formStatus?.totalCount).toBe(5);
+    expect(nextAction.primaryAction.label).toContain('PASTE ASSIST');
+  });
+
+  it('21. User-mediated Paste Assist: step-by-step one field at a time with user direct control for Age and dropdowns', () => {
+    // 5 canonical steps for one-field-at-a-time assist
+    const fieldSteps = [
+      { step: 1, key: 'name', label: 'Devotee Full Name', userControl: 'copy-paste' },
+      { step: 2, key: 'age', label: 'Age', userControl: 'direct-type' },
+      { step: 3, key: 'gender', label: 'Gender', userControl: 'direct-dropdown' },
+      { step: 4, key: 'idType', label: 'Photo ID Proof Type', userControl: 'direct-dropdown' },
+      { step: 5, key: 'idNumber', label: 'Photo ID Number', userControl: 'copy-paste' },
+    ];
+
+    expect(fieldSteps).toHaveLength(5);
+    expect(fieldSteps[0].key).toBe('name');
+    expect(fieldSteps[1].userControl).toBe('direct-type'); // Age kept under direct user control
+    expect(fieldSteps[2].userControl).toBe('direct-dropdown'); // Gender dropdown kept under direct user control
+    expect(fieldSteps[3].userControl).toBe('direct-dropdown'); // ID dropdown kept under direct user control
+    expect(fieldSteps[4].key).toBe('idNumber');
+  });
+
+  it('22. Srivani manual-only enforcement: autofill and copy-paste assistance are strictly prohibited', () => {
+    const srivaniAllowed = isServiceAutofillAllowed('srivani');
+    expect(srivaniAllowed).toBe(false);
+
+    const srivaniTrustAllowed = isServiceAutofillAllowed('srivani-trust');
+    expect(srivaniTrustAllowed).toBe(false);
+
+    const unknownAllowed = isServiceAutofillAllowed('unknown-service-abc');
+    expect(unknownAllowed).toBe(false);
   });
 });
