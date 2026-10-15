@@ -167,6 +167,10 @@ export function Dashboard({ onNavigate }: DashboardProps = {}) {
   const readinessReport = testProfileReadiness(activeProfile, selectedPilgrims, selectedServiceId);
 
   // ─── Compute Next Action ───
+  const totalExpectedFields = (selectedPilgrims.length > 0 ? selectedPilgrims.length : 1) * 5;
+  const verifiedCount = fillStage.fieldsFilledCount || 0;
+  const isFormFullyVerified = fillStage.stage === 'complete' && fillStage.validationComplete && verifiedCount >= totalExpectedFields;
+
   const nextAction = computeNextAction({
     activeProfile,
     selectedPilgrims,
@@ -175,10 +179,14 @@ export function Dashboard({ onNavigate }: DashboardProps = {}) {
     pageDetected,
     productState: isFilling
       ? 'WORKING'
-      : fillStage.stage === 'complete'
+      : isFormFullyVerified
       ? 'COMPLETED'
       : effectiveLock
       ? 'BLOCKED'
+      : fillStage.stage === 'complete' && !fillStage.validationComplete
+      ? 'USER_ACTION_REQUIRED'
+      : statusType === 'warning' || statusType === 'error'
+      ? 'USER_ACTION_REQUIRED'
       : pageDetected && readiness.isReady
       ? 'READY'
       : !pageDetected && (readiness.allPilgrimsReady || readiness.isReady || (activeProfile && selectedPilgrims.length > 0))
@@ -188,6 +196,9 @@ export function Dashboard({ onNavigate }: DashboardProps = {}) {
     temporaryLock: effectiveLock,
     queueSession,
     readiness,
+    fillStatus,
+    statusType,
+    verificationCounts: pageDetected ? { verified: verifiedCount, total: totalExpectedFields } : null,
   });
 
   // ─── Action Handlers ───

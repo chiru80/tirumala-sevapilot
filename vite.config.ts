@@ -45,6 +45,7 @@ export default defineConfig({
     hmr: { port: 5173 },
   },
   test: {
+    pool: 'threads',
     testTimeout: 15000,
     exclude: ['**/node_modules/**', '**/dist/**', 'tests/e2e/**'],
   },

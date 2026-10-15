@@ -30,6 +30,31 @@ export const ManualEntryAssistant: React.FC<ManualEntryAssistantProps> = ({
   const [collapsedPilgrims, setCollapsedPilgrims] = useState<Record<string, boolean>>({});
   const [filterPendingOnly, setFilterPendingOnly] = useState<boolean>(false);
   const [isGeneralCompleted, setIsGeneralCompleted] = useState<boolean>(false);
+  const [copiedFields, setCopiedFields] = useState<Record<string, boolean>>({});
+
+  const handleCopy = async (key: string, textToCopy?: string) => {
+    if (!textToCopy) return;
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(textToCopy);
+      } else {
+        const textarea = document.createElement('textarea');
+        textarea.value = textToCopy;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+      }
+      setCopiedFields((prev) => ({ ...prev, [key]: true }));
+      setTimeout(() => {
+        setCopiedFields((prev) => ({ ...prev, [key]: false }));
+      }, 2000);
+    } catch {
+      // Gracefully ignore clipboard failures
+    }
+  };
 
   const toggleReveal = (pilgrimId: string) => {
     setRevealedIds((prev) => ({
@@ -98,11 +123,11 @@ export const ManualEntryAssistant: React.FC<ManualEntryAssistantProps> = ({
           <div className="flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-[#D4A72C] animate-pulse" />
             <h3 className="text-xs font-bold uppercase tracking-wider text-[#54258A] dark:text-[#D4A72C]">
-              {t('manualEntry.title') || 'MANUAL-ENTRY ASSISTANT'}
+              {t('manualEntry.title') || 'PASTE ASSIST / MANUAL-ENTRY'}
             </h3>
           </div>
           <Badge variant="gold" size="sm">
-            {t('manualEntry.policyBadge') || 'TTD POLICY COMPLIANT (MAY 2026)'}
+            {t('manualEntry.policyBadge') || 'FIELD-BY-FIELD PASTE ASSIST'}
           </Badge>
         </div>
 
@@ -113,11 +138,11 @@ export const ManualEntryAssistant: React.FC<ManualEntryAssistantProps> = ({
         >
           <div className="flex items-start gap-1.5 font-bold">
             <Icon name="shield" size={14} className="shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
-            <span>{t('manualEntry.policyNoticeTitle') || 'Zero Automation Policy Notice'}</span>
+            <span>{t('manualEntry.policyNoticeTitle') || 'Zero Automation Policy & Safe Paste Assist'}</span>
           </div>
           <p className="text-[11px] leading-relaxed text-amber-800 dark:text-amber-300">
             {t('manualEntry.policyBanner') ||
-              "In accordance with TTD's May 2026 announcement, autofill and automated copy-paste mechanisms were abolished for Srivani bookings. SevaPilot provides this verified manual reference checklist so you can safely enter your details yourself without violating TTD anti-bot controls."}
+              "Use these explicit copy-to-clipboard actions and field guidance to enter devotee details directly into official TTD controls. SevaPilot strictly never simulates trusted keyboard events or bypasses website restrictions."}
           </p>
         </div>
 
@@ -164,7 +189,7 @@ export const ManualEntryAssistant: React.FC<ManualEntryAssistantProps> = ({
         </div>
       </div>
 
-      {/* ─── 2. Devotee-by-Devotee Field Instructions ─── */}
+      {/* ─── 2. Devotee-by-Devotee Field Instructions with Paste Assist ─── */}
       <div className="space-y-3">
         {displayedPilgrims.map((pilgrim, idx) => {
           const isDone = Boolean(completedPilgrims[pilgrim.id]);
@@ -197,7 +222,7 @@ export const ManualEntryAssistant: React.FC<ManualEntryAssistantProps> = ({
                     {idx + 1}
                   </span>
                   <span className="text-xs font-bold text-[#321B3F] dark:text-[#F8EFD8] truncate">
-                    {name}
+                    Devotee {idx + 1}: {name}
                   </span>
                   <Icon
                     name="chevron-down"
@@ -232,47 +257,86 @@ export const ManualEntryAssistant: React.FC<ManualEntryAssistantProps> = ({
                       {name}
                     </span>
                     <p className="text-[10px] text-[#6B5A70] dark:text-[#A692B4] mt-0.5">
-                      {t('manualEntry.nameInstruction') || 'Type full name into TTD Name field exactly as printed on photo ID.'}
+                      {t('manualEntry.nameInstruction') || 'Paste name into TTD Name field or type manually.'}
                     </p>
                   </div>
+                  <button
+                    type="button"
+                    id={`sp-paste-copy-name-${pilgrim.id}`}
+                    onClick={() => handleCopy(`name-${pilgrim.id}`, name)}
+                    aria-label={`Copy Devotee ${idx + 1} Name`}
+                    className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded bg-[#54258A]/10 hover:bg-[#54258A]/20 dark:bg-[#D4A72C]/20 dark:hover:bg-[#D4A72C]/30 text-[#54258A] dark:text-[#D4A72C] transition-colors cursor-pointer shrink-0 mt-0.5"
+                  >
+                    <Icon name={copiedFields[`name-${pilgrim.id}`] ? 'check' : 'copy'} size={12} />
+                    <span>{copiedFields[`name-${pilgrim.id}`] ? 'Copied! ✓' : 'Copy Name'}</span>
+                  </button>
                 </div>
 
                 {/* Step 2: Age & Gender */}
                 <div className="grid grid-cols-2 gap-2">
-                  <div className="p-1.5 rounded-lg bg-black/2 dark:bg-white/5">
-                    <span className="text-[10px] uppercase font-bold text-[#6B5A70] dark:text-[#A692B4] block">
-                      {t('manualEntry.stepAge') || '2. Age'}
-                    </span>
-                    <span className="font-semibold text-[#321B3F] dark:text-[#F8EFD8] select-all">
+                  <div className="p-1.5 rounded-lg bg-black/2 dark:bg-white/5 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] uppercase font-bold text-[#6B5A70] dark:text-[#A692B4] block">
+                        {t('manualEntry.stepAge') || '2. Age'}
+                      </span>
+                      <button
+                        type="button"
+                        id={`sp-paste-copy-age-${pilgrim.id}`}
+                        onClick={() => handleCopy(`age-${pilgrim.id}`, String(pilgrim.age ?? ''))}
+                        aria-label={`Copy Devotee ${idx + 1} Age`}
+                        className="text-[10px] font-bold text-[#54258A] dark:text-[#D4A72C] hover:underline cursor-pointer"
+                      >
+                        {copiedFields[`age-${pilgrim.id}`] ? 'Copied! ✓' : 'Copy'}
+                      </button>
+                    </div>
+                    <span className="font-semibold text-[#321B3F] dark:text-[#F8EFD8] select-all block">
                       {pilgrim.age ?? '—'}
                     </span>
+                    <p className="text-[9px] text-[#6B5A70] dark:text-[#A692B4]">
+                      Type numeric age into TTD field
+                    </p>
                   </div>
-                  <div className="p-1.5 rounded-lg bg-black/2 dark:bg-white/5">
+                  <div className="p-1.5 rounded-lg bg-black/2 dark:bg-white/5 space-y-1">
                     <span className="text-[10px] uppercase font-bold text-[#6B5A70] dark:text-[#A692B4] block">
                       {t('manualEntry.stepGender') || '3. Gender'}
                     </span>
-                    <span className="font-semibold text-[#321B3F] dark:text-[#F8EFD8]">
+                    <span className="font-semibold text-[#321B3F] dark:text-[#F8EFD8] block">
                       {pilgrim.gender ?? '—'}
                     </span>
+                    <p className="text-[9px] text-[#6B5A70] dark:text-[#A692B4]">
+                      Select from dropdown
+                    </p>
                   </div>
                 </div>
 
                 {/* Step 3: Photo ID Type & Number with Privacy Masking */}
-                <div className="p-1.5 rounded-lg bg-black/2 dark:bg-white/5 space-y-1">
+                <div className="p-1.5 rounded-lg bg-black/2 dark:bg-white/5 space-y-1.5">
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] uppercase font-bold text-[#6B5A70] dark:text-[#A692B4]">
                       {t('manualEntry.stepId') || '4. Photo ID Proof'} ({pilgrim.idType || 'ID'})
                     </span>
-                    <button
-                      type="button"
-                      id={`sp-manual-toggle-id-${pilgrim.id}`}
-                      onClick={() => toggleReveal(pilgrim.id)}
-                      aria-label={t('manualEntry.toggleIdMask') || 'Toggle ID number visibility'}
-                      className="inline-flex items-center gap-1 text-[10px] font-bold text-[#54258A] dark:text-[#D4A72C] hover:underline cursor-pointer"
-                    >
-                      <Icon name={isRevealed ? 'lock' : 'eye'} size={11} />
-                      <span>{isRevealed ? (t('manualEntry.hideId') || 'Hide') : (t('manualEntry.showId') || 'Reveal digits')}</span>
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        id={`sp-manual-toggle-id-${pilgrim.id}`}
+                        onClick={() => toggleReveal(pilgrim.id)}
+                        aria-label={t('manualEntry.toggleIdMask') || 'Toggle ID number visibility'}
+                        className="inline-flex items-center gap-1 text-[10px] font-bold text-[#54258A] dark:text-[#D4A72C] hover:underline cursor-pointer"
+                      >
+                        <Icon name={isRevealed ? 'lock' : 'eye'} size={11} />
+                        <span>{isRevealed ? (t('manualEntry.hideId') || 'Hide') : (t('manualEntry.showId') || 'Reveal digits')}</span>
+                      </button>
+                      <button
+                        type="button"
+                        id={`sp-paste-copy-id-${pilgrim.id}`}
+                        onClick={() => handleCopy(`id-${pilgrim.id}`, pilgrim.idNumber)}
+                        aria-label={`Copy Devotee ${idx + 1} ID Number`}
+                        className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded bg-[#54258A]/10 hover:bg-[#54258A]/20 dark:bg-[#D4A72C]/20 dark:hover:bg-[#D4A72C]/30 text-[#54258A] dark:text-[#D4A72C] transition-colors cursor-pointer"
+                      >
+                        <Icon name={copiedFields[`id-${pilgrim.id}`] ? 'check' : 'copy'} size={12} />
+                        <span>{copiedFields[`id-${pilgrim.id}`] ? 'Copied! ✓' : 'Copy ID'}</span>
+                      </button>
+                    </div>
                   </div>
 
                   <div className="font-mono font-semibold text-xs text-[#321B3F] dark:text-[#F8EFD8] select-all">
@@ -281,7 +345,7 @@ export const ManualEntryAssistant: React.FC<ManualEntryAssistantProps> = ({
 
                   <p className="text-[10px] text-[#6B5A70] dark:text-[#A692B4]">
                     {t('manualEntry.idInstruction') ||
-                      'Select ID proof type from dropdown, then manually type ID number into TTD field.'}
+                      'Select ID proof type from dropdown, then paste/type ID number into TTD field.'}
                   </p>
                 </div>
               </div>

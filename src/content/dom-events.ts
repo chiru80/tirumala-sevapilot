@@ -25,6 +25,18 @@ export function setNativeValue(
     }
   }
 
+  // React Controlled Component Value Tracker Reset:
+  // In React 16+ controlled components, React overrides the value setter and tracks changes via `_valueTracker`.
+  // If the internal tracker's value matches the incoming value, React ignores the change event.
+  // Resetting the tracker to an empty/dummy value different from `value` ensures React's synthetic event dispatcher
+  // recognizes the change and triggers the component's onChange state handler.
+  const tracker = (element as any)._valueTracker;
+  if (tracker) {
+    try {
+      tracker.setValue(value === '' ? '__initial__' : '');
+    } catch {}
+  }
+
   if (descriptor?.set) {
     try {
       descriptor.set.call(element, value);
@@ -34,8 +46,9 @@ export function setNativeValue(
 }
 
 /**
- * Dispatch complete Angular-compatible event sequence on an input element.
- * Follows exact sequence required by Angular's DefaultValueAccessor & ControlValueAccessor:
+ * Dispatch complete Angular- & React-compatible event sequence on an input element.
+ * Follows exact sequence required by Angular's DefaultValueAccessor & ControlValueAccessor
+ * and React synthetic event delegation:
  * focus -> focusin -> set value -> keydown -> beforeinput -> input -> keyup -> change -> blur -> focusout
  */
 export function dispatchAngularCompatibleEvents(element: HTMLElement, value: string): void {
@@ -51,7 +64,7 @@ export function dispatchAngularCompatibleEvents(element: HTMLElement, value: str
     element.dispatchEvent(new FocusEvent('focusin', { bubbles: true, cancelable: true, composed: true }));
   }
 
-  // 2. Value assignment via prototype
+  // 2. Value assignment via prototype with _valueTracker reset
   if (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement || element.tagName === 'INPUT' || element.tagName === 'TEXTAREA') {
     setNativeValue(element as any, value);
   }
@@ -75,16 +88,17 @@ export function dispatchAngularCompatibleEvents(element: HTMLElement, value: str
     }));
   } catch {}
 
-  // 4. Input event (Angular DefaultValueAccessor listens to this to update FormControl value)
+  // 4. Input event (Angular DefaultValueAccessor & React synthetic event delegation)
   let inputDispatched = false;
   try {
-    inputDispatched = element.dispatchEvent(new InputEvent('input', {
+    element.dispatchEvent(new InputEvent('input', {
       bubbles: true,
       cancelable: true,
       composed: true,
       inputType: 'insertText',
       data: value,
     }));
+    inputDispatched = true;
   } catch {
     inputDispatched = false;
   }
@@ -105,7 +119,7 @@ export function dispatchAngularCompatibleEvents(element: HTMLElement, value: str
   // 6. Change event
   element.dispatchEvent(new Event('change', { bubbles: true, cancelable: true, composed: true }));
 
-  // 7. Blur & focusout (Angular marks control as touched and re-evaluates validation on blur)
+  // 7. Blur & focusout (Frameworks mark control as touched and re-evaluate validation on blur)
   let focusoutDispatched = false;
   const onFocusOut = () => { focusoutDispatched = true; };
   element.addEventListener('focusout', onFocusOut, { once: true });

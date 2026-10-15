@@ -143,11 +143,35 @@ export interface AutofillProgress {
   temporaryLock?: TtdTemporaryLockState;
 }
 
+/** Explicit capability assessment for each form/service */
+export type CapabilityAssessment =
+  | 'SUPPORTED'
+  | 'MANUAL_ONLY'
+  | 'UNSUPPORTED_FORM'
+  | 'PARTIAL'
+  | 'FAILED';
+
+export interface ManualChecklistItem {
+  field: string;
+  fieldLabel: string;
+  pilgrimIndex?: number;
+  pilgrimName?: string;
+  status: 'verified' | 'manual_required';
+  value?: string;
+  reason?: string;
+}
+
 /** Final comprehensive report returned by AutofillManager */
 export interface AutofillManagerResult {
   success: boolean;
   state: AutofillState;
   step: 'pilgrim' | 'general' | 'unknown' | 'srivari_instructions' | 'srivari_enrollment';
+  capabilityAssessment?: CapabilityAssessment;
+  verifiedFields?: number;
+  requiredFields?: number;
+  manualActionRequired?: boolean;
+  failureReason?: string;
+  manualChecklist?: ManualChecklistItem[];
   instructionsState?: InstructionsState;
   actionRequired?: boolean;
   actionMessage?: string;

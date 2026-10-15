@@ -108,10 +108,10 @@ function findRowContainers(doc: Document, expectedCount: number): HTMLElement[] 
       el.getAttribute('formcontrolname'), el.getAttribute('aria-label'),
     ].filter(Boolean).join(' ').toLowerCase();
 
-    const hasNameSignal = (text: string) => text.includes('name') || text.includes('devotee') || text.includes('pilgrim');
+    const hasNameSignal = (text: string) => text.includes('name') || text.includes('devotee') || text.includes('pilgrim') || text.includes('fname');
     const isIdOrProofField = (text: string) => /photo\s*upload|upload\s*photo|id\s*number|id\s*no\b|proof\s*number|card\s*number|id\s*type|proof\s*type/i.test(text);
 
-    // If attributes explicitly indicate a Name field (e.g. placeholder="Name as per Photo ID"),
+    // If attributes explicitly indicate a Name field (e.g. placeholder="Name as per Photo ID" or name="fname"),
     // verify it is not an ID number or photo upload field
     if (hasNameSignal(attrString) && !isIdOrProofField(attrString)) {
       const strictExclude = ['login', 'user', 'email', 'otp', 'search', 'captcha', 'password', 'mobile', 'phone', 'city', 'state', 'country', 'pin', 'address'];
@@ -162,8 +162,8 @@ function findRowContainers(doc: Document, expectedCount: number): HTMLElement[] 
       }
     }
 
-    // Positive check: must contain 'name' in some attribute
-    if (attrString.includes('name')) return true;
+    // Positive check: must contain 'name' or 'fname' in some attribute
+    if (attrString.includes('name') || attrString.includes('fname')) return true;
 
     // Check label
     if (el.id) {
@@ -316,8 +316,14 @@ function scoreContainerForPilgrimFields(
   const hasIdType = selects.some(sel => {
     const str = `${sel.getAttribute('name')} ${sel.id} ${sel.getAttribute('formcontrolname')} ${sel.getAttribute('aria-label')}`.toLowerCase();
     const lbl = (findLabelText(sel, doc) || getAssociatedLabelText(sel, container, doc) || '').toLowerCase();
-    return str.includes('proof') || str.includes('idtype') || str.includes('prooftype') || str.includes('photoid') ||
+    return str.includes('proof') || str.includes('idtype') || str.includes('prooftype') || str.includes('photoid') || str.includes('photoidtype') ||
       lbl.includes('proof') || lbl.includes('photo id') || lbl.includes('id type') || lbl.includes('identity');
+  }) || allInputs.some(inp => {
+    const str = `${inp.getAttribute('name')} ${inp.id} ${inp.getAttribute('formcontrolname')} ${inp.getAttribute('aria-label')}`.toLowerCase();
+    const lbl = (findLabelText(inp, doc) || getAssociatedLabelText(inp, container, doc) || '').toLowerCase();
+    return (str.includes('proof') || str.includes('idtype') || str.includes('prooftype') || str.includes('photoid') || str.includes('photoidtype') ||
+      lbl.includes('proof') || lbl.includes('photo id') || lbl.includes('id type') || lbl.includes('identity')) &&
+      !str.includes('number') && !lbl.includes('number') && !lbl.includes('no');
   });
   if (hasIdType) score += 20;
 

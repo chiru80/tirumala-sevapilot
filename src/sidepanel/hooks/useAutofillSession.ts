@@ -193,7 +193,7 @@ export function useAutofillSession(): UseAutofillSessionResult {
 
       const fillDuration = Math.round(performance.now() - fillStartTime);
 
-      if (fillResponse?.success) {
+      if (fillResponse?.success || (Array.isArray(fillResponse?.data) && fillResponse.data.length > 0)) {
         const results = (fillResponse.data as any[]) || [];
         const newReports: PilgrimRowReport[] = fillResponse.pilgrimReports || fillResponse.stepResult?.pilgrimReport?.pilgrimReports || [];
 
@@ -250,10 +250,11 @@ export function useAutofillSession(): UseAutofillSessionResult {
           durationMs: fillDuration,
         }).catch(() => {});
 
+        const totalExpected = results.length || targetPilgrims.length * 5;
         if (filled === 0) {
           setFillStage(prev => ({ ...prev, stage: 'preparing', active: false }));
           const failureReason = fillResponse?.error || 'Form not filled — could not identify eligible fields. Please use the Manual-Entry Assistant below.';
-          setFillStatus(failureReason);
+          setFillStatus(`0/${totalExpected} fields verified — ${failureReason}`);
           setStatusType('warning');
           addNotification({
             type: 'warning',
@@ -261,22 +262,22 @@ export function useAutofillSession(): UseAutofillSessionResult {
             message: failureReason,
           }).catch(() => {});
           return false;
-        } else if (failed === 0) {
-          setFillStatus(`Autofill complete — all details verified in ${fillDuration}ms.`);
+        } else if (failed === 0 && filled >= totalExpected) {
+          setFillStatus(`${filled}/${totalExpected} fields verified in ${fillDuration}ms.`);
           setStatusType('success');
           addNotification({
             type: 'success',
             title: 'Autofill & Verification Complete',
-            message: `Filled and verified ${filled} fields for ${targetPilgrims.length} ${targetPilgrims.length === 1 ? 'pilgrim' : 'pilgrims'} in ${serviceName}.`,
+            message: `Filled and verified ${filled}/${totalExpected} fields for ${targetPilgrims.length} ${targetPilgrims.length === 1 ? 'pilgrim' : 'pilgrims'} in ${serviceName}.`,
           }).catch(() => {});
           return true;
         } else {
-          setFillStatus(`${failed} field(s) require attention. Use repair below.`);
+          setFillStatus(`${filled}/${totalExpected} fields verified (${totalExpected - filled} require manual entry).`);
           setStatusType('warning');
           addNotification({
             type: 'warning',
-            title: 'Verification Notice',
-            message: `${failed} field(s) require attention.`,
+            title: 'Partial Verification',
+            message: `${filled}/${totalExpected} fields verified. Complete remaining fields manually.`,
           }).catch(() => {});
           return false;
         }
@@ -395,7 +396,7 @@ export function useAutofillSession(): UseAutofillSessionResult {
         timestamp: new Date().toISOString(),
       });
 
-      if (response?.success) {
+      if (response?.success || (Array.isArray(response?.pilgrimReports) && response.pilgrimReports.length > 0)) {
         if (response.pilgrimReports) {
           setPilgrimReports(response.pilgrimReports);
         }

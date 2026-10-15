@@ -31,6 +31,75 @@ function PopupApp() {
   const [lockState, setLockState] = useState<TtdTemporaryLockState | null>(null);
 
   useEffect(() => {
+    let isMounted = true;
+
+    async function init() {
+      try {
+        const profiles = await getProfiles();
+        if (!isMounted) return;
+        const validProfiles = (profiles || []).filter((p): p is Profile => p != null && typeof p === 'object');
+        const def = validProfiles.find(p => p.isDefault) ?? validProfiles[0] ?? null;
+        setActiveProfile(def);
+
+        let isTTD = false;
+        if (chrome.tabs) {
+          const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+          if (!isMounted) return;
+          setTargetTabId(tab?.id);
+          const url = tab?.url || '';
+          isTTD = url.includes('ttdevasthanams.ap.gov.in') || url.includes('tirupatibalaji.ap.gov.in');
+          setPageDetected(isTTD);
+
+          if (isTTD && tab?.id) {
+            const scanRes = await chrome.runtime.sendMessage({
+              type: MessageType.REQUEST_SCAN,
+              payload: null,
+              targetTabId: tab.id,
+              timestamp: new Date().toISOString(),
+            }).catch(() => null);
+
+            if (!isMounted) return;
+            if (scanRes?.success && scanRes.data) {
+              setFieldsDetectedCount(scanRes.data.mappedFields?.length || 0);
+              if (scanRes.data.temporaryLock) {
+                setLockState(scanRes.data.temporaryLock);
+                setViewState('TEMPORARY_LOCK');
+              }
+            }
+          }
+        }
+
+        // Check readiness
+        const missing: string[] = [];
+        if (!isTTD) {
+          missing.push('Open a TTD booking page in your browser');
+        }
+
+        const pilgrims = def?.pilgrims || [];
+        if (pilgrims.length === 0) {
+          missing.push('Add pilgrims to your profile');
+        } else if (pilgrims.length > 6) {
+          missing.push('Select up to 6 pilgrims (maximum 6 supported by TTD)');
+        } else {
+          // Verify required data
+          const incomplete = pilgrims.filter(p => !p.fullName && (!p.firstName || !p.lastName));
+          if (incomplete.length > 0) {
+            missing.push(`Complete name for ${incomplete.length} pilgrim(s)`);
+          }
+          const missingIds = pilgrims.filter(p => !p.idNumber);
+          if (missingIds.length > 0) {
+            missing.push(`Enter ID numbers for ${missingIds.length} pilgrim(s)`);
+          }
+        }
+
+        if (!isMounted) return;
+        setMissingRequirements(missing);
+      } catch {
+        if (!isMounted) return;
+        setMissingRequirements(['Unable to inspect browser tab']);
+      }
+    }
+
     init();
 
     // Listen for progress messages from content script during autofill
@@ -40,70 +109,11 @@ function PopupApp() {
       }
     };
     chrome.runtime.onMessage.addListener(listener);
-    return () => chrome.runtime.onMessage.removeListener(listener);
+    return () => {
+      isMounted = false;
+      chrome.runtime.onMessage.removeListener(listener);
+    };
   }, []);
-
-  async function init() {
-    try {
-      const profiles = await getProfiles();
-      const validProfiles = (profiles || []).filter((p): p is Profile => p != null && typeof p === 'object');
-      const def = validProfiles.find(p => p.isDefault) ?? validProfiles[0] ?? null;
-      setActiveProfile(def);
-
-      let isTTD = false;
-      if (chrome.tabs) {
-        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-        setTargetTabId(tab?.id);
-        const url = tab?.url || '';
-        isTTD = url.includes('ttdevasthanams.ap.gov.in') || url.includes('tirupatibalaji.ap.gov.in');
-        setPageDetected(isTTD);
-
-        if (isTTD && tab?.id) {
-          const scanRes = await chrome.runtime.sendMessage({
-            type: MessageType.REQUEST_SCAN,
-            payload: null,
-            targetTabId: tab.id,
-            timestamp: new Date().toISOString(),
-          }).catch(() => null);
-
-          if (scanRes?.success && scanRes.data) {
-            setFieldsDetectedCount(scanRes.data.mappedFields?.length || 0);
-            if (scanRes.data.temporaryLock) {
-              setLockState(scanRes.data.temporaryLock);
-              setViewState('TEMPORARY_LOCK');
-            }
-          }
-        }
-      }
-
-      // Check readiness
-      const missing: string[] = [];
-      if (!isTTD) {
-        missing.push('Open a TTD booking page in your browser');
-      }
-
-      const pilgrims = def?.pilgrims || [];
-      if (pilgrims.length === 0) {
-        missing.push('Add pilgrims to your profile');
-      } else if (pilgrims.length > 6) {
-        missing.push('Select up to 6 pilgrims (maximum 6 supported by TTD)');
-      } else {
-        // Verify required data
-        const incomplete = pilgrims.filter(p => !p.fullName && (!p.firstName || !p.lastName));
-        if (incomplete.length > 0) {
-          missing.push(`Complete name for ${incomplete.length} pilgrim(s)`);
-        }
-        const missingIds = pilgrims.filter(p => !p.idNumber);
-        if (missingIds.length > 0) {
-          missing.push(`Enter ID numbers for ${missingIds.length} pilgrim(s)`);
-        }
-      }
-
-      setMissingRequirements(missing);
-    } catch {
-      setMissingRequirements(['Unable to inspect browser tab']);
-    }
-  }
 
   const pilgrims: Pilgrim[] = activeProfile?.pilgrims || [];
   const isReady = missingRequirements.length === 0 && pilgrims.length > 0 && pilgrims.length <= 6;
@@ -486,7 +496,18 @@ function PopupApp() {
   );
 }
 
-export async function bootstrapPopup() {
+let currentRoot: ReactDOM.Root | null = null;
+
+export function resetPopupRoot() {
+  if (currentRoot) {
+    try {
+      currentRoot.unmount();
+    } catch {}
+    currentRoot = null;
+  }
+}
+
+export async function bootstrapPopup(): Promise<ReactDOM.Root | null> {
   try {
     const settings = await getSettings();
     const validLanguages: Language[] = ['en', 'te', 'hi', 'ta', 'kn'];
@@ -499,12 +520,18 @@ export async function bootstrapPopup() {
 
   const rootElement = document.getElementById('root');
   if (rootElement) {
-    ReactDOM.createRoot(rootElement).render(
+    if (!currentRoot) {
+      currentRoot = ReactDOM.createRoot(rootElement);
+    }
+    currentRoot.render(
       <React.StrictMode>
         <PopupApp />
       </React.StrictMode>,
     );
+    return currentRoot;
   }
+  return null;
 }
 
 bootstrapPopup();
+

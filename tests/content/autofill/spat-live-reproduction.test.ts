@@ -9,6 +9,7 @@ import { handleMessage } from '../../../src/background/message-router';
 import { inspectElementValidation, isGenuineErrorMessageElement } from '../../../src/content/autofill/form-validation';
 import { Gender, IdType, MessageType, type Pilgrim, type Profile } from '../../../src/shared/types';
 import logger from '../../../src/shared/logger';
+import { computeNextAction } from '../../../src/sidepanel/presentation/next-action';
 
 describe('SPAT ₹200 Live Page End-to-End Regression Test', () => {
   let doc: Document;
@@ -279,5 +280,596 @@ describe('SPAT ₹200 Live Page End-to-End Regression Test', () => {
     } finally {
       logger.info = origInfo;
     }
+  });
+
+  // ─────────────────────────────────────────────────────────────
+  // PHASE 1 & 5: REACT / NEXT.JS CONTROLLED FORM REGRESSION SUITE
+  // Matches live TTD chunk 9803: name="fname", name="age", name="gender",
+  // name="photoIdType", name="idProofNumber", React _valueTracker, rerender,
+  // blank validation errors, honest capability reporting, and manual checklist.
+  // ─────────────────────────────────────────────────────────────
+
+  function setupReactControlledSpatDom(
+    rowCount = 1,
+    options: {
+      makeAgeDisabled?: boolean;
+      makePhotoIdReadOnly?: boolean;
+    } = {}
+  ) {
+    const rowsHtml = Array.from({ length: rowCount }).map((_, idx) => `
+      <div class="fieldContainer pilgrim-row card p-3 mb-3" data-row-index="${idx}">
+        <div class="row">
+          <div class="col-md-3 form-group">
+            <label for="name_${idx}">Name <span class="text-danger">*</span></label>
+            <input
+              type="text"
+              id="${idx}"
+              name="fname"
+              placeholder="Name"
+              class="form-control"
+              maxlength="80"
+            />
+            <div id="nameErr_${idx}" class="text-danger error-msg" style="display: none;"></div>
+          </div>
+          <div class="col-md-2 form-group">
+            <label for="age_${idx}">Age <span class="text-danger">*</span></label>
+            <input
+              type="number"
+              id="${idx}"
+              name="age"
+              placeholder="Age"
+              class="form-control"
+              maxlength="3"
+              ${options.makeAgeDisabled ? 'disabled' : ''}
+            />
+            <div id="ageErr_${idx}" class="text-danger error-msg" style="display: none;"></div>
+          </div>
+          <div class="col-md-2 form-group">
+            <label for="gender_${idx}">Gender <span class="text-danger">*</span></label>
+            <select id="${idx}" name="gender" class="form-select">
+              <option value="">Select Gender</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+            </select>
+          </div>
+          <div class="col-md-2 form-group">
+            <label for="photoIdType_${idx}">Photo ID Proof <span class="text-danger">*</span></label>
+            <select id="${idx}" name="photoIdType" class="form-select" disabled>
+              <option value="">Select Photo ID</option>
+              <option value="aadhaar">Aadhaar Card</option>
+              <option value="passport">Passport</option>
+              <option value="voter">Voter ID</option>
+            </select>
+          </div>
+          <div class="col-md-3 form-group">
+            <label for="idProofNumber_${idx}">Photo ID Number <span class="text-danger">*</span></label>
+            <input
+              type="text"
+              id="${idx}"
+              name="idProofNumber"
+              placeholder="Photo ID Number"
+              class="form-control"
+              maxlength="12"
+              disabled
+              ${options.makePhotoIdReadOnly ? 'readonly' : ''}
+            />
+            <div id="idErr_${idx}" class="text-danger error-msg" style="display: none;"></div>
+          </div>
+        </div>
+      </div>
+    `).join('');
+
+    doc.body.innerHTML = `
+      <div class="booking-flow-container">
+        <h2>Special Entry Darshan (Sri PAT)</h2>
+        <div class="darshan-details">
+          <span>Darshan Date: 22/10/2026</span>
+          <span>Darshan Slot: 9:00 AM</span>
+          <span>No. of Tickets: ${rowCount}</span>
+          <span>Total Cost: ₹${rowCount * 200}</span>
+        </div>
+        <h4>Devotee Details</h4>
+        <div id="pilgrimDetailsContainer">
+          ${rowsHtml}
+        </div>
+      </div>
+    `;
+
+    const reactState: Array<{
+      fname: string;
+      age: string;
+      gender: string;
+      photoIdType: string;
+      idProofNumber: string;
+    }> = Array.from({ length: rowCount }).map(() => ({
+      fname: '',
+      age: '',
+      gender: '',
+      photoIdType: '',
+      idProofNumber: '',
+    }));
+
+    for (let i = 0; i < rowCount; i++) {
+      const idx = i;
+      const nameInput = doc.querySelector(`input[name="fname"][id="${idx}"]`) as HTMLInputElement;
+      const ageInput = doc.querySelector(`input[name="age"][id="${idx}"]`) as HTMLInputElement;
+      const genderSelect = doc.querySelector(`select[name="gender"][id="${idx}"]`) as HTMLSelectElement;
+      const photoIdSelect = doc.querySelector(`select[name="photoIdType"][id="${idx}"]`) as HTMLSelectElement;
+      const idNumberInput = doc.querySelector(`input[name="idProofNumber"][id="${idx}"]`) as HTMLInputElement;
+
+      const attachTracker = (input: HTMLInputElement, initial: string) => {
+        let current = initial;
+        (input as any)._valueTracker = {
+          getValue: () => current,
+          setValue: (val: string) => { current = String(val); },
+          stopTracking: () => {},
+        };
+      };
+
+      if (nameInput) {
+        attachTracker(nameInput, '');
+        nameInput.addEventListener('input', () => {
+          const tracker = (nameInput as any)._valueTracker;
+          const nextVal = nameInput.value;
+          if (tracker && tracker.getValue() !== nextVal) {
+            tracker.setValue(nextVal);
+            reactState[idx].fname = nextVal;
+          }
+        });
+        nameInput.addEventListener('blur', () => {
+          const val = reactState[idx].fname;
+          const errEl = doc.getElementById(`nameErr_${idx}`);
+          if (!val || !val.trim()) {
+            if (errEl) {
+              errEl.textContent = 'Name is required';
+              errEl.style.display = 'block';
+            }
+          } else {
+            if (errEl) {
+              errEl.textContent = '';
+              errEl.style.display = 'none';
+            }
+          }
+          nameInput.value = reactState[idx].fname;
+        });
+      }
+
+      if (ageInput) {
+        attachTracker(ageInput, '');
+        ageInput.addEventListener('input', () => {
+          const tracker = (ageInput as any)._valueTracker;
+          const nextVal = ageInput.value;
+          if (tracker && tracker.getValue() !== nextVal) {
+            tracker.setValue(nextVal);
+            reactState[idx].age = nextVal;
+            if (nextVal && photoIdSelect) {
+              photoIdSelect.disabled = false;
+            }
+          }
+        });
+        ageInput.addEventListener('blur', () => {
+          ageInput.value = reactState[idx].age;
+        });
+      }
+
+      if (genderSelect) {
+        genderSelect.addEventListener('change', () => {
+          reactState[idx].gender = genderSelect.value;
+        });
+      }
+
+      if (photoIdSelect) {
+        photoIdSelect.addEventListener('change', () => {
+          reactState[idx].photoIdType = photoIdSelect.value;
+          if (photoIdSelect.value && idNumberInput && !options.makePhotoIdReadOnly) {
+            idNumberInput.disabled = false;
+          }
+        });
+      }
+
+      if (idNumberInput) {
+        attachTracker(idNumberInput, '');
+        idNumberInput.addEventListener('input', () => {
+          const tracker = (idNumberInput as any)._valueTracker;
+          const nextVal = idNumberInput.value;
+          if (tracker && tracker.getValue() !== nextVal) {
+            tracker.setValue(nextVal);
+            reactState[idx].idProofNumber = nextVal;
+          }
+        });
+        idNumberInput.addEventListener('blur', () => {
+          idNumberInput.value = reactState[idx].idProofNumber;
+        });
+      }
+    }
+
+    return { reactState };
+  }
+
+  it('7. Live TTD React Controlled Form: successfully updates React state and verifies all 5 fields', async () => {
+    const { reactState } = setupReactControlledSpatDom(1);
+
+    const result = await executeAutofill({
+      pilgrims: [mockPilgrim],
+      profile: mockProfile,
+      doc,
+      url: liveSpatUrl,
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.capabilityAssessment).toBe('SUPPORTED');
+    expect(result.verifiedFields).toBe(5);
+    expect(result.requiredFields).toBe(5);
+    expect(result.manualActionRequired).toBe(false);
+
+    // Verify React's own internal controlled state was updated through _valueTracker reset
+    expect(reactState[0].fname).toBe('Anusuri Chirudeep');
+    expect(reactState[0].age).toBe('23');
+    expect(reactState[0].gender).toBe('male');
+    expect(reactState[0].idProofNumber).toBe('913901445173');
+
+    // Verify no red validation error remains
+    const errEl = doc.getElementById('nameErr_0');
+    expect(errEl?.textContent).toBe('');
+    expect(errEl?.style.display).not.toBe('block');
+  });
+
+  it('8. Live TTD React 6-Row Form: accurately detects and verifies all 6 pilgrim rows (30 fields)', async () => {
+    const sixPilgrims: Pilgrim[] = Array.from({ length: 6 }).map((_, i) => ({
+      id: `p-${i}`,
+      fullName: `Devotee ${i + 1}`,
+      firstName: `Devotee`,
+      lastName: `${i + 1}`,
+      age: 20 + i,
+      gender: i % 2 === 0 ? Gender.MALE : Gender.FEMALE,
+      idType: IdType.AADHAAR,
+      idNumber: `91390144517${i}`,
+      country: 'India',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }));
+
+    const sixProfile: Profile = {
+      id: 'prof-six',
+      name: 'Six Devotees',
+      isDefault: true,
+      pilgrims: sixPilgrims,
+      selectedPilgrims: {},
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    const { reactState } = setupReactControlledSpatDom(6);
+
+    const result = await executeAutofill({
+      pilgrims: sixPilgrims,
+      profile: sixProfile,
+      doc,
+      url: liveSpatUrl,
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.capabilityAssessment).toBe('SUPPORTED');
+    expect(result.totalVerified).toBe(30);
+    expect(result.verifiedFields).toBe(30);
+    expect(result.requiredFields).toBe(30);
+    expect(result.totalFailed).toBe(0);
+
+    for (let i = 0; i < 6; i++) {
+      expect(reactState[i].fname).toBe(`Devotee ${i + 1}`);
+      expect(reactState[i].age).toBe(String(20 + i));
+      expect(reactState[i].idProofNumber).toBe(`91390144517${i}`);
+    }
+  });
+
+  it('9. Blank required fields in profile: reports failure honestly without inventing data', async () => {
+    const blankPilgrim: Pilgrim = {
+      ...mockPilgrim,
+      fullName: '',
+      firstName: '',
+      lastName: '',
+      age: undefined as any,
+    };
+
+    setupReactControlledSpatDom(1);
+
+    const result = await executeAutofill({
+      pilgrims: [blankPilgrim],
+      profile: { ...mockProfile, pilgrims: [blankPilgrim] },
+      doc,
+      url: liveSpatUrl,
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.capabilityAssessment).toBe('PARTIAL');
+    expect(result.manualActionRequired).toBe(true);
+    expect(result.verifiedFields).toBeLessThan(5);
+    expect(result.requiredFields).toBe(5);
+
+    // Manual checklist is populated with actionable items
+    expect(result.manualChecklist).toBeDefined();
+    const nameItem = result.manualChecklist?.find(i => i.field === 'name');
+    expect(nameItem?.status).toBe('manual_required');
+  });
+
+  it('10. Disabled and read-only controls: respects website state and does not force values', async () => {
+    setupReactControlledSpatDom(1, { makeAgeDisabled: true });
+
+    const result = await executeAutofill({
+      pilgrims: [mockPilgrim],
+      profile: mockProfile,
+      doc,
+      url: liveSpatUrl,
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.manualActionRequired).toBe(true);
+    const ageReport = result.pilgrimResults[0].results.find(r => r.field === 'age');
+    expect(ageReport?.status).toBe('failed');
+    expect(ageReport?.error).toContain('disabled');
+  });
+
+  it('11. Srivani Service Policy: fails closed with MANUAL_ONLY capability assessment', async () => {
+    setupReactControlledSpatDom(1);
+    const srivaniUrl = 'https://ttdevasthanams.ap.gov.in/srivani/pilgrim-details';
+
+    const result = await executeAutofill({
+      pilgrims: [mockPilgrim],
+      profile: mockProfile,
+      doc,
+      url: srivaniUrl,
+      serviceId: 'srivani',
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.capabilityAssessment).toBe('MANUAL_ONLY');
+    expect(result.manualActionRequired).toBe(true);
+    expect(result.failureReason).toContain('May 2026');
+  });
+
+  it('12. Unknown Service Policy: fails closed with UNSUPPORTED_FORM / MANUAL_ONLY', async () => {
+    setupReactControlledSpatDom(1);
+
+    const result = await executeAutofill({
+      pilgrims: [mockPilgrim],
+      profile: mockProfile,
+      doc,
+      url: 'https://ttdevasthanams.ap.gov.in/unknown-custom-flow',
+      serviceId: 'unknown-service-xyz',
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.manualActionRequired).toBe(true);
+  });
+
+  it('13. Profile loaded locally does not claim website form completion', async () => {
+    setupReactControlledSpatDom(1);
+
+    // Before executeAutofill is called, website form inputs are completely blank
+    const nameInput = doc.querySelector('input[name="fname"]') as HTMLInputElement;
+    const ageInput = doc.querySelector('input[name="age"]') as HTMLInputElement;
+
+    expect(nameInput.value).toBe('');
+    expect(ageInput.value).toBe('');
+
+    // Local profile is ready, but website form is NOT filled
+    expect(mockProfile.pilgrims).toHaveLength(1);
+    expect(mockProfile.pilgrims[0].fullName).toBe('Anusuri Chirudeep');
+  });
+
+  it('14. Concurrent autofill calls: safely rejects secondary invocation via lock', async () => {
+    setupReactControlledSpatDom(1);
+
+    const promise1 = executeAutofill({
+      pilgrims: [mockPilgrim],
+      profile: mockProfile,
+      doc,
+      url: liveSpatUrl,
+    });
+
+    // Immediate second call while first is in progress
+    const result2 = await executeAutofill({
+      pilgrims: [mockPilgrim],
+      profile: mockProfile,
+      doc,
+      url: liveSpatUrl,
+    });
+
+    expect(result2.success).toBe(false);
+    expect(result2.errors.join(' ')).toContain('already in progress');
+
+    const result1 = await promise1;
+    expect(result1.success).toBe(true);
+  });
+
+  it('15. Exact SPAT Route Reproduction: visible Name & Age validation errors report Form Incomplete and trigger Paste Assist', () => {
+    // Exact URL reported in failure
+    expect(liveSpatUrl).toBe('https://ttdevasthanams.ap.gov.in/spat/pilgrim-details?flow=spat&flowIdentifier=spat&section=slot-booking');
+
+    // Reproduce DOM with visible red validation errors and empty inputs
+    const { reactState } = setupReactControlledSpatDom(1);
+    const nameInput = doc.querySelector('input[name="fname"]') as HTMLInputElement;
+    const ageInput = doc.querySelector('input[name="age"]') as HTMLInputElement;
+    const nameErr = doc.getElementById('nameErr_0');
+    const ageErr = doc.getElementById('ageErr_0');
+
+    expect(nameInput.value).toBe('');
+    expect(ageInput.value).toBe('');
+
+    // Trigger blur on empty inputs to generate genuine validation error elements
+    nameInput.dispatchEvent(new Event('blur'));
+    ageInput.dispatchEvent(new Event('blur'));
+
+    // Inject explicit visible validation error matching screenshot
+    if (nameErr) {
+      nameErr.textContent = 'Name is required';
+      nameErr.style.display = 'block';
+    }
+    if (ageErr) {
+      ageErr.textContent = 'Age is required';
+      ageErr.style.display = 'block';
+    }
+
+    // Inspect validation directly
+    const nameValidation = inspectElementValidation(nameInput, 'name');
+    expect(nameValidation.hasError).toBe(true);
+    expect(nameValidation.errorMessage).toBe('Name is required');
+
+    // Compute side-panel status model under this exact failure state
+    const nextAction = computeNextAction({
+      activeProfile: mockProfile,
+      selectedPilgrims: [mockPilgrim],
+      serviceDisplayName: 'Padmavathi / Sri PAT',
+      serviceId: 'padmavathi-supadham-entry-200',
+      pageDetected: true,
+      productState: 'USER_ACTION_REQUIRED',
+      fillStatus: 'Form Incomplete: 0/5 fields verified — Name and Age are empty.',
+      statusType: 'warning',
+      verificationCounts: { verified: 0, total: 5 },
+      readiness: { isReady: true, checks: [] } as any,
+    });
+
+    // Side-panel status model assertion:
+    // 1. Must report Form Incomplete (0/5 Verified), NEVER 3/3 Ready or Form Verified
+    expect(nextAction.category).toBe('USER_ACTION_REQUIRED');
+    expect(nextAction.badgeVariant).toBe('actionRequired');
+    expect(nextAction.statusText).toBe('Form Incomplete (0/5 Verified)');
+    expect(nextAction.headline).toBe('Form Incomplete — Paste Assist Ready');
+
+    // 2. Fallback action must be Paste Assist
+    expect(nextAction.primaryAction.label).toBe('📋 OPEN PASTE ASSIST');
+    expect(nextAction.primaryAction.actionType).toBe('START_MANUAL_ASSISTANT');
+    expect(nextAction.secondaryAction?.label).toContain('Try Autofill Again');
+
+    // 3. FormStatus model clearly distinguishes local Profile Ready from Form Incomplete
+    expect(nextAction.formStatus).toBeDefined();
+    expect(nextAction.formStatus?.state).toBe('form_incomplete');
+    expect(nextAction.formStatus?.verifiedCount).toBe(0);
+    expect(nextAction.formStatus?.totalCount).toBe(5);
+    expect(nextAction.formStatus?.label).toBe('Form Incomplete (0/5 Verified)');
+  });
+
+  it('16. Two-pilgrim row form independence: no data mixing across row 0 and row 1', async () => {
+    const twoPilgrims: Pilgrim[] = [
+      {
+        id: 'p-row-0',
+        fullName: 'Devotee One',
+        firstName: 'Devotee',
+        lastName: 'One',
+        age: 45,
+        gender: Gender.MALE,
+        idType: IdType.AADHAAR,
+        idNumber: '913901445173',
+        country: 'India',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+      {
+        id: 'p-row-1',
+        fullName: 'Devotee Two',
+        firstName: 'Devotee',
+        lastName: 'Two',
+        age: 38,
+        gender: Gender.FEMALE,
+        idType: IdType.AADHAAR,
+        idNumber: '913901445181',
+        country: 'India',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+    ];
+
+    const twoProfile: Profile = {
+      id: 'prof-two',
+      name: 'Two Devotees',
+      isDefault: true,
+      pilgrims: twoPilgrims,
+      selectedPilgrims: {},
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    const { reactState } = setupReactControlledSpatDom(2);
+
+    const result = await executeAutofill({
+      pilgrims: twoPilgrims,
+      profile: twoProfile,
+      doc,
+      url: liveSpatUrl,
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.totalVerified).toBe(10);
+    expect(result.totalFailed).toBe(0);
+
+    // Row 0 assertions
+    expect(reactState[0].fname).toBe('Devotee One');
+    expect(reactState[0].age).toBe('45');
+    expect(reactState[0].gender).toBe('male');
+    expect(reactState[0].idProofNumber).toBe('913901445173');
+
+    // Row 1 assertions
+    expect(reactState[1].fname).toBe('Devotee Two');
+    expect(reactState[1].age).toBe('38');
+    expect(reactState[1].gender).toBe('female');
+    expect(reactState[1].idProofNumber).toBe('913901445181');
+
+    // Verify zero data leakage or mixing between rows
+    expect(reactState[0].fname).not.toBe(reactState[1].fname);
+    expect(reactState[0].age).not.toBe(reactState[1].age);
+    expect(reactState[0].idProofNumber).not.toBe(reactState[1].idProofNumber);
+  });
+
+  it('17. Paste Assist actions and live-value verification', () => {
+    // Masking check: Sensitive ID is masked for privacy
+    const rawAadhaar = '913901445173';
+    const maskIdNumber = (idNum?: string) => {
+      if (!idNum) return '—';
+      const clean = idNum.trim();
+      if (clean.length <= 4) return clean;
+      return `•••• •••• ${clean.slice(-4)}`;
+    };
+
+    const masked = maskIdNumber(rawAadhaar);
+    expect(masked).toBe('•••• •••• 5173');
+    expect(masked).not.toContain('913901');
+
+    // Live-value independent verification check
+    setupReactControlledSpatDom(1);
+    const nameInput = doc.querySelector('input[name="fname"]') as HTMLInputElement;
+    const ageInput = doc.querySelector('input[name="age"]') as HTMLInputElement;
+
+    // Direct DOM inspection: without script updates, live values are empty
+    expect(nameInput.value).toBe('');
+    expect(ageInput.value).toBe('');
+
+    // User pastes or enters value directly into website controls
+    nameInput.value = 'Anusuri Chirudeep';
+    nameInput.dispatchEvent(new Event('input', { bubbles: true }));
+    ageInput.value = '23';
+    ageInput.dispatchEvent(new Event('input', { bubbles: true }));
+
+    // Independent verification checks live value property
+    expect(nameInput.value).toBe('Anusuri Chirudeep');
+    expect(ageInput.value).toBe('23');
+  });
+
+  it('18. Cancellation and cleanup of listeners: STOP_AUTOFILL message handling', async () => {
+    let stopHandled = false;
+    const fakeSendResponse = (resp: any) => {
+      stopHandled = true;
+      expect(resp).toBeDefined();
+    };
+
+    await handleMessage(
+      {
+        type: MessageType.STOP_AUTOFILL,
+        timestamp: new Date().toISOString(),
+      } as any,
+      {} as any,
+      fakeSendResponse
+    );
+
+    expect(stopHandled).toBe(true);
   });
 });

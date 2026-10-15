@@ -43,18 +43,42 @@ export const NextActionCard: React.FC<NextActionCardProps> = ({
       } ${className}`}
     >
       <div className="space-y-3.5">
-        {/* Status header with Badge */}
-        <div className="flex items-center justify-between">
+        {/* Status header with Badge and Status Indicators */}
+        <div className="flex items-center justify-between gap-2 flex-wrap">
           <Badge variant={badgeVariant} showDot size="md">
             {statusText}
           </Badge>
 
-          {badgeVariant === 'ready' && (
-            <span className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
-              <Icon name="check" size={12} />
-              Profile Ready
-            </span>
-          )}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {/* Local Profile Readiness Indicator */}
+            {(badgeVariant === 'ready' || badgeVariant === 'completed' || model.formStatus?.state === 'form_incomplete') && (
+              <span
+                id="sp-profile-ready-pill"
+                className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 flex items-center gap-1 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full border border-emerald-500/20"
+              >
+                <Icon name="check" size={11} />
+                Profile Ready
+              </span>
+            )}
+
+            {/* Live Website Form Status Indicator */}
+            {model.formStatus && model.formStatus.state !== 'profile_ready' && (
+              <span
+                id="sp-form-status-pill"
+                className={`text-[11px] font-semibold flex items-center gap-1 px-2 py-0.5 rounded-full border ${
+                  model.formStatus.state === 'form_verified'
+                    ? 'bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200 border-emerald-500/30'
+                    : 'bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-200 border-amber-500/30'
+                }`}
+              >
+                <Icon
+                  name={model.formStatus.state === 'form_verified' ? 'check' : 'alert-triangle'}
+                  size={11}
+                />
+                {model.formStatus.label}
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Big clean headline & human description */}

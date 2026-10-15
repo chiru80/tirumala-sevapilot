@@ -4,7 +4,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor, cleanup } from '@testing-library/react';
 import { saveSettings, getSettings } from '../../src/storage/repository';
 import { getLanguage, setLanguage, t } from '../../src/i18n/index';
-import { bootstrapPopup } from '../../src/popup/index';
+import { bootstrapPopup, resetPopupRoot } from '../../src/popup/index';
 
 const storageMap = new Map<string, any>();
 
@@ -47,6 +47,7 @@ const storageMap = new Map<string, any>();
 
 describe('Popup Language Initialization & Persistence', () => {
   beforeEach(() => {
+    resetPopupRoot();
     storageMap.clear();
     cleanup();
     document.body.innerHTML = '<div id="root"></div>';
@@ -54,6 +55,7 @@ describe('Popup Language Initialization & Persistence', () => {
   });
 
   afterEach(() => {
+    resetPopupRoot();
     cleanup();
   });
 

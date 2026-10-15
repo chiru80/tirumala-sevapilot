@@ -178,6 +178,12 @@ export async function executeAutofill(opts: AutofillOptions = {}): Promise<Autof
       success: false,
       state: 'ERROR',
       step: 'unknown',
+      capabilityAssessment: 'FAILED',
+      verifiedFields: 0,
+      requiredFields: pilgrims.length * 5,
+      manualActionRequired: true,
+      failureReason: 'Autofill already in progress. Wait for completion or press Stop.',
+      manualChecklist: [],
       pilgrimResults: [],
       generalResults: [],
       totalVerified: 0,
@@ -196,6 +202,12 @@ export async function executeAutofill(opts: AutofillOptions = {}): Promise<Autof
       success: false,
       state: 'ERROR',
       step: 'unknown',
+      capabilityAssessment: 'FAILED',
+      verifiedFields: 0,
+      requiredFields: pilgrims.length * 5,
+      manualActionRequired: true,
+      failureReason: `Maximum ${MAX_PILGRIMS} pilgrims supported in V1. Received ${pilgrims.length}. Please select 6 or fewer.`,
+      manualChecklist: [],
       pilgrimResults: [],
       generalResults: [],
       totalVerified: 0,
@@ -267,18 +279,26 @@ export async function executeAutofill(opts: AutofillOptions = {}): Promise<Autof
 
     if (isSrivani) {
       progress.state = 'ERROR';
-      progress.errors.push(
-        'Autofill and automated copy-paste are prohibited for Srivani bookings under TTD policy (May 2026). Please use the Manual-Entry Assistant.'
-      );
+      const msg = 'Autofill and automated copy-paste are prohibited for Srivani bookings under TTD policy (May 2026). Please use the Manual-Entry Assistant.';
+      progress.errors.push(msg);
       emit();
-      return buildResult(progress, 'unknown', startedAt);
+      const res = buildResult(progress, 'unknown', startedAt);
+      res.capabilityAssessment = 'MANUAL_ONLY';
+      res.manualActionRequired = true;
+      res.failureReason = msg;
+      return res;
     }
 
     if (requestedServiceId && !isServiceAutofillAllowed(requestedServiceId)) {
       progress.state = 'ERROR';
-      progress.errors.push('Service workflow not recognized or not authorized for autofill. Autofill is paused.');
+      const msg = 'Service workflow not recognized or not authorized for autofill. Autofill is paused.';
+      progress.errors.push(msg);
       emit();
-      return buildResult(progress, 'unknown', startedAt);
+      const res = buildResult(progress, 'unknown', startedAt);
+      res.capabilityAssessment = 'MANUAL_ONLY';
+      res.manualActionRequired = true;
+      res.failureReason = msg;
+      return res;
     }
 
     // CAPTCHA safety boundary (Priority 1 - Phase 6 Section 26)
@@ -2536,12 +2556,64 @@ function buildResult(
   const totalVerified = allResults.filter(r => r.status === 'verified').length;
   const totalFailed = allResults.filter(r => r.status === 'failed').length;
 
+  let requiredFields = 0;
+  if (step === 'pilgrim') {
+    requiredFields = progress.pilgrimResults.length * 5;
+  } else if (step === 'srivari_instructions') {
+    requiredFields = 1;
+  } else if (step === 'general') {
+    const generalStep = workflow?.steps?.find(s => s.stepType === 'GENERAL_DETAILS');
+    requiredFields = (generalStep?.requiredFields || REQUIRED_GENERAL_FIELDS).length;
+  } else {
+    requiredFields = allResults.length;
+  }
+
+  // Build manual checklist
+  const manualChecklist: Array<{
+    field: string;
+    fieldLabel: string;
+    pilgrimIndex?: number;
+    pilgrimName?: string;
+    status: 'verified' | 'manual_required';
+    value?: string;
+    reason?: string;
+  }> = [];
+
+  for (const pr of progress.pilgrimResults) {
+    for (const r of pr.results) {
+      manualChecklist.push({
+        field: r.field,
+        fieldLabel: getFieldLabel(r.field),
+        pilgrimIndex: r.pilgrimIndex,
+        pilgrimName: pr.pilgrimName,
+        status: r.status === 'verified' ? 'verified' : 'manual_required',
+        value: r.maskedValue,
+        reason: r.error,
+      });
+    }
+  }
+  for (const gr of progress.generalResults) {
+    manualChecklist.push({
+      field: gr.field,
+      fieldLabel: getFieldLabel(gr.field),
+      status: gr.status === 'verified' ? 'verified' : 'manual_required',
+      value: gr.maskedValue,
+      reason: gr.error,
+    });
+  }
+
   if (step === 'srivari_instructions') {
     const isComplete = progress.state === 'COMPLETE';
     return {
       success: isComplete,
       state: isComplete ? 'COMPLETE' : (progress.state === 'USER_ACTION_REQUIRED' ? 'USER_ACTION_REQUIRED' : 'PARTIAL_SUCCESS'),
       step: 'srivari_instructions',
+      capabilityAssessment: isComplete ? 'SUPPORTED' : 'PARTIAL',
+      verifiedFields: totalVerified,
+      requiredFields: 1,
+      manualActionRequired: !isComplete,
+      failureReason: !isComplete ? progress.errors[0] : undefined,
+      manualChecklist,
       pilgrimResults: progress.pilgrimResults,
       generalResults: progress.generalResults,
       totalVerified,
@@ -2561,6 +2633,12 @@ function buildResult(
       success: isEnrollmentSuccess,
       state: progress.state === 'USER_ACTION_REQUIRED' ? 'USER_ACTION_REQUIRED' : (isEnrollmentSuccess ? 'COMPLETE' : 'PARTIAL_SUCCESS'),
       step: 'srivari_enrollment',
+      capabilityAssessment: isEnrollmentSuccess ? 'SUPPORTED' : (totalVerified > 0 ? 'PARTIAL' : 'FAILED'),
+      verifiedFields: totalVerified,
+      requiredFields: allResults.length,
+      manualActionRequired: !isEnrollmentSuccess,
+      failureReason: !isEnrollmentSuccess ? (failedRequired[0]?.error || progress.errors[0]) : undefined,
+      manualChecklist,
       pilgrimResults: progress.pilgrimResults,
       generalResults: progress.generalResults,
       totalVerified,
@@ -2636,10 +2714,31 @@ function buildResult(
 
   const perfMetrics = profiler ? profiler.finish(isSuccess) : undefined;
 
+  let capabilityAssessment: import('./types').CapabilityAssessment = 'FAILED';
+  if (isSuccess) {
+    capabilityAssessment = 'SUPPORTED';
+  } else if (step === 'unknown') {
+    capabilityAssessment = 'UNSUPPORTED_FORM';
+  } else if (totalVerified > 0 && totalFailed > 0) {
+    capabilityAssessment = 'PARTIAL';
+  } else {
+    capabilityAssessment = 'FAILED';
+  }
+
+  const failureReason = !isSuccess
+    ? (errors[0] || (totalFailed > 0 ? `${totalFailed} required field(s) failed verification` : undefined))
+    : undefined;
+
   return {
     success: isSuccess,
     state: finalState,
     step,
+    capabilityAssessment,
+    verifiedFields: totalVerified,
+    requiredFields,
+    manualActionRequired: !isSuccess,
+    failureReason,
+    manualChecklist,
     pilgrimResults: progress.pilgrimResults,
     generalResults: progress.generalResults,
     totalVerified,

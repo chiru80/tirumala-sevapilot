@@ -25,12 +25,20 @@ export type NextActionCategory =
   | 'QUEUE_WAITING'
   | 'COMPLETED';
 
+export interface FormVerificationStatus {
+  state: 'profile_ready' | 'form_incomplete' | 'form_verified';
+  verifiedCount?: number;
+  totalCount?: number;
+  label: string;
+}
+
 export interface NextActionModel {
   category: NextActionCategory;
   badgeVariant: 'ready' | 'working' | 'actionRequired' | 'blocked' | 'completed' | 'neutral';
   statusText: string;
   headline: string;
   description: string;
+  formStatus?: FormVerificationStatus;
   primaryAction: {
     label: string;
     actionType: 'NAVIGATE_PROFILE' | 'OPEN_TTD' | 'TRIGGER_FILL' | 'START_MANUAL_ASSISTANT' | 'STOP' | 'RETRY_LOCK' | 'VIEW_HISTORY' | 'SELECT_PILGRIMS' | 'NONE';
@@ -40,7 +48,7 @@ export interface NextActionModel {
   };
   secondaryAction?: {
     label: string;
-    actionType: 'NAVIGATE_PROFILE' | 'STOP' | 'SELECT_PILGRIMS' | 'TEST_PROFILE' | 'VIEW_HISTORY' | 'RETRY_LOCK' | 'OPEN_TTD' | 'START_MANUAL_ASSISTANT' | 'NONE';
+    actionType: 'NAVIGATE_PROFILE' | 'STOP' | 'SELECT_PILGRIMS' | 'TEST_PROFILE' | 'VIEW_HISTORY' | 'RETRY_LOCK' | 'OPEN_TTD' | 'START_MANUAL_ASSISTANT' | 'TRIGGER_FILL' | 'NONE';
   };
   missingDetails?: string[];
   safetyNotice?: string;
@@ -53,11 +61,14 @@ export interface NextActionInput {
   serviceDisplayName: string;
   pageDetected: boolean;
   productState: ProductAutomationState;
-  fillStage?: { stage: string; currentField?: string; currentPilgrim?: number };
+  fillStage?: { stage: string; currentField?: string; currentPilgrim?: number; fieldsFilledCount?: number; fieldsDetectedCount?: number; validationComplete?: boolean };
   temporaryLock?: any;
   queueSession?: QueueSession | null;
   readiness: UseReadinessResult;
   userActionPrompt?: string;
+  fillStatus?: string | null;
+  statusType?: 'info' | 'success' | 'warning' | 'error' | null;
+  verificationCounts?: { verified: number; total: number } | null;
 }
 
 export function computeNextAction(input: NextActionInput): NextActionModel {
@@ -276,12 +287,20 @@ export function computeNextAction(input: NextActionInput): NextActionModel {
 
   // 7. Completed
   if (productState === 'COMPLETED') {
+    const verified = input.verificationCounts?.verified ?? (selectedPilgrims.length * 5);
+    const total = input.verificationCounts?.total ?? (selectedPilgrims.length * 5);
     return {
       category: 'COMPLETED',
       badgeVariant: 'completed',
-      statusText: t('nextAction.completedStatus') || 'Verified',
-      headline: t('nextAction.detailsVerified') || 'Details verified',
-      description: t('nextAction.reviewOnTtd') || 'Review all filled details on TTD before continuing to the next step.',
+      statusText: t('nextAction.formVerified') || 'Form Verified',
+      headline: t('nextAction.detailsVerified') || 'Form Verified',
+      description: t('nextAction.reviewOnTtd') || `All ${verified}/${total} required fields independently verified on TTD. Review all filled details before continuing to payment.`,
+      formStatus: {
+        state: 'form_verified',
+        verifiedCount: verified,
+        totalCount: total,
+        label: `Form Verified (${verified}/${total})`,
+      },
       primaryAction: {
         label: t('nextAction.reviewOnTtdBtn') || 'Review on TTD',
         actionType: 'OPEN_TTD',
@@ -290,11 +309,44 @@ export function computeNextAction(input: NextActionInput): NextActionModel {
     };
   }
 
-  // 8. User action required (Human-controlled boundary: CAPTCHA, OTP, payment)
-  if (productState === 'USER_ACTION_REQUIRED' && userActionPrompt) {
-    const isCaptcha = userActionPrompt.toLowerCase().includes('captcha');
-    const isOtp = userActionPrompt.toLowerCase().includes('otp');
-    const isPayment = userActionPrompt.toLowerCase().includes('payment');
+  // 8. User action required (Human-controlled boundary: CAPTCHA, OTP, payment, or Form Incomplete)
+  if (productState === 'USER_ACTION_REQUIRED') {
+    const prompt = userActionPrompt || input.fillStatus || '';
+    const isCaptcha = prompt.toLowerCase().includes('captcha');
+    const isOtp = prompt.toLowerCase().includes('otp');
+    const isPayment = prompt.toLowerCase().includes('payment');
+    const isFormIncomplete = prompt.toLowerCase().includes('incomplete') ||
+      prompt.toLowerCase().includes('paste assist') ||
+      prompt.toLowerCase().includes('manual entry') ||
+      prompt.toLowerCase().includes('fields verified') ||
+      (input.verificationCounts !== undefined && input.verificationCounts !== null && input.verificationCounts.verified < input.verificationCounts.total);
+
+    if (isFormIncomplete) {
+      const verified = input.verificationCounts?.verified ?? 0;
+      const total = input.verificationCounts?.total ?? (selectedPilgrims.length * 5);
+      return {
+        category: 'USER_ACTION_REQUIRED',
+        badgeVariant: 'actionRequired',
+        statusText: `Form Incomplete (${verified}/${total} Verified)`,
+        headline: 'Form Incomplete — Paste Assist Ready',
+        description: input.fillStatus || `Automated entry verified ${verified}/${total} fields. Use Paste Assist below to enter remaining details directly into website controls.`,
+        formStatus: {
+          state: 'form_incomplete',
+          verifiedCount: verified,
+          totalCount: total,
+          label: `Form Incomplete (${verified}/${total} Verified)`,
+        },
+        primaryAction: {
+          label: '📋 OPEN PASTE ASSIST',
+          actionType: 'START_MANUAL_ASSISTANT',
+          variant: 'gold',
+        },
+        secondaryAction: {
+          label: '⚡ Try Autofill Again',
+          actionType: 'TRIGGER_FILL',
+        },
+      };
+    }
 
     const desc = isCaptcha
       ? (t('safety.captchaUserAction') || 'Complete the CAPTCHA on TTD.')
@@ -302,7 +354,7 @@ export function computeNextAction(input: NextActionInput): NextActionModel {
       ? (t('safety.otpUserAction') || 'Enter the OTP sent to your phone on TTD.')
       : isPayment
       ? (t('safety.paymentUserAction') || 'Review payment and complete securely on TTD.')
-      : userActionPrompt;
+      : prompt;
 
     return {
       category: 'USER_ACTION_REQUIRED',
@@ -363,6 +415,12 @@ export function computeNextAction(input: NextActionInput): NextActionModel {
         description:
           t('nextAction.manualEntryDesc', { service: serviceDisplayName }) ||
           `TTD policy (May 2026) requires manual entry for ${serviceDisplayName}. Open the assistant to follow field-by-field guidance.`,
+        formStatus: {
+          state: 'form_incomplete',
+          verifiedCount: 0,
+          totalCount: selectedPilgrims.length * 5,
+          label: 'Manual Entry Required',
+        },
         primaryAction: {
           label: t('nextAction.openManualAssistant') || '📋 OPEN MANUAL ASSISTANT',
           actionType: 'START_MANUAL_ASSISTANT',
@@ -374,16 +432,27 @@ export function computeNextAction(input: NextActionInput): NextActionModel {
       };
     }
 
+    const totalFields = selectedPilgrims.length * 5;
     return {
       category: 'TTD_DETECTED',
       badgeVariant: 'ready',
       statusText: t('nextAction.pageReady') || 'Page Detected',
       headline: t('nextAction.bookingPageDetected') || 'Booking page detected',
       description: t('nextAction.detailsPreparedForService', { service: serviceDisplayName }) || `Your details are prepared to fill for ${serviceDisplayName}.`,
+      formStatus: {
+        state: 'form_incomplete',
+        verifiedCount: 0,
+        totalCount: totalFields,
+        label: `Form Incomplete (0/${totalFields} Verified)`,
+      },
       primaryAction: {
         label: t('nextAction.fillAndVerify') || '⚡ FILL & VERIFY',
         actionType: 'TRIGGER_FILL',
         variant: 'primary',
+      },
+      secondaryAction: {
+        label: 'Use Paste Assist',
+        actionType: 'START_MANUAL_ASSISTANT',
       },
     };
   }
@@ -398,6 +467,10 @@ export function computeNextAction(input: NextActionInput): NextActionModel {
       description:
         t('nextAction.openSrivaniDesc') ||
         'Open the official Srivani portal page to begin.',
+      formStatus: {
+        state: 'profile_ready',
+        label: 'Profile Ready',
+      },
       primaryAction: {
         label: t('nextAction.openTtdBooking') || 'OPEN TTD BOOKING',
         actionType: 'OPEN_TTD',
@@ -419,6 +492,10 @@ export function computeNextAction(input: NextActionInput): NextActionModel {
     statusText: t('nextAction.ready') || 'Ready',
     headline: t('nextAction.youAreReady') || "You're ready",
     description: t('nextAction.openSupportedTtdDesc') || 'Open a supported TTD booking page to start.',
+    formStatus: {
+      state: 'profile_ready',
+      label: 'Profile Ready',
+    },
     primaryAction: {
       label: t('nextAction.prepareBooking') || 'PREPARE BOOKING',
       actionType: 'NAVIGATE_PROFILE',

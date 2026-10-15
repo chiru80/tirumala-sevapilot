@@ -30,13 +30,17 @@ export const BookingReadinessSummary: React.FC<BookingReadinessSummaryProps> = (
             aria-hidden="true"
           />
           <span className="text-xs font-bold uppercase tracking-wider text-[#321B3F] dark:text-[#F8EFD8]">
-            {t('readiness.bookingReadiness') || 'Booking Readiness'}
+            {t('readiness.bookingReadiness') || 'Booking Readiness (Profile Checks)'}
           </span>
         </div>
 
         <Badge variant={isReady ? 'ready' : 'actionRequired'} size="sm">
-          {isReady ? `${passedChecks}/${totalChecks} Ready` : `${missingItems.length} Missing`}
+          {isReady ? `${passedChecks}/${totalChecks} Profile Ready` : `${missingItems.length} Missing`}
         </Badge>
+      </div>
+
+      <div className="text-[11px] text-[#6B5A70] dark:text-[#A692B4] italic">
+        Local profile readiness only. Website form verification is tracked on the live booking page.
       </div>
 
       {/* Service-aware Checklist Items */}
