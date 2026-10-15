@@ -543,6 +543,73 @@ export const CANONICAL_SRIVANI_TRUST: CanonicalServiceDefinition = {
   },
 };
 
+// 6. Service #6: Accommodation (Tirumala & Tirupati Rest Houses)
+export const CANONICAL_ACCOMMODATION: CanonicalServiceDefinition = {
+  serviceId: 'accommodation',
+  serviceName: 'Tirumala & Tirupati Accommodation',
+  displayName: 'Accommodation (Cottage / Room)',
+  serviceType: ServiceType.ACCOMMODATION,
+  workflowId: 'accommodation-v1',
+  workflowVersion: '1.0.0',
+  temple: 'Tirumala & Tirupati Rest Houses',
+  ticketPrice: 0,
+  minPilgrims: 1,
+  maxPilgrims: 4,
+  exactPilgrims: undefined,
+  hasGeneralDetailsStep: true,
+  automationPolicy: 'PERMITTED_USER_INITIATED',
+  policyNotice:
+    'Permitted user-initiated autofill for devotee details and contact information. Room selection and booking payment remain manual.',
+  fieldRules: {
+    pilgrimFields: {
+      name: 'REQUIRED',
+      age: 'REQUIRED',
+      gender: 'REQUIRED',
+      idProofType: 'REQUIRED',
+      idProofNumber: 'REQUIRED',
+      dateOfBirth: 'OPTIONAL',
+      mobile: 'OPTIONAL',
+    },
+    generalFields: {
+      email: 'REQUIRED',
+      city: 'REQUIRED',
+      state: 'REQUIRED',
+      country: 'REQUIRED',
+      pincode: 'REQUIRED',
+      mobile: 'REQUIRED',
+    },
+    prohibitedFields: ['otp', 'password', 'paymentMode', 'cvv', 'cardNumber'],
+    userControlledFields: ['declaration', 'roomSelection'],
+  },
+  requiredPilgrimFields: ['name', 'age', 'gender', 'idProofType', 'idProofNumber'],
+  optionalPilgrimFields: ['dateOfBirth', 'mobile'],
+  requiredGeneralFields: ['email', 'city', 'state', 'country', 'pincode', 'mobile'],
+  optionalGeneralFields: [],
+  userControlledFields: ['declaration', 'roomSelection'],
+  detect(url: string, doc: Document) {
+    let score = 0;
+    const lowerUrl = (url || '').toLowerCase();
+
+    if (
+      lowerUrl.includes('/accommodation') ||
+      lowerUrl.includes('flow=accommodation') ||
+      lowerUrl.includes('flow=rooms') ||
+      lowerUrl.includes('/cottage') ||
+      lowerUrl.includes('/resthouse')
+    ) {
+      score += 60;
+    }
+
+    const pageText = (doc.body?.innerText || doc.body?.textContent || '').toLowerCase();
+    if (pageText.includes('accommodation') || pageText.includes('cottage') || pageText.includes('rest house')) {
+      score += 40;
+    }
+
+    const confidence = Math.min(100, score);
+    return { matches: confidence >= 40, confidence };
+  },
+};
+
 // ─────────────────────────────────────────────────────────────
 // Registry State & Query Functions
 // ─────────────────────────────────────────────────────────────
@@ -553,6 +620,7 @@ const CANONICAL_SERVICES: CanonicalServiceDefinition[] = [
   CANONICAL_HOMAM_1600,
   CANONICAL_SRIVARI_SEVA,
   CANONICAL_SRIVANI_TRUST,
+  CANONICAL_ACCOMMODATION,
 ];
 
 /**
@@ -631,6 +699,18 @@ export function getCanonicalService(serviceIdOrType: string): CanonicalServiceDe
     id === ServiceType.SRIVANI
   ) {
     return CANONICAL_SRIVANI_TRUST;
+  }
+
+  // 6. Accommodation
+  if (
+    id === 'accommodation' ||
+    id === 'accommodation-v1' ||
+    id === 'room' ||
+    id === 'cottage' ||
+    id === 'resthouse' ||
+    id === ServiceType.ACCOMMODATION
+  ) {
+    return CANONICAL_ACCOMMODATION;
   }
 
   // Safe fallback by ServiceType enum if exact
@@ -723,6 +803,20 @@ export function resolveCanonicalService(
   ) {
     return {
       service: CANONICAL_SRIVANI_TRUST,
+      confidence: 100,
+      isUncertain: false,
+    };
+  }
+
+  // Route Dominance: Accommodation URLs strictly resolve to Accommodation
+  if (
+    lowerUrl.includes('/accommodation') ||
+    lowerUrl.includes('flow=accommodation') ||
+    lowerUrl.includes('flow=rooms') ||
+    lowerUrl.includes('/room-booking')
+  ) {
+    return {
+      service: CANONICAL_ACCOMMODATION,
       confidence: 100,
       isUncertain: false,
     };

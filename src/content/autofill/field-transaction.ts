@@ -53,28 +53,38 @@ export async function performTextTransaction(
 
   const trimmed = value.trim();
 
+  // Mobile 10-digit normalization: if target is a 10-digit mobile field but value has country code (+91 or 91)
+  let chosenValue = trimmed;
+  const isMobileField = (element.getAttribute('formcontrolname') || element.name || element.id || '').toLowerCase().includes('mobile')
+    || element.getAttribute('type') === 'tel';
+  if (isMobileField && element.maxLength === 10) {
+    const digits = trimmed.replace(/\D/g, '');
+    if (digits.length > 10 && digits.length <= 13) {
+      chosenValue = digits.slice(-10);
+    }
+  }
+
   // Check if element has an explicit pattern attribute and test conformity
   const patternAttr = element.getAttribute('pattern');
-  let chosenValue = trimmed;
 
   if (patternAttr) {
     try {
       const rx = new RegExp(`^(?:${patternAttr})$`);
-      if (rx.test(trimmed)) {
-        chosenValue = trimmed;
+      if (rx.test(chosenValue)) {
+        // chosenValue is valid
       } else {
-        const titleCased = trimmed.replace(/\b[a-z]/g, c => c.toUpperCase());
+        const titleCased = chosenValue.replace(/\b[a-z]/g, c => c.toUpperCase());
         if (rx.test(titleCased)) {
           chosenValue = titleCased;
         } else {
-          const upperCased = trimmed.toUpperCase();
+          const upperCased = chosenValue.toUpperCase();
           if (rx.test(upperCased)) {
             chosenValue = upperCased;
           }
         }
       }
     } catch {
-      // If pattern attribute is not a valid regex, continue with trimmed
+      // If pattern attribute is not a valid regex, continue with chosenValue
     }
   }
 
@@ -194,9 +204,9 @@ export async function performDropdownTransaction(
     }
   }
 
-  // Case 3: Angular Material / custom dropdown
+  // Case 3: Angular Material / PrimeNG / custom dropdown
   const triggerEl = control.querySelector<HTMLElement>(
-    '.mat-select-trigger, .mat-mdc-select-trigger, [role="combobox"], button'
+    '.mat-select-trigger, .mat-mdc-select-trigger, .p-dropdown-trigger, .p-dropdown, [role="combobox"], button'
   ) || control;
 
   triggerEl.focus();
@@ -211,10 +221,10 @@ export async function performDropdownTransaction(
   }
 
   // Also click container or chevron arrow if control is an input
-  const parentContainer = (control.closest('mat-form-field, .mat-form-field, .mat-mdc-form-field, .form-group, .field') as HTMLElement) || control.parentElement;
+  const parentContainer = (control.closest('mat-form-field, .mat-form-field, .mat-mdc-form-field, .form-group, .field, .p-field') as HTMLElement) || control.parentElement;
   if (parentContainer && parentContainer !== control && parentContainer !== triggerEl) {
     const arrow = parentContainer.querySelector<HTMLElement>(
-      '.mat-select-arrow, .mat-mdc-select-arrow, .mat-select-arrow-wrapper, svg, [class*="chevron"], [class*="arrow"], button'
+      '.mat-select-arrow, .mat-mdc-select-arrow, .mat-select-arrow-wrapper, .p-dropdown-trigger-icon, svg, [class*="chevron"], [class*="arrow"], button'
     );
     if (arrow) {
       arrow.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true, composed: true }));
@@ -234,6 +244,8 @@ export async function performDropdownTransaction(
       doc.querySelector('.mat-select-panel'),
       doc.querySelector('.mat-mdc-select-panel'),
       doc.querySelector('.cdk-overlay-pane'),
+      doc.querySelector('.p-dropdown-panel'),
+      doc.querySelector('.p-connected-overlay'),
       parentContainer,
       control.parentElement,
       doc.body,
@@ -242,7 +254,7 @@ export async function performDropdownTransaction(
     for (const root of searchRoots) {
       if (!root) continue;
       const overlayOptions = Array.from(root.querySelectorAll<HTMLElement>(
-        '[role="option"], mat-option, .mat-option, .mat-mdc-option, [role="listbox"] > *, .cdk-overlay-pane li, .cdk-overlay-container li, .dropdown-item, .dropdown-menu li, .ng-option, [class*="option"]'
+        '[role="option"], mat-option, .mat-option, .mat-mdc-option, [role="listbox"] > *, .cdk-overlay-pane li, .cdk-overlay-container li, .dropdown-item, .dropdown-menu li, .ng-option, .p-dropdown-item, .p-select-item, [class*="option"]'
       ));
       if (overlayOptions.length > 0) {
         const match = matchOverlayOption(overlayOptions, targetValue, fieldKey);
@@ -512,8 +524,8 @@ function matchOverlayOption(
   const isFemale = normTarget === 'female' || normTarget === 'f';
 
   return options.find(opt => {
-    const text = (opt.textContent || '').trim().toLowerCase();
-    const val = (opt.getAttribute('value') || opt.getAttribute('ng-reflect-value') || '').toLowerCase().trim();
+    const text = (opt.textContent || opt.getAttribute('ng-reflect-label') || opt.getAttribute('data-label') || opt.getAttribute('title') || '').trim().toLowerCase();
+    const val = (opt.getAttribute('value') || opt.getAttribute('ng-reflect-value') || opt.getAttribute('data-value') || '').toLowerCase().trim();
     if (isGender) {
       if (isMale) {
         if (text.includes('female') || val.includes('female')) return false;
